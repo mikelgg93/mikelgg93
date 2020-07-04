@@ -1,6 +1,9 @@
 ### Hi there 👋
+<div itemscope itemtype="https://schema.org/Person"><a itemprop="sameAs" content="https://orcid.org/0000-0001-7379-0080" href="https://orcid.org/0000-0001-7379-0080" target="orcid.widget" rel="me noopener noreferrer" style="vertical-align:top;"><img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width:1em;margin-right:.5em;" alt="ORCID iD icon"> Profile </a></div>
 
-<!--
+<!-- 
+https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en
+
 **mikelgg93/mikelgg93** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
 Here are some ideas to get you started:
