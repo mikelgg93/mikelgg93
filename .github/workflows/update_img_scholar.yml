@@ -17,9 +17,9 @@ jobs:
           pip install numpy seaborn beautifulsoup4 matplotlib requests
           python python ggscholar_graph.py --out "barplot" 
       
-      - name: Generate image
-        run: echo Hello, world!
+      #- name: Generate image
+      #  run: echo Hello, world!
           
       # Update Image ReadME
-      - name: Update Image - README
+      #- name: Update Image - README
 
