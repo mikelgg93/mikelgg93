@@ -1,6 +1,7 @@
 name: Update GScholar Citations Bar
 on:
-  #schedule:
+  schedule:
+   - cron: '0 08 */1 * *'
   workflow_dispatch:
 
 jobs:
