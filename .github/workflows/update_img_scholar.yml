@@ -1,0 +1,25 @@
+name: Update GScholar Citations Bar
+on:
+  workflow_dispatch:
+
+jobs:
+  updateImage:
+    name: Update profile image with newer citations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: |
+          python -m pip install --upgrade pip
+          pip install numpy seaborn beautifulsoup4 matplotlib
+          python
+      
+      - name: Generate image
+        run: echo Hello, world!
+          
+      # Update Image ReadME
+      - name: Update Image - README
+
