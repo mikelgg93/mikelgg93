@@ -5,13 +5,10 @@
 # Author: Miguel García García
 
 import seaborn as sns
-import requests
-from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import numpy as np
 import logging
 import asyncio
-import playwright
 
 logging.basicConfig(level=logging.INFO)
 
