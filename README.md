@@ -9,7 +9,12 @@
   <tr>
     <td width="60%">
       <h3>About me </h3>
-      <b>Hi there👋!</b><br> My name is Miguel García and I am a Product Specialist and Research Consultant at Pupil Labs 👁️‍🗨️.<br> Previously, I worked as an Academic Researcher 📚 at the University of Tübingen and as Early Stage Researcher at Carl Zeiss Vision.<br> I have a Ph.D. in Neuroscience where I look into myopia research, I did my bachelor and masters in Optics and Optometry.<br> I have experience programming with Matlab, Python, and C#
+      <p>
+        <b>Hi there👋!</b><br> My name is <b>Miguel García</b> and I am a Product Specialist and Research Consultant at Pupil Labs 👁️‍🗨️.<br>
+  Previously, I worked as an Academic Researcher 📚 at the University of Tübingen and as Early Stage Researcher at Carl Zeiss Vision in the framework of European Research Grants.<br>
+  I have a Ph.D. in Neuroscience where I focused on myopia research 👓, and previously I completed my bachelor's and master's degrees in Optics and Optometry 👁️.<br>
+  I have experience programming in Matlab, Python, and C# 🧑🏽‍💻, in the last years I have also gain an interest in AI/ML.
+</p>
     </td>
     <td width="40%">
       <h3>Cited by:</h3>
@@ -18,7 +23,7 @@
   </tr>
   <tr>
     <td width="60%">
-      .
+      <br>
     </td>
     <td width="40%">
       This graph is automatically updated every day, parsing Google Scholar and using Github Actions
