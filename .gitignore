@@ -44,5 +44,5 @@ yarn-error.log*
 next-env.d.ts
 
 components/data/RESUME.json
-environment.env
+*.env
 venv/

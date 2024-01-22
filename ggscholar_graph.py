@@ -13,8 +13,14 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from rich.logging import RichHandler
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format="%(message)s",
+    datefmt="[%X]",
+    level=logging.INFO,
+    handlers=[RichHandler(rich_tracebacks=True)],
+)
 
 
 async def playwright_getweb(
@@ -129,12 +135,14 @@ async def playwright_getweb(
                 og_images,
             )
         ]
-        publications_data = sorted([
-            paper
-            for paper in publications_data
-            if not (paper["year"] < "2022" and paper["citations"] == "")
+        publications_data = sorted(
+            [
+                paper
+                for paper in publications_data
+                if not (paper["year"] < "2022" and paper["citations"] == "")
             ],
-            key=lambda x: x["year"]
+            key=lambda x: x["year"],
+            reverse=True,
         )
         logging.info("Publications: " + str(publications_data))
 
@@ -203,7 +211,7 @@ async def ggscholar_scrap(ID="P1qW5Z0AAAAJ", type="profile", out_path=None):
     )
     with open(file_path, "w") as file:
         json.dump(combined_data, file, indent=4)
-
+    logging.info("Updated JSON")
     return
 
 
@@ -254,11 +262,12 @@ if __name__ == "__main__":
         default="P1qW5Z0AAAAJ",
         help="ID of the profile/paper in google scholar.",
     )
-    parser.add_argument("--out", type=str, default=None, help="Output path.")
+    parser.add_argument(
+        "--out", type=str, default="components/data", help="Output path."
+    )
     parser.add_argument("--type", choices=["profile", "paper"], default="profile")
     args = parser.parse_args()
     logging.info(
         f"Withdrawing the number of citations per year of the {args.type} {args.ID}"
     )
-    asyncio.run(ggscholar_scrap(args.ID, args.type, args.out))
     asyncio.run(ggscholar_scrap(args.ID, args.type, args.out))
