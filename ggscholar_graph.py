@@ -4,16 +4,30 @@
 # Returns: a graph with the year and the number of citations.
 # Author: Miguel García García
 
-import seaborn as sns
+import asyncio
+import json
+import logging
+import os
+from typing import Optional
+
 import matplotlib.pyplot as plt
 import numpy as np
-import logging
-import asyncio
+import seaborn as sns
 
 logging.basicConfig(level=logging.INFO)
 
 
-async def playwright_getweb(URL, div_base, div_year, div_citations, div_title=None):
+async def playwright_getweb(
+    URL: str,
+    div_base: str,
+    div_year: str,
+    div_citations: str,
+    div_title: Optional[str] = None,
+    article_title: Optional[str] = None,
+    article_links: Optional[str] = None,
+    article_citations: Optional[str] = None,
+    article_year: Optional[str] = None,
+):
     from playwright.async_api import async_playwright
 
     async with async_playwright() as p:
@@ -24,11 +38,103 @@ async def playwright_getweb(URL, div_base, div_year, div_citations, div_title=No
         # Get the citations per year
         base = await page.query_selector_all(div_base)
         years = await page.query_selector_all(div_year)
-        y = {i: await year.inner_text() for i, year in enumerate(years)}
+        y_values = {i: await year.inner_text() for i, year in enumerate(years)}
         citations = await page.query_selector_all(div_citations)
-        c = {i: await citation.inner_html() for i, citation in enumerate(citations)}
-        citations_per_year = {y[i]: c[i] for i in range(len(y))}
+        c_values = {
+            i: await citation.inner_html() for i, citation in enumerate(citations)
+        }
+        citations_per_year = [
+            {"year": y, "citations": c}
+            for y, c in zip(y_values.values(), c_values.values())
+        ]
         logging.info("Citations per year: " + str(citations_per_year))
+
+        # Get list of articles with title, citation and year.
+        at = await page.query_selector_all(article_title)
+        at_values = list(
+            {i: await at.inner_text() for i, at in enumerate(at)}.values()
+        )[2:]
+        at_values, au_values, details = zip(
+            *(
+                [
+                    (
+                        parts[0],
+                        parts[1] if len(parts) > 1 else "",
+                        parts[2] if len(parts) > 2 else "",
+                    )
+                    for parts in (value.split("\n", 2) for value in at_values)
+                ]
+            )
+        )
+        ac = await page.query_selector_all(article_citations)
+        ac_values = list(
+            {i: await ac.inner_text() for i, ac in enumerate(ac)}.values()
+        )[2:]
+        ay = await page.query_selector_all(article_year)
+        ay_values = list(
+            {i: await ay.inner_text() for i, ay in enumerate(ay)}.values()
+        )[2:]
+        al = await page.query_selector_all(article_links)
+        al_values = list(
+            {i: await al.get_attribute("href") for i, al in enumerate(al)}.values()
+        )
+        updated_urls, og_images = [], []
+        page_new = await browser.new_page()
+        for al in al_values:
+            await page_new.goto("https://scholar.google.com/" + al)
+            await page_new.content()
+            links = await page_new.query_selector_all(".gsc_oci_title_link")
+            for link in links:
+                href = await link.get_attribute("href")
+                if href:
+                    updated_urls.append(href)
+                    await page_new.goto(href)
+                    await page_new.content()
+                    og_image = await page_new.query_selector(
+                        'meta[property="og:image"]'
+                    )
+                    if og_image:
+                        content = await og_image.get_attribute("content")
+                        og_images.append(content)
+                    else:
+                        twitter_image = await page_new.query_selector(
+                            'meta[name="twitter:image"]'
+                        )
+                        if twitter_image:
+                            content = await twitter_image.get_attribute("content")
+                            og_images.append(content)
+                        else:
+                            og_images.append(None)
+                    break
+        await page_new.close()
+
+        # Merge
+        publications_data = [
+            {
+                "title": t,
+                "authors": a,
+                "details": d,
+                "citations": c,
+                "year": y,
+                "link": l,
+                "image": i,
+            }
+            for t, a, d, c, y, l, i in zip(
+                at_values,
+                au_values,
+                details,
+                ac_values,
+                ay_values,
+                updated_urls,
+                og_images,
+            )
+        ]
+        publications_data = [
+            paper
+            for paper in publications_data
+            if not (paper["year"] < "2022" and paper["citations"] == "")
+        ]
+        logging.info("Publications: " + str(publications_data))
 
         # Get the title of the paper if paper
         if div_title is not None:
@@ -39,7 +145,7 @@ async def playwright_getweb(URL, div_base, div_year, div_citations, div_title=No
         else:
             title = None
         await asyncio.sleep(1)  # Wait for 1 second
-    return citations_per_year, title
+    return citations_per_year, publications_data, title
 
 
 async def ggscholar_scrap(ID="P1qW5Z0AAAAJ", type="profile", out_path=None):
@@ -61,13 +167,36 @@ async def ggscholar_scrap(ID="P1qW5Z0AAAAJ", type="profile", out_path=None):
     years_class = ".gsc_g_t" if type == "profile" else ".gsc_oci_g_t"
     citations_class = ".gsc_g_al" if type == "profile" else ".gsc_oci_g_al"
     title_class = ".gsc_oci_title_link" if type == "paper" else None
-    citations_per_year, title = await playwright_getweb(
-        URL, base_class, years_class, citations_class, title_class
+    article_title = ".gsc_a_t" if type == "profile" else None
+    article_citations = ".gsc_a_c" if type == "profile" else None
+    article_year = ".gsc_a_y" if type == "profile" else None
+    article_links = ".gsc_a_at" if type == "profile" else None
+    citations_per_year, publications_data, title = await playwright_getweb(
+        URL,
+        base_class,
+        years_class,
+        citations_class,
+        title_class,
+        article_title,
+        article_links,
+        article_citations,
+        article_year,
     )
     if not citations_per_year or citations_per_year == []:
         logging.info("No data available")
     else:
         bar_plot(citations_per_year, title, out_path)
+
+    combined_data = {"perYear": citations_per_year, "articles": publications_data}
+    # Save as a file
+    file_path = (
+        os.path.join(out_path, "citations.json")
+        if out_path is not None
+        else os.path.join(os.curdir, "citations.json")
+    )
+    with open(file_path, "w") as file:
+        json.dump(combined_data, file, indent=4)
+
     return
 
 
@@ -88,8 +217,8 @@ def bar_plot(citations_per_year, title="", out_path=None):
     sns.set(style="ticks", color_codes=True)
     sns.set_context("notebook", font_scale=1)
     ax = sns.barplot(
-        x=np.fromiter(citations_per_year.keys(), dtype=int),
-        y=np.fromiter(citations_per_year.values(), dtype=int),
+        x=np.array([entry["year"] for entry in citations_per_year], dtype=int),
+        y=np.array([entry["citations"] for entry in citations_per_year], dtype=int),
         color="#777777",
     )
     ax.bar_label(ax.containers[0])
@@ -124,4 +253,5 @@ if __name__ == "__main__":
     logging.info(
         f"Withdrawing the number of citations per year of the {args.type} {args.ID}"
     )
+    asyncio.run(ggscholar_scrap(args.ID, args.type, args.out))
     asyncio.run(ggscholar_scrap(args.ID, args.type, args.out))

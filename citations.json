@@ -1,0 +1,146 @@
+{
+    "perYear": [
+        {
+            "year": "2016",
+            "citations": "1"
+        },
+        {
+            "year": "2017",
+            "citations": "3"
+        },
+        {
+            "year": "2018",
+            "citations": "4"
+        },
+        {
+            "year": "2019",
+            "citations": "20"
+        },
+        {
+            "year": "2020",
+            "citations": "16"
+        },
+        {
+            "year": "2021",
+            "citations": "12"
+        },
+        {
+            "year": "2022",
+            "citations": "39"
+        },
+        {
+            "year": "2023",
+            "citations": "33"
+        }
+    ],
+    "articles": [
+        {
+            "title": "Presence of melatonin in human tears",
+            "authors": "G Carracedo, C Carpena, P Concepci\u00f3n, V D\u00edaz, M Garc\u00eda-Garc\u00eda, ...",
+            "details": "Journal of optometry 10 (1), 3",
+            "citations": "34",
+            "year": "2017",
+            "link": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5219833/",
+            "image": "https://www.ncbi.nlm.nih.gov/corehtml/pmc/pmcgifs/pmc-card-share.jpg?_=0"
+        },
+        {
+            "title": "Dioptric defocus maps across the visual field for different indoor environments",
+            "authors": "MG Garc\u00eda, A Ohlendorf, F Schaeffel, S Wahl",
+            "details": "Biomedical Optics Express 9 (1), 347-359",
+            "citations": "22",
+            "year": "2018",
+            "link": "https://opg.optica.org/abstract.cfm?uri=boe-9-1-347",
+            "image": "https://opg.optica.org/getThumbnail.cfm?uri=boe-9-1-347&size=200&o=y"
+        },
+        {
+            "title": "The effect of the optical design of multifocal contact lenses on choroidal thickness",
+            "authors": "K Breher, M Garc\u00eda Garc\u00eda, A Ohlendorf, S Wahl",
+            "details": "PloS one 13 (11), e0207637",
+            "citations": "21",
+            "year": "2018",
+            "link": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0207637",
+            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0207637.g007&size=inline"
+        },
+        {
+            "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
+            "authors": "Y Sauer, A Sipatchin, S Wahl, M Garc\u00eda Garc\u00eda",
+            "details": "Virtual Reality 26 (3), 1089-1101",
+            "citations": "17",
+            "year": "2022",
+            "link": "https://link.springer.com/article/10.1007/s10055-021-00619-x",
+            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-021-00619-x/MediaObjects/10055_2021_619_Fig1_HTML.png"
+        },
+        {
+            "title": "A global approach to describe retinal defocus patterns",
+            "authors": "M Garc\u00eda Garc\u00eda, D Pusti, S Wahl, A Ohlendorf",
+            "details": "Plos one 14 (4), e0213574",
+            "citations": "15",
+            "year": "2019",
+            "link": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0213574",
+            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0213574.g007&size=inline"
+        },
+        {
+            "title": "To correct or not correct? Actual evidence, controversy and the questions that remain open",
+            "authors": "M Garc\u00eda Garc\u00eda, K Breher, A Ohlendorf, S Wahl",
+            "details": "Journal of Clinical Medicine 9 (6), 1975",
+            "citations": "6",
+            "year": "2020",
+            "link": "https://www.mdpi.com/2077-0383/9/6/1975",
+            "image": "https://pub.mdpi-res.com/jcm/jcm-09-01975/article_deploy/html/images/jcm-09-01975-g001-550.jpg?1594120265"
+        },
+        {
+            "title": "2-D Peripheral image quality metrics with different types of multifocal contact lenses",
+            "authors": "M Garc\u00eda Garc\u00eda, S Wahl, D Pusti, P Artal, A Ohlendorf",
+            "details": "Scientific Reports 9 (1), 18487",
+            "citations": "6",
+            "year": "2019",
+            "link": "https://www.nature.com/articles/s41598-019-54783-x",
+            "image": "https://media.springernature.com/m685/springer-static/image/art%3A10.1038%2Fs41598-019-54783-x/MediaObjects/41598_2019_54783_Fig1_HTML.png"
+        },
+        {
+            "title": "Target maintenance in gaming via saliency augmentation: an early-stage scotoma simulation study using virtual reality (VR)",
+            "authors": "A Sipatchin, M Garc\u00eda Garc\u00eda, S Wahl",
+            "details": "Applied Sciences 11 (15), 7164",
+            "citations": "5",
+            "year": "2021",
+            "link": "https://www.mdpi.com/2076-3417/11/15/7164",
+            "image": "https://pub.mdpi-res.com/applsci/applsci-11-07164/article_deploy/html/images/applsci-11-07164-g001-550.jpg?1627985585"
+        },
+        {
+            "title": "Application of Spatial Cues and Optical Distortions as Augmentations during Virtual Reality (VR) Gaming: The Multifaceted Effects of Assistance for Eccentric Viewing Training",
+            "authors": "A Sipatchin, M Garc\u00eda Garc\u00eda, Y Sauer, S Wahl",
+            "details": "International Journal of Environmental Research and Public Health 19 (15), 9571",
+            "citations": "1",
+            "year": "2022",
+            "link": "https://www.mdpi.com/1660-4601/19/15/9571",
+            "image": "https://pub.mdpi-res.com/ijerph/ijerph-19-09571/article_deploy/html/images/ijerph-19-09571-g001-550.jpg?1659939368"
+        },
+        {
+            "title": "Assistance for macular degeneration (MD): Different strategies for different augmentations",
+            "authors": "A Sipatchin, MG Garc\u00eda, S Wahl",
+            "details": "Investigative Ophthalmology & Visual Science 63 (7), 714\u2013F0442-714\u2013F0442",
+            "citations": "1",
+            "year": "2022",
+            "link": "https://iovs.arvojournals.org/article.aspx?articleid=2782035",
+            "image": null
+        },
+        {
+            "title": "Adaptation to geometrically skewed moving images: An asymmetrical effect on the double-drift illusion",
+            "authors": "MG Garcia, K Rifai, S Wahl, T Watson",
+            "details": "Vision Research 179, 75-84",
+            "citations": "1",
+            "year": "2021",
+            "link": "https://www.sciencedirect.com/science/article/pii/S0042698920301851",
+            "image": null
+        },
+        {
+            "title": "Virtual reality (VR) as a testing bench for consumer optical solutions: A machine learning approach (GBR) to visual comfort under simulated progressive addition lenses (PALS\u00a0\u2026",
+            "authors": "MG Garc\u00eda, Y Sauer, T Watson, S Wahl",
+            "details": "arXiv preprint arXiv:2207.06769",
+            "citations": "",
+            "year": "2022",
+            "link": "https://arxiv.org/abs/2207.06769",
+            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
+        }
+    ]
+}
