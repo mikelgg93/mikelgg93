@@ -129,11 +129,13 @@ async def playwright_getweb(
                 og_images,
             )
         ]
-        publications_data = [
+        publications_data = sorted([
             paper
             for paper in publications_data
             if not (paper["year"] < "2022" and paper["citations"] == "")
-        ]
+            ],
+            key=lambda x: x["year"]
+        )
         logging.info("Publications: " + str(publications_data))
 
         # Get the title of the paper if paper
@@ -185,7 +187,12 @@ async def ggscholar_scrap(ID="P1qW5Z0AAAAJ", type="profile", out_path=None):
     if not citations_per_year or citations_per_year == []:
         logging.info("No data available")
     else:
-        bar_plot(citations_per_year, title, out_path)
+        img_path = (
+            os.path.join(out_path, "barplot.png")
+            if out_path is not None
+            else os.path.join(os.curdir, "barplot.png")
+        )
+        bar_plot(citations_per_year, title, img_path)
 
     combined_data = {"perYear": citations_per_year, "articles": publications_data}
     # Save as a file

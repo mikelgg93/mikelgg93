@@ -18,14 +18,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy seaborn matplotlib playwright asyncio
           playwright install
-          python ggscholar_graph.py --out "barplot"
+          python ggscholar_graph.py --out "/app/components/data/"
 
       # Update Image ReadME
       - name: Update Image - README
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add barplot.png citations.json
+          git add /app/components/data/barplot.png /app/components/data/citations.json
           git diff-index --quiet HEAD || (git commit -a -m "Update Chart & Data" --allow-empty)
 
       - name: push changes
