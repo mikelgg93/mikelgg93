@@ -25,7 +25,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add /app/components/data/barplot.png /app/components/data/citations.json
+          git add /components/data/barplot.png /components/data/citations.json
           git diff-index --quiet HEAD || (git commit -a -m "Update Chart & Data" --allow-empty)
 
       - name: push changes

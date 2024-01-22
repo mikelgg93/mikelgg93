@@ -16,7 +16,7 @@
     </td>
     <td width="40%">
       <h3>Cited by:</h3>
-      <a href="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en"> <img src="/app/components/data/barplot.png" alt="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en" width="500"/></a>    
+      <a href="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en"> <img src="components/data/barplot.png" alt="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en" width="500"/></a>    
     </td>
   </tr>
   <tr>
