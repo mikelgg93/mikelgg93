@@ -88,6 +88,7 @@ async def playwright_getweb(
         page_new = await browser.new_page()
         for al in al_values:
             await page_new.goto("https://scholar.google.com/" + al)
+            await page.wait_for_load_state()
             await page_new.content()
             links = await page_new.query_selector_all(".gsc_oci_title_link")
             for link in links:
@@ -96,6 +97,7 @@ async def playwright_getweb(
                 if href:
                     updated_urls.append(href)
                     await tab.goto(href)
+                    await tab.wait_for_load_state()
                     await tab.content()
                     og_image = await page_new.query_selector(
                         'meta[property="og:image"]'
