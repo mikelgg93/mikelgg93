@@ -39,7 +39,7 @@ async def playwright_getweb(
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page()
-        await page.goto(URL, wait_until="networkidle", timeout=0)
+        await page.goto(URL)
         await page.content()
         # Get the citations per year
         base = await page.query_selector_all(div_base)
@@ -87,17 +87,16 @@ async def playwright_getweb(
         updated_urls, og_images = [], []
         page_new = await browser.new_page()
         for al in al_values:
-            await page_new.goto(
-                "https://scholar.google.com/" + al, wait_until="networkidle", timeout=0
-            )
+            await page_new.goto("https://scholar.google.com/" + al)
             await page_new.content()
             links = await page_new.query_selector_all(".gsc_oci_title_link")
             for link in links:
                 href = await link.get_attribute("href")
+                tab = await browser.new_page()
                 if href:
                     updated_urls.append(href)
-                    await page_new.goto(href, wait_until="networkidle", timeout=0)
-                    await page_new.content()
+                    await tab.goto(href)
+                    await tab.content()
                     og_image = await page_new.query_selector(
                         'meta[property="og:image"]'
                     )
@@ -113,6 +112,7 @@ async def playwright_getweb(
                             og_images.append(content)
                         else:
                             og_images.append(None)
+                    await tab.close()
                     break
         await page_new.close()
 
