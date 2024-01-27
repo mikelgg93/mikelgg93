@@ -18,7 +18,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy seaborn matplotlib playwright asyncio rich
           playwright install
-          python ggscholar_graph.py --out "/app/components/data/"
+          python ggscholar_graph.py --out "/components/data/"
 
       # Update Image ReadME
       - name: Update Image - README
