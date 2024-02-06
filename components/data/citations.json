@@ -39,6 +39,15 @@
     ],
     "articles": [
         {
+            "title": "Virtual reality (VR) as a testing bench for consumer optical solutions: a machine learning approach (GBR) to visual comfort under simulated progressive addition lenses (PALs\u00a0\u2026",
+            "authors": "M Garc\u00eda Garc\u00eda, Y Sauer, T Watson, S Wahl",
+            "details": "Virtual Reality 28 (1), 1-13",
+            "citations": "",
+            "year": "2024",
+            "link": "https://link.springer.com/article/10.1007/s10055-023-00894-w",
+            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
+        },
+        {
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
             "authors": "Y Sauer, A Sipatchin, S Wahl, M Garc\u00eda Garc\u00eda",
             "details": "Virtual Reality 26 (3), 1089-1101",
