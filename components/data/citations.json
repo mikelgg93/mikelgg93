@@ -45,7 +45,7 @@
             "citations": "",
             "year": "2024",
             "link": "https://link.springer.com/article/10.1007/s10055-023-00894-w",
-            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
+            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
         },
         {
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
@@ -54,7 +54,7 @@
             "citations": "18",
             "year": "2022",
             "link": "https://link.springer.com/article/10.1007/s10055-021-00619-x",
-            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-021-00619-x/MediaObjects/10055_2021_619_Fig1_HTML.png"
+            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0213574.g007&size=inline"
         },
         {
             "title": "Application of Spatial Cues and Optical Distortions as Augmentations during Virtual Reality (VR) Gaming: The Multifaceted Effects of Assistance for Eccentric Viewing Training",
@@ -63,7 +63,7 @@
             "citations": "1",
             "year": "2022",
             "link": "https://www.mdpi.com/1660-4601/19/15/9571",
-            "image": "https://pub.mdpi-res.com/ijerph/ijerph-19-09571/article_deploy/html/images/ijerph-19-09571-g001-550.jpg?1659939368"
+            "image": null
         },
         {
             "title": "Assistance for macular degeneration (MD): Different strategies for different augmentations",
@@ -81,7 +81,7 @@
             "citations": "",
             "year": "2022",
             "link": "https://arxiv.org/abs/2207.06769",
-            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
+            "image": null
         },
         {
             "title": "Target maintenance in gaming via saliency augmentation: an early-stage scotoma simulation study using virtual reality (VR)",
@@ -90,7 +90,7 @@
             "citations": "5",
             "year": "2021",
             "link": "https://www.mdpi.com/2076-3417/11/15/7164",
-            "image": "https://pub.mdpi-res.com/applsci/applsci-11-07164/article_deploy/html/images/applsci-11-07164-g001-550.jpg?1627985585"
+            "image": "https://pub.mdpi-res.com/ijerph/ijerph-19-09571/article_deploy/html/images/ijerph-19-09571-g001-550.jpg?1659939368"
         },
         {
             "title": "Adaptation to geometrically skewed moving images: An asymmetrical effect on the double-drift illusion",
@@ -99,7 +99,7 @@
             "citations": "1",
             "year": "2021",
             "link": "https://www.sciencedirect.com/science/article/pii/S0042698920301851",
-            "image": null
+            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
         },
         {
             "title": "To correct or not correct? Actual evidence, controversy and the questions that remain open",
@@ -108,7 +108,7 @@
             "citations": "6",
             "year": "2020",
             "link": "https://www.mdpi.com/2077-0383/9/6/1975",
-            "image": "https://pub.mdpi-res.com/jcm/jcm-09-01975/article_deploy/html/images/jcm-09-01975-g001-550.jpg?1594120265"
+            "image": "https://media.springernature.com/m685/springer-static/image/art%3A10.1038%2Fs41598-019-54783-x/MediaObjects/41598_2019_54783_Fig1_HTML.png"
         },
         {
             "title": "A global approach to describe retinal defocus patterns",
@@ -117,7 +117,7 @@
             "citations": "15",
             "year": "2019",
             "link": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0213574",
-            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0213574.g007&size=inline"
+            "image": "https://pub.mdpi-res.com/jcm/jcm-09-01975/article_deploy/html/images/jcm-09-01975-g001-550.jpg?1594120265"
         },
         {
             "title": "2-D Peripheral image quality metrics with different types of multifocal contact lenses",
@@ -126,7 +126,7 @@
             "citations": "6",
             "year": "2019",
             "link": "https://www.nature.com/articles/s41598-019-54783-x",
-            "image": "https://media.springernature.com/m685/springer-static/image/art%3A10.1038%2Fs41598-019-54783-x/MediaObjects/41598_2019_54783_Fig1_HTML.png"
+            "image": "https://pub.mdpi-res.com/applsci/applsci-11-07164/article_deploy/html/images/applsci-11-07164-g001-550.jpg?1627985585"
         },
         {
             "title": "The effect of the optical design of multifocal contact lenses on choroidal thickness",
@@ -144,7 +144,7 @@
             "citations": "22",
             "year": "2018",
             "link": "https://opg.optica.org/abstract.cfm?uri=boe-9-1-347",
-            "image": "https://opg.optica.org/getThumbnail.cfm?uri=boe-9-1-347&size=200&o=y"
+            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-021-00619-x/MediaObjects/10055_2021_619_Fig1_HTML.png"
         },
         {
             "title": "Presence of melatonin in human tears",
