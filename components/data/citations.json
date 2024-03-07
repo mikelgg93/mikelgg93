@@ -45,7 +45,7 @@
             "citations": "",
             "year": "2024",
             "link": "https://link.springer.com/article/10.1007/s10055-023-00894-w",
-            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
+            "image": null
         },
         {
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
@@ -63,7 +63,7 @@
             "citations": "2",
             "year": "2022",
             "link": "https://www.mdpi.com/1660-4601/19/15/9571",
-            "image": "https://pub.mdpi-res.com/ijerph/ijerph-19-09571/article_deploy/html/images/ijerph-19-09571-g001-550.jpg?1659939368"
+            "image": null
         },
         {
             "title": "Assistance for macular degeneration (MD): Different strategies for different augmentations",
@@ -99,7 +99,7 @@
             "citations": "1",
             "year": "2021",
             "link": "https://www.sciencedirect.com/science/article/pii/S0042698920301851",
-            "image": null
+            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
         },
         {
             "title": "To correct or not correct? Actual evidence, controversy and the questions that remain open",
@@ -135,7 +135,7 @@
             "citations": "1",
             "year": "2019",
             "link": "https://iovs.arvojournals.org/article.aspx?articleid=2746502",
-            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
+            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
         },
         {
             "title": "The effect of the optical design of multifocal contact lenses on choroidal thickness",
