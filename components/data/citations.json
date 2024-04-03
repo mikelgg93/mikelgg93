@@ -45,7 +45,7 @@
             "citations": "",
             "year": "2024",
             "link": "https://link.springer.com/article/10.1007/s10055-023-00894-w",
-            "image": null
+            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
         },
         {
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
@@ -81,7 +81,7 @@
             "citations": "",
             "year": "2022",
             "link": "https://arxiv.org/abs/2207.06769",
-            "image": null
+            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
         },
         {
             "title": "Target maintenance in gaming via saliency augmentation: an early-stage scotoma simulation study using virtual reality (VR)",
@@ -135,7 +135,7 @@
             "citations": "1",
             "year": "2019",
             "link": "https://iovs.arvojournals.org/article.aspx?articleid=2746502",
-            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
+            "image": null
         },
         {
             "title": "The effect of the optical design of multifocal contact lenses on choroidal thickness",
