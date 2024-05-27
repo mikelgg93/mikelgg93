@@ -34,7 +34,7 @@
         },
         {
             "year": "2024",
-            "citations": "14"
+            "citations": "15"
         }
     ],
     "articles": [
@@ -45,7 +45,7 @@
             "citations": "",
             "year": "2024",
             "link": "https://link.springer.com/article/10.1007/s10055-023-00894-w",
-            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
+            "image": null
         },
         {
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
@@ -66,21 +66,21 @@
             "image": "https://pub.mdpi-res.com/ijerph/ijerph-19-09571/article_deploy/html/images/ijerph-19-09571-g001-550.jpg?1659939368"
         },
         {
+            "title": "Virtual reality (VR) as a testing bench for consumer optical solutions: A machine learning approach (GBR) to visual comfort under simulated progressive addition lenses (PALS\u00a0\u2026",
+            "authors": "MG Garc\u00eda, Y Sauer, T Watson, S Wahl",
+            "details": "arXiv preprint arXiv:2207.06769",
+            "citations": "1",
+            "year": "2022",
+            "link": "https://arxiv.org/abs/2207.06769",
+            "image": "/static/browse/0.3.4/images/arxiv-logo-fb.png"
+        },
+        {
             "title": "Assistance for macular degeneration (MD): Different strategies for different augmentations",
             "authors": "A Sipatchin, MG Garc\u00eda, S Wahl",
             "details": "Investigative Ophthalmology & Visual Science 63 (7), 714\u2013F0442-714\u2013F0442",
             "citations": "1",
             "year": "2022",
             "link": "https://iovs.arvojournals.org/article.aspx?articleid=2782035",
-            "image": null
-        },
-        {
-            "title": "Virtual reality (VR) as a testing bench for consumer optical solutions: A machine learning approach (GBR) to visual comfort under simulated progressive addition lenses (PALS\u00a0\u2026",
-            "authors": "MG Garc\u00eda, Y Sauer, T Watson, S Wahl",
-            "details": "arXiv preprint arXiv:2207.06769",
-            "citations": "",
-            "year": "2022",
-            "link": "https://arxiv.org/abs/2207.06769",
             "image": null
         },
         {
