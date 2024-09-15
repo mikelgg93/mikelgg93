@@ -34,7 +34,7 @@
         },
         {
             "year": "2024",
-            "citations": "21"
+            "citations": "22"
         }
     ],
     "articles": [
@@ -51,7 +51,7 @@
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
             "authors": "Y Sauer, A Sipatchin, S Wahl, M Garc\u00eda Garc\u00eda",
             "details": "Virtual Reality 26 (3), 1089-1101",
-            "citations": "25",
+            "citations": "26",
             "year": "2022",
             "link": "https://link.springer.com/article/10.1007/s10055-021-00619-x",
             "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-021-00619-x/MediaObjects/10055_2021_619_Fig1_HTML.png"
@@ -72,15 +72,6 @@
             "citations": "1",
             "year": "2022",
             "link": "https://iovs.arvojournals.org/article.aspx?articleid=2782035",
-            "image": null
-        },
-        {
-            "title": "Virtual reality (VR) as a testing bench for consumer optical solutions: A machine learning approach (GBR) to visual comfort under simulated progressive addition lenses (PALS\u00a0\u2026",
-            "authors": "MG Garc\u00eda, Y Sauer, T Watson, S Wahl",
-            "details": "arXiv preprint arXiv:2207.06769",
-            "citations": "",
-            "year": "2022",
-            "link": "https://ub01.uni-tuebingen.de/xmlui/handle/10900/120686",
             "image": null
         },
         {
