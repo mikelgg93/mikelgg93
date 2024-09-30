@@ -34,7 +34,7 @@
         },
         {
             "year": "2024",
-            "citations": "25"
+            "citations": "26"
         }
     ],
     "articles": [
@@ -153,7 +153,7 @@
             "citations": "23",
             "year": "2018",
             "link": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0207637",
-            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0207637.g007&size=inline"
+            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0213574.g007&size=inline"
         },
         {
             "title": "Presence of melatonin in human tears",
@@ -168,10 +168,10 @@
             "title": "Dioptric defocus maps across the visual field for different indoor environments",
             "authors": "MG Garc\u00eda, A Ohlendorf, F Schaeffel, S Wahl",
             "details": "Biomedical Optics Express 9 (1), 347-359",
-            "citations": "23",
+            "citations": "24",
             "year": "2017",
             "link": "https://opg.optica.org/abstract.cfm?uri=boe-9-1-347",
-            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0213574.g007&size=inline"
+            "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0207637.g007&size=inline"
         }
     ]
 }
