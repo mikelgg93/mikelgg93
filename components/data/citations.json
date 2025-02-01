@@ -34,7 +34,11 @@
         },
         {
             "year": "2024",
-            "citations": "40"
+            "citations": "39"
+        },
+        {
+            "year": "2025",
+            "citations": "1"
         }
     ],
     "articles": [
@@ -51,7 +55,7 @@
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
             "authors": "Y Sauer, A Sipatchin, S Wahl, M Garc\u00eda Garc\u00eda",
             "details": "Virtual Reality 26 (3), 1089-1101",
-            "citations": "33",
+            "citations": "34",
             "year": "2022",
             "link": "https://link.springer.com/article/10.1007/s10055-021-00619-x",
             "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-021-00619-x/MediaObjects/10055_2021_619_Fig1_HTML.png"
@@ -168,7 +172,7 @@
             "title": "Presence of melatonin in human tears",
             "authors": "G Carracedo, C Carpena, P Concepci\u00f3n, V D\u00edaz, M Garc\u00eda-Garc\u00eda, ...",
             "details": "Journal of optometry 10 (1), 3",
-            "citations": "39",
+            "citations": "38",
             "year": "2016",
             "link": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5219833/",
             "image": null
