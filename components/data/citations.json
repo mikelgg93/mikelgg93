@@ -34,19 +34,11 @@
         },
         {
             "year": "2024",
-<<<<<<< HEAD
             "citations": "39"
         },
         {
             "year": "2025",
             "citations": "7"
-=======
-            "citations": "38"
-        },
-        {
-            "year": "2025",
-            "citations": "9"
->>>>>>> 9c9999f (fix(data): update citation counts and add new entry)
         }
     ],
     "articles": [
@@ -57,21 +49,13 @@
             "citations": "2",
             "year": "2024",
             "link": "https://link.springer.com/article/10.1007/s10055-023-00894-w",
-<<<<<<< HEAD
             "image": "https://pub.mdpi-res.com/ijerph/ijerph-19-09571/article_deploy/html/images/ijerph-19-09571-g001-550.jpg?1659939368"
-=======
-            "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-023-00894-w/MediaObjects/10055_2023_894_Fig1_HTML.png"
->>>>>>> 9c9999f (fix(data): update citation counts and add new entry)
         },
         {
             "title": "Assessment of consumer VR-headsets\u2019 objective and subjective field of view (FoV) and its feasibility for visual field testing",
             "authors": "Y Sauer, A Sipatchin, S Wahl, M Garc\u00eda Garc\u00eda",
             "details": "Virtual Reality 26 (3), 1089-1101",
-<<<<<<< HEAD
             "citations": "36",
-=======
-            "citations": "37",
->>>>>>> 9c9999f (fix(data): update citation counts and add new entry)
             "year": "2022",
             "link": "https://link.springer.com/article/10.1007/s10055-021-00619-x",
             "image": "https://static-content.springer.com/image/art%3A10.1007%2Fs10055-021-00619-x/MediaObjects/10055_2021_619_Fig1_HTML.png"
@@ -182,11 +166,7 @@
             "citations": "31",
             "year": "2017",
             "link": "https://opg.optica.org/abstract.cfm?uri=boe-9-1-347",
-<<<<<<< HEAD
             "image": "https://journals.plos.org/plosone/article/figure/image?id=10.1371/journal.pone.0207637.g007&size=inline"
-=======
-            "image": null
->>>>>>> 9c9999f (fix(data): update citation counts and add new entry)
         },
         {
             "title": "Presence of melatonin in human tears",
