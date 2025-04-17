@@ -1,7 +1,7 @@
 <a href="https://orcid.org/0000-0001-7379-0080">![Orcid](https://img.shields.io/static/v1?label=&message=ORCID%20Profile&color=grey&logo=ORCID&labelColor=A6CE39&logoColor=white)</a>
 <a href="https://scholar.google.es/citations?hl=en&pli=1&user=P1qW5Z0AAAAJ">![Google Scholar](https://img.shields.io/static/v1?label=&message=Google%20Scholar%20Profile&color=grey&logo=GoogleScholar&labelColor=4285F4&logoColor=white)</a>
 <a href="https://www.linkedin.com/in/mikegarciagarcia/">![LinkedIN](https://img.shields.io/static/v1?label=&message=mikegarciagarcia&color=grey&logo=LinkedIN&labelColor=0A66C2&logoColor=white)</a>
-<a href="https://twitter.com/mikelgg93">![Twitter](https://img.shields.io/static/v1?label=&message=@mikelgg93&color=grey&logo=Twitter&labelColor=1DA1F2&logoColor=white)</a>
+<a href="https://twitter.com/mikelgg93">![Twitter](https://img.shields.io/static/v1?label=&message=@mikelgg93&color=grey&logo=x&labelColor=1DA1F2&logoColor=white)</a>
 
 <table>
   <tr>
