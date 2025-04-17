@@ -1,14 +1,23 @@
-# Python 3.10
-# Function to scrap from the web the number of citations per year of a paper in google scholar.
-# URL: URL of the paper or author in google scholar.
-# Returns: a graph with the year and the number of citations.
-# Author: Miguel García García
+# /// script
+# title = "Google Scholar Graph"
+# description = "Scrap from the google Scholar the number of citations per year"
+# author = "Miguel García García"
+# requires-python = ">=3.12"
+# dependencies = [
+#     "asyncio",
+#     "matplotlib",
+#     "numpy",
+#     "playwright",
+#     "rich",
+#     "seaborn",
+# ]
+# ///
 
 import asyncio
 import json
 import logging
+import operator
 import os
-from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,11 +37,11 @@ async def playwright_getweb(
     div_base: str,
     div_year: str,
     div_citations: str,
-    div_title: Optional[str] = None,
-    article_title: Optional[str] = None,
-    article_links: Optional[str] = None,
-    article_citations: Optional[str] = None,
-    article_year: Optional[str] = None,
+    div_title: str | None = None,
+    article_title: str | None = None,
+    article_links: str | None = None,
+    article_citations: str | None = None,
+    article_year: str | None = None,
 ):
     from playwright.async_api import async_playwright
 
@@ -42,7 +51,7 @@ async def playwright_getweb(
         await page.goto(URL)
         await page.content()
         # Get the citations per year
-        base = await page.query_selector_all(div_base)
+        await page.query_selector_all(div_base)
         years = await page.query_selector_all(div_year)
         y_values = {i: await year.inner_text() for i, year in enumerate(years)}
         citations = await page.query_selector_all(div_citations)
@@ -51,7 +60,7 @@ async def playwright_getweb(
         }
         citations_per_year = [
             {"year": y, "citations": c}
-            for y, c in zip(y_values.values(), c_values.values())
+            for y, c in zip(y_values.values(), c_values.values(), strict=False)
         ]
         logging.info("Citations per year: " + str(citations_per_year))
 
@@ -61,16 +70,15 @@ async def playwright_getweb(
             {i: await at.inner_text() for i, at in enumerate(at)}.values()
         )[2:]
         at_values, au_values, details = zip(
-            *(
-                [
-                    (
-                        parts[0],
-                        parts[1] if len(parts) > 1 else "",
-                        parts[2] if len(parts) > 2 else "",
-                    )
-                    for parts in (value.split("\n", 2) for value in at_values)
-                ]
-            )
+            *([
+                (
+                    parts[0],
+                    parts[1] if len(parts) > 1 else "",
+                    parts[2] if len(parts) > 2 else "",
+                )
+                for parts in (value.split("\n", 2) for value in at_values)
+            ]),
+            strict=False,
         )
         ac = await page.query_selector_all(article_citations)
         ac_values = list(
@@ -97,7 +105,7 @@ async def playwright_getweb(
                     try:
                         await page_new.goto(href)
                         await page_new.wait_for_load_state()
-                        asyncio.sleep(0.5)
+                        await asyncio.sleep(0.5)
                         await page_new.content()
                     except Exception:
                         break
@@ -138,6 +146,7 @@ async def playwright_getweb(
                 ay_values,
                 updated_urls,
                 og_images,
+                strict=False,
             )
         ]
         publications_data = sorted(
@@ -146,7 +155,7 @@ async def playwright_getweb(
                 for paper in publications_data
                 if not (paper["year"] < "2022" and paper["citations"] == "")
             ],
-            key=lambda x: x["year"],
+            key=operator.itemgetter("year"),
             reverse=True,
         )
         logging.info("Publications: " + str(publications_data))
@@ -222,13 +231,9 @@ async def ggscholar_scrap(ID="P1qW5Z0AAAAJ", type="profile", out_path=None):
 
 def make_a_list(years, citations):
     # Get the years from histogram
-    years_list = []
-    for year in years:
-        years_list.append(int(year.text))
+    years_list = [int(year.text) for year in years]
     # Get the citations from histogram
-    citations_list = []
-    for citation in citations:
-        citations_list.append(int(citation.text))
+    citations_list = [int(citation.text) for citation in citations]
     return (years_list, citations_list)
 
 
@@ -259,7 +264,10 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Scrap the number of citations per year of a profile/paper in google scholar."
+        description=(
+            "Scrap the number of citations per year of a profile/paper in "
+            "Google Scholar."
+        )
     )
     parser.add_argument(
         "--ID",
