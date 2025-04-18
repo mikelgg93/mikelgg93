@@ -1,7 +1,7 @@
 name: Update GScholar Citations Bar
 on:
   schedule:
-    - cron: "0 08 */1 * *"
+    - cron: "0 08 * * 1"
   workflow_dispatch:
 
 env:
@@ -24,10 +24,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Dependencies
+      - name: Install Dependencies & Run Script
         run: |
           uv pip install --upgrade pip
-          uv pip install numpy seaborn matplotlib playwright asyncio rich
+          uv pip install -r requirements.txt
           playwright install
           python ggscholar_graph.py --out "${{ github.workspace }}/components/data/"
 

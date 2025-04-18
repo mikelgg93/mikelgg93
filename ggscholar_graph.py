@@ -4,10 +4,13 @@
 # author = "Miguel García García"
 # requires-python = ">=3.12"
 # dependencies = [
+#     "pip",
+#     "setuptools",
 #     "asyncio",
 #     "matplotlib",
 #     "numpy",
 #     "playwright",
+#     "playwright-stealth",
 #     "rich",
 #     "seaborn",
 # ]
@@ -22,6 +25,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from playwright.async_api import async_playwright
+from playwright_stealth import stealth_async
 from rich.logging import RichHandler
 
 logging.basicConfig(
@@ -43,11 +48,10 @@ async def playwright_getweb(
     article_citations: str | None = None,
     article_year: str | None = None,
 ):
-    from playwright.async_api import async_playwright
-
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page()
+        await stealth_async(page)
         await page.goto(URL)
         await page.content()
         # Get the citations per year
@@ -55,6 +59,9 @@ async def playwright_getweb(
         years = await page.query_selector_all(div_year)
         y_values = {i: await year.inner_text() for i, year in enumerate(years)}
         citations = await page.query_selector_all(div_citations)
+        if not citations:
+            logging.info("No citations found")
+            return [], [], None
         c_values = {
             i: await citation.inner_html() for i, citation in enumerate(citations)
         }
