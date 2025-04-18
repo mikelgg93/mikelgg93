@@ -225,14 +225,17 @@ async def ggscholar_scrap(ID="P1qW5Z0AAAAJ", type="profile", out_path=None):
 
     combined_data = {"perYear": citations_per_year, "articles": publications_data}
     # Save as a file
-    file_path = (
-        os.path.join(out_path, "citations.json")
-        if out_path is not None
-        else os.path.join(os.curdir, "citations.json")
-    )
-    with open(file_path, "w") as file:
-        json.dump(combined_data, file, indent=4)
-    logging.info("Updated JSON")
+    if combined_data and combined_data != []:
+        file_path = (
+            os.path.join(out_path, "citations.json")
+            if out_path is not None
+            else os.path.join(os.curdir, "citations.json")
+        )
+        with open(file_path, "w") as file:
+            json.dump(combined_data, file, indent=4)
+        logging.info("Updated JSON")
+    else:
+        logging.info("No data available")
     return
 
 
