@@ -4,6 +4,7 @@
 <<<<<<< HEAD:portfolio/public/citations.json
 <<<<<<< HEAD:portfolio/public/citations.json
 <<<<<<< HEAD:portfolio/public/citations.json
+<<<<<<< HEAD:portfolio/public/citations.json
     "perYear": [
         {
             "year": "2016",
@@ -213,3 +214,8 @@
     "articles": []
 }
 >>>>>>> 02518bf (Update Chart & Data):components/data/citations.json
+=======
+    "perYear": [],
+    "articles": []
+}
+>>>>>>> 0a9cbfd (Update Chart & Data):components/data/citations.json
