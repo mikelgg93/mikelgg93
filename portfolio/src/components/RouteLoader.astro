@@ -39,6 +39,7 @@ import Signature from "@/components/Signature.astro";
       if (loader) {
         loader.style.display = "none";
       }
+      document.documentElement.classList.add("skip-loader");
       document.body.style.overflow = "";
       return;
     }

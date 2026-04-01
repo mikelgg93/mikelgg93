@@ -78,7 +78,13 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
       };
 
       setTheme();
-      document.addEventListener("astro:after-swap", setTheme);
+      document.addEventListener("astro:after-swap", () => {
+        setTheme();
+        document.body.removeAttribute("data-scroll-locked");
+        document.body.style.overflow = "";
+        document.body.style.pointerEvents = "";
+        document.body.style.paddingRight = "";
+      });
 
       document.addEventListener("keydown", (e) => {
         if (e.metaKey || e.ctrlKey) {
