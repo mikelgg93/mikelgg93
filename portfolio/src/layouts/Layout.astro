@@ -1,0 +1,126 @@
+---
+import "@/styles/global.css";
+import "@fontsource/inter";
+import "@fontsource/geist-mono";
+import "@fontsource/playfair-display";
+
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import RouteLoader from "@/components/RouteLoader.astro";
+import ShortcutsModal from "@/components/ShortcutsModal";
+import { ClientRouter } from "astro:transitions";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  content?: {
+    title?: string;
+    description?: string;
+  };
+}
+
+const { title, description, image, content } = Astro.props;
+const pageTitle = title || content?.title || "Miguel García";
+const pageDescription =
+  description || content?.description || "Product Specialist & Researcher";
+const canonicalURL = new URL(
+  Astro.url.pathname,
+  Astro.site || "https://mgg.contact",
+);
+const ogImage = new URL(image || "/hero.png", canonicalURL);
+---
+
+<!doctype html>
+<html lang={Astro.url.pathname.startsWith("/es") ? "es" : "en"}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={pageDescription} />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:image" content={ogImage} />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={pageTitle} />
+    <meta property="twitter:description" content={pageDescription} />
+    <meta property="twitter:image" content={ogImage} />
+
+    <meta name="generator" content={Astro.generator} />
+    <title>{pageTitle}</title>
+    <script is:inline>
+      const setTheme = () => {
+        const theme = (() => {
+          if (
+            typeof localStorage !== "undefined" &&
+            localStorage.getItem("theme")
+          ) {
+            return localStorage.getItem("theme");
+          }
+          return window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        })();
+
+        if (theme === "light") {
+          document.documentElement.classList.remove("dark");
+        } else {
+          document.documentElement.classList.add("dark");
+        }
+      };
+
+      setTheme();
+      document.addEventListener("astro:after-swap", setTheme);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.metaKey || e.ctrlKey) {
+          if (e.key.toLowerCase() === "k") {
+            e.preventDefault();
+            const current =
+              localStorage.getItem("theme") ||
+              (window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light");
+            const next = current === "dark" ? "light" : "dark";
+            localStorage.setItem("theme", next);
+            document.documentElement.classList.toggle("dark", next === "dark");
+          } else if (e.key.toLowerCase() === "j") {
+            e.preventDefault();
+            const isEs = window.location.pathname.startsWith("/es");
+            let newPath = window.location.pathname;
+            if (isEs) {
+              newPath = newPath.replace(/^\/es/, "") || "/";
+            } else {
+              newPath = "/es" + newPath;
+            }
+            window.location.href = newPath;
+          } else if (e.key.toLowerCase() === "b") {
+            e.preventDefault();
+            const isEs = window.location.pathname.startsWith("/es");
+            window.location.href = isEs ? "/es/blog" : "/blog";
+          }
+        }
+      });
+    </script>
+    <ClientRouter />
+  </head>
+  <body
+    class="min-h-screen bg-background font-sans text-foreground antialiased selection:bg-accent selection:text-accent-foreground flex flex-col"
+  >
+    <RouteLoader />
+    <ShortcutsModal client:load />
+    <Header />
+    <main class="flex-1">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

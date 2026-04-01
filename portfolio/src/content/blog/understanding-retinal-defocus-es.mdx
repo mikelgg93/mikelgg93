@@ -1,0 +1,132 @@
+---
+title: "Entendiendo el Desenfoque Retiniano: Un Enfoque Computacional"
+description: "Una inmersión profunda en los mecanismos de emetropización, el papel del desenfoque periférico en la miopía y la simulación del borrón retiniano mediante shaders."
+date: 2024-03-12
+author: "Miguel García"
+tags: ["ciencia de la visión", "óptica", "shaders", "glsl", "miopía"]
+lang: "es"
+image: "https://images.unsplash.com/photo-1473800447596-01729482b8eb?q=80&w=2070&auto=format&fit=crop"
+---
+import WebGLShader from '../../components/WebGLShader.tsx';
+
+El ojo humano es un instrumento óptico extraordinario, pero su crecimiento y desarrollo están guiados por señales ambientales sorprendentemente complejas y dinámicas. Una de las señales más críticas para el crecimiento ocular es el **desenfoque retiniano**, es decir, el borrón óptico experimentado cuando una imagen no está perfectamente conjugada en la capa de fotorreceptores.
+
+Históricamente, la investigación visual se centró casi exclusivamente en la visión foveal (la parte central y nítida de nuestro campo visual). Sin embargo, en las últimas décadas se ha revelado que la periferia de la retina juega un papel desproporcionadamente masivo al dictar si un ojo se vuelve miope o permanece emétrope (visión normal).
+
+<img src="https://images.unsplash.com/photo-1616124619460-ff4ed8f4683c?q=80&w=2000&auto=format&fit=crop" alt="Renderizado abstracto de un ojo y óptica" className="w-full h-64 object-cover rounded-xl my-8 shadow-sm" />
+
+En este artículo, exploraremos la fisiología del desenfoque retiniano, las últimas hipótesis en torno a la emetropización y cómo podemos usar shaders computacionales para simular el borrón óptico que experimenta el ojo humano. Profundizaremos en la anatomía del borrón y el futuro del control de la miopía.
+
+---
+
+## Emetropización: La Calibración del Autofoco del Ojo
+
+Cuando un niño nace, sus ojos son típicamente hipermétropes porque la longitud axial del globo ocular es demasiado corta en relación con la potencia óptica de la córnea y el cristalino. A medida que el niño crece, el ojo experimenta un proceso llamado **emetropización**. Se trata de un bucle de retroalimentación biológica donde el ojo escala su crecimiento axial para igualar perfectamente su potencia óptica, resultando en una visión nítida sin necesidad de lentes correctivas.
+
+Pero, ¿cómo "sabe" el ojo cuándo dejar de crecer?
+
+La respuesta reside en las aberraciones cromáticas y esféricas de la imagen proyectada en la retina. La retina calcula los gradientes de contraste y las frecuencias espaciales de la luz entrante. Si la imagen se enfoca *detrás* de la retina (desenfoque hipermetrópico), el ojo se alarga para alcanzar el plano focal. Si la imagen se enfoca *delante* de la retina (desenfoque miópico), el crecimiento se ralentiza.
+
+### El Papel del Desenfoque Periférico
+
+Durante años, los científicos asumieron que la visión central dictaba este crecimiento. Sin embargo, estudios históricos realizados por Earl Smith III y otros en modelos de primates demostraron que si se extirpa la fóvea (se destruye) pero la retina periférica queda intacta, el ojo sigue emetropizándose con éxito. Por el contrario, si la visión central es clara pero la visión periférica es sometida a borrón hipermetrópico usando lentes especializadas, el ojo se alargará, induciendo miopía axial.
+
+Esta revelación cambió fundamentalmente el paradigma de la optometría. Las gafas monofocales tradicionales corrigen la miopía central, pero a menudo empujan el plano focal periférico detrás de la retina (desenfoque hipermetrópico), enviando inadvertidamente una señal al ojo para que siga creciendo—¡exacerbando precisamente la miopía que debían tratar!
+
+---
+
+## La Anatomía del Borrón Retiniano
+
+El desenfoque no es un simple borrón Gaussiano. Debido a que el ojo tiene aberturas físicas (la pupila) y sufre de aberraciones ópticas de alto orden, el círculo de borrosidad—o función de dispersión de punto (PSF)—es altamente asimétrico y cambia dinámicamente según el tamaño pupilar y la acomodación (enfoque).
+
+<img src="https://images.unsplash.com/photo-1574482620826-40685ca5ebe2?q=80&w=2000&auto=format&fit=crop" alt="Lentes y refracción de luz" className="w-full h-64 object-cover rounded-xl my-8 shadow-sm" />
+
+### Acomodación y Retraso
+
+Cuando miramos un objeto cercano, los músculos ciliares se contraen, el cristalino se abomba y la potencia focal aumenta. Esto es la acomodación. Sin embargo, el ojo humano rara vez acomoda a la perfección. Suele haber un "retraso acomodativo" (lag), lo que significa que el ojo enfoca ligeramente por detrás del objetivo. Este retraso induce un estado crónico de desenfoque hipermetrópico durante el trabajo de cerca (como leer o mirar smartphones), lo que está fuertemente implicado en la actual epidemia de miopía.
+
+### Procesamiento de Frecuencias Espaciales
+
+La retina no "ve" el borrón; procesa frecuencias espaciales. Las células amacrinas y las células ganglionares retinianas actúan como transformadores de Fourier biológicos, descomponendo la imagen en canales de frecuencia espacial. Las altas frecuencias espaciales (detalles finos) se pierden durante el desenfoque, mientras que las bajas frecuencias espaciales (formas amplias) permanecen. Se cree que el contraste relativo entre estos canales es el desencadenante químico que libera dopamina y otros neuromoduladores en la retina, indicando a la esclerótica que se remodele y al ojo que se alargue.
+
+---
+
+## Simulando Desenfoque Periférico con GLSL
+
+Para comprender verdaderamente cómo la retina experimenta el mundo, podemos modelar el desenfoque óptico computacionalmente. A continuación, se muestra un fragment shader interactivo en WebGL que simula el borrón óptico experimentado por la retina, modelando específicamente cómo el desenfoque aumenta exponencialmente en la periferia mientras la fóvea (centro) intenta acomodar.
+
+export const defocusShader = `
+precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+
+// Ruido pseudo-aleatorio para el granulado retiniano
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 center = vec2(0.5, 0.5);
+    float dist = distance(uv, center);
+    
+    // La acomodación oscila lentamente en el tiempo
+    float accommodation = sin(u_time * 0.8) * 0.5 + 0.5;
+    
+    // Perfil de Desenfoque Periférico: aumenta de forma no lineal
+    float defocusMag = smoothstep(0.05, 0.7, dist) * (0.5 + accommodation * 1.5);
+    
+    vec3 baseColor = vec3(0.1, 0.25, 0.2); 
+    vec3 lightColor = vec3(0.9, 0.85, 0.8); 
+    
+    // Simular círculos de borrón óptico (PSF)
+    float rings = sin(dist * 60.0 - u_time * 3.0) * defocusMag;
+    float grain = random(uv + u_time * 0.1) * 0.15;
+    
+    vec3 finalColor = mix(baseColor, lightColor, rings + grain + defocusMag * 0.5);
+    
+    // Viñeta natural limitando el campo visual
+    finalColor *= smoothstep(0.85, 0.3, dist);
+    
+    gl_FragColor = vec4(finalColor, 1.0);
+}
+`;
+
+<div className="my-8">
+  <WebGLShader client:load fragmentShaderSource={defocusShader} height="400px" />
+  <p className="text-center text-xs text-muted-foreground mt-2 font-mono uppercase tracking-widest">Shader GLSL Interactivo: Desenfoque Periférico Dinámico</p>
+</div>
+
+### Cómo funciona el Shader
+
+En este shader, la variable `dist` representa la excentricidad de la fóvea. A medida que nos alejamos del centro, `defocusMag` aumenta. La `acomodación` se impulsa por una onda sinusoidal, simulando el ajuste del músculo ciliar.
+
+Nota cómo el centro permanece relativamente estable mientras la periferia sufre cambios masivos de contraste y "anillos de borrón". Esto es matemáticamente análogo a la señal óptica que la retina periférica recibe cuando una persona con gafas monofocales observa una habitación.
+
+---
+
+## Intervenciones Ópticas Modernas
+
+Entender el desenfoque retiniano ha provocado una revolución en el diseño óptico. Si el desenfoque hipermetrópico periférico causa la progresión de la miopía, teóricamente podemos detener la miopía induciendo desenfoque *miópico* periférico.
+
+1. **Ortoqueratología (Ortho-K):** Lentes rígidas permeables a los gases de uso nocturno que aplanan la córnea central mientras incurvan la media periferia, frenando el crecimiento del ojo.
+2. **Lentes de Contacto Blandas Multifocales:** Diseños con el centro para distancia y la periferia para visión de cerca, que proyectan una señal de borrón simultáneo para frenar la miopía.
+3. **Lentes D.I.M.S.:** Lentes oftalmológicas (ej., Hoya MiYOSMART) con una zona central clara rodeada de cientos de microlentes que inducen un desenfoque miópico de +3.50D.
+
+> [!NOTE]
+> **El Futuro de la Óptica**
+> Al usar el seguimiento ocular (como los sistemas de Pupil Labs) junto con ópticas de enfoque variable, teóricamente podríamos proyectar un mapa de desenfoque perfecto y personalizado en tiempo real.
+
+## Conclusión
+
+El desenfoque retiniano demuestra que el ojo no es una simple cámara pasiva, sino un sensor computacional activo. Al seguir mapeando estos paisajes dióptricos y simulándolos computacionalmente, nos acercamos más a acabar con la epidemia de miopía.
+
+---
+
+### Referencias
+
+1. <a href="https://iovs.arvojournals.org/article.aspx?articleid=2124589" target="_blank" rel="noreferrer">Smith III, E. L., et al. (2005). Effects of foveal ablation on emmetropization... *Investigative Ophthalmology & Visual Science*.</a>
+2. <a href="https://iovs.arvojournals.org/article.aspx?articleid=2160913" target="_blank" rel="noreferrer">Gwiazda, J., et al. (1993). Myopic children show insufficient accommodative response to blur. *Investigative Ophthalmology & Visual Science*.</a>
+3. <a href="https://doi.org/10.1016/j.exer.2013.02.015" target="_blank" rel="noreferrer">Feldkaemper, M., & Schaeffel, F. (2013). An updated view on the role of dopamine in myopia. *Experimental Eye Research*.</a>
+4. <a href="https://www.nature.com/articles/s41598-019-54783-x" target="_blank" rel="noreferrer">García García, M., et al. (2019). 2-D Peripheral image quality metrics... *Scientific Reports*.</a>
+5. <a href="https://bjo.bmj.com/content/104/3/363" target="_blank" rel="noreferrer">Lam, C. S. Y., et al. (2020). Defocus Incorporated Multiple Segments (DIMS)... *British Journal of Ophthalmology*.</a>

@@ -1,0 +1,62 @@
+---
+import {
+  faGithub,
+  faGoogleScholar,
+  faLinkedin,
+  faOrcid,
+  faXTwitter,
+} from "@fortawesome/free-brands-svg-icons";
+import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import Resume from "public/resume.json";
+
+const iconMap: Record<string, any> = {
+  Email: faEnvelope,
+  GitHub: faGithub,
+  LinkedIn: faLinkedin,
+  Twitter: faXTwitter,
+  Scholar: faGoogleScholar,
+  Orcid: faOrcid,
+};
+---
+
+<footer class="bg-muted/30 border-t border-border/50">
+  <div
+    class="flex flex-col md:flex-row justify-between items-center px-4 md:px-6 py-6 w-full gap-4 max-w-5xl mx-auto"
+  >
+    <div
+      class="font-sans text-sm tracking-wide text-muted-foreground text-center md:text-left"
+    >
+      © {new Date().getFullYear()}
+      {Resume.basics.name}.
+    </div>
+    <div class="flex flex-wrap gap-4 md:gap-5 justify-center">
+      {
+        Resume.basics.profiles.map((profile) => {
+          const icon = iconMap[profile.network];
+          return (
+            <a
+              class="text-primary hover:text-primary/80 transition-colors flex items-center gap-2"
+              href={profile.url}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={profile.network}
+            >
+              {icon ? (
+                <svg
+                  class="w-5 h-5 fill-current"
+                  viewBox={`0 0 ${icon.icon[0]} ${icon.icon[1]}`}
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d={icon.icon[4]} />
+                </svg>
+              ) : (
+                <span>{profile.network}</span>
+              )}
+              <span class="sr-only">{profile.network}</span>
+            </a>
+          );
+        })
+      }
+    </div>
+  </div>
+</footer>

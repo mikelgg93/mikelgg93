@@ -1,0 +1,27 @@
+@keyframes dash {
+	from {
+		stroke-dashoffset: var(--length);
+	}
+
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+.g {
+	stroke-dasharray: var(--length);
+	stroke-dashoffset: var(--length);
+	animation: dash 4s linear forwards;
+}
+
+.m {
+	stroke-dasharray: var(--length);
+	stroke-dashoffset: var(--length);
+	animation: dash 2s linear forwards;
+}
+
+.others {
+	stroke-dasharray: var(--length);
+	stroke-dashoffset: var(--length);
+	animation: dash 4s linear forwards;
+}

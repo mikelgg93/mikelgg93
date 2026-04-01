@@ -1,0 +1,120 @@
+---
+import { getCollection } from "astro:content";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
+import MobileMenu from "@/components/MobileMenu";
+
+const pathname = Astro.url.pathname;
+const isEs = pathname.startsWith("/es");
+const blogPath = isEs ? "/es/blog" : "/blog";
+const homePath = isEs ? "/es" : "/";
+
+const allPosts = await getCollection("blog");
+const posts = allPosts
+  .filter((p) =>
+    isEs ? p.data.lang === "es" : !p.data.lang || p.data.lang === "en",
+  )
+  .sort(
+    (a, b) =>
+      new Date(b.data.date || 0).valueOf() -
+      new Date(a.data.date || 0).valueOf(),
+  )
+  .slice(0, 5)
+  .map((p) => ({
+    title: p.data.title,
+    url: isEs ? `/es/blog/${p.id.replace("-es", "")}` : `/blog/${p.id}`,
+  }));
+---
+
+<nav
+  id="main-header"
+  class="fixed top-0 w-full z-50 transition-all duration-300 bg-transparent border-b border-transparent"
+>
+  <div
+    class="flex justify-between items-center px-4 md:px-6 py-2 max-w-screen-2xl mx-auto relative z-50"
+  >
+    <a
+      href={homePath}
+      class="text-lg font-bold text-primary uppercase tracking-widest font-serif dark:text-white drop-shadow-md"
+    >
+      MGG
+    </a>
+
+    <div class="hidden md:flex items-center gap-1 md:gap-2">
+      <div
+        class="flex gap-1 md:gap-2 font-serif font-semibold tracking-tight items-center"
+      >
+        <a
+          class="text-primary hover:opacity-70 transition-opacity dark:text-white drop-shadow-md uppercase tracking-wider text-sm px-2"
+          href={blogPath}>Blog</a
+        >
+        <LanguageToggle client:load />
+        <ThemeToggle client:load />
+      </div>
+    </div>
+
+    <div class="md:hidden flex items-center">
+      <MobileMenu
+        homePath={homePath}
+        blogPath={blogPath}
+        posts={posts}
+        isEs={isEs}
+        client:load
+      />
+    </div>
+  </div>
+</nav>
+
+<script>
+  function initHeader() {
+    const header = document.getElementById("main-header");
+    if (!header) return;
+
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        header.classList.remove("bg-transparent", "border-transparent", "py-2");
+        header.classList.add(
+          "bg-background/80",
+          "backdrop-blur-md",
+          "border-border/40",
+          "py-1",
+          "is-scrolled",
+        );
+      } else {
+        header.classList.add("bg-transparent", "border-transparent", "py-2");
+        header.classList.remove(
+          "bg-background/80",
+          "backdrop-blur-md",
+          "border-border/40",
+          "py-1",
+          "is-scrolled",
+        );
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+  }
+
+  document.addEventListener("astro:page-load", initHeader);
+</script>
+
+<style is:global>
+  #main-header:not(.is-scrolled).header-theme-dark {
+    --primary: 0 0% 100%;
+    color: white;
+  }
+  #main-header:not(.is-scrolled).header-theme-dark a,
+  #main-header:not(.is-scrolled).header-theme-dark button {
+    color: white !important;
+  }
+
+  #main-header:not(.is-scrolled).header-theme-light {
+    --primary: 169.9 100% 15.1%;
+    color: hsl(169.9 100% 15.1%);
+  }
+  #main-header:not(.is-scrolled).header-theme-light a,
+  #main-header:not(.is-scrolled).header-theme-light button {
+    color: hsl(169.9 100% 15.1%) !important;
+  }
+</style>

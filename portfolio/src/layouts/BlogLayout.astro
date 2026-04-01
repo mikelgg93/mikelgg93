@@ -1,0 +1,105 @@
+---
+import { Image } from "astro:assets";
+import Layout from "@/layouts/Layout.astro";
+import BlogFeatures from "@/components/BlogFeatures";
+import PretextText from "@/components/PretextText";
+
+const { frontmatter } = Astro.props;
+---
+
+<Layout title={frontmatter.title} description={frontmatter.description}>
+  <BlogFeatures client:load />
+
+  {
+    frontmatter.image && (
+      <div class="w-full h-[40vh] min-h-[300px] overflow-hidden relative">
+        <Image
+          id="blog-hero-image"
+          src={frontmatter.image}
+          inferSize={true}
+          alt={frontmatter.title}
+          class="absolute inset-0 w-full h-full object-cover"
+          crossorigin="anonymous"
+        />
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10" />
+      </div>
+    )
+  }
+
+  <article
+    class={`prose dark:prose-invert prose-h1:font-serif prose-h2:font-serif prose-h3:font-serif prose-h4:font-serif mx-auto max-w-3xl px-4 sm:px-6 relative z-20 ${frontmatter.image ? "-mt-24 pb-24" : "py-24"}`}
+  >
+    <div class="mb-4">
+      <PretextText
+        client:only="react"
+        as="h1"
+        text={frontmatter.title}
+        font='700 36px "DM Serif Display"'
+        lineHeightPx={40}
+        className="text-3xl md:text-4xl font-extrabold tracking-tight font-serif"
+      />
+    </div>
+    {
+      frontmatter.description && (
+        <PretextText
+          client:only="react"
+          as="p"
+          text={frontmatter.description}
+          font="18px Inter"
+          lineHeightPx={29}
+          className="text-lg text-muted-foreground mb-6 leading-relaxed"
+        />
+      )
+    }
+    <div class="h-[1px] w-full bg-border opacity-50 mb-8"></div>
+    <div class="font-sans leading-relaxed">
+      <slot />
+    </div>
+  </article>
+</Layout>
+
+<script>
+  import { FastAverageColor } from "fast-average-color";
+
+  document.addEventListener("astro:page-load", () => {
+    const img = document.getElementById("blog-hero-image") as HTMLImageElement;
+    if (img) {
+      const fac = new FastAverageColor();
+      if (img.complete) {
+        processImage(img, fac);
+      } else {
+        img.addEventListener("load", () => processImage(img, fac));
+      }
+    } else {
+      const header = document.getElementById("main-header");
+      if (header) {
+        header.classList.remove("header-theme-dark", "header-theme-light");
+      }
+    }
+  });
+
+  function processImage(img: HTMLImageElement, fac: FastAverageColor) {
+    fac
+      .getColorAsync(img, {
+        algorithm: "dominant",
+        top: 0,
+        left: 0,
+        height: 120,
+      })
+      .then((color) => {
+        const header = document.getElementById("main-header");
+        if (header) {
+          if (color.isDark) {
+            header.classList.add("header-theme-dark");
+            header.classList.remove("header-theme-light");
+          } else {
+            header.classList.add("header-theme-light");
+            header.classList.remove("header-theme-dark");
+          }
+        }
+      })
+      .catch((e) => {
+        console.warn("Could not determine image color for header:", e);
+      });
+  }
+</script>
