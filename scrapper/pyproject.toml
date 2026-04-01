@@ -1,0 +1,151 @@
+[project]
+name = "scholar"
+version = "0.1.0"
+description = "A tool to withdraw citations from Google Scholar profile"
+readme = "README.md"
+authors = [
+    { name = "Miguel García García", email = "mikelgg93@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib>=3.10.1",
+    "numpy>=2.2.4",
+    "playwright>=1.51.0",
+    "playwright-stealth>=1.0.6",
+    "rich>=14.0.0",
+    "seaborn>=0.13.2",
+    "setuptools==69.5.1",
+    "typer>=0.15.0",
+    "universal-pathlib>=0.3.3",
+]
+
+[project.scripts]
+scholar = "scholar.main:app"
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
+
+
+[dependency-groups]
+dev = [
+    "deptry>=0.23.0",
+    "prek>=0.2.5",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.14.0",
+    "ty>=0.0.1a22",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.deptry]
+known_first_party = ["scholar"]
+per_rule_ignores = { DEP002 = ["setuptools"] }
+
+
+[tool.ruff]
+fix = true
+line-length = 88
+target-version = "py313"
+exclude = [
+        ".git",
+        "__pypackages__",
+        "build",
+        "dist",
+        ".venv",
+        "venv",
+        "env",
+        ".env",
+        "*.pyc",
+        "*.pyo",
+        "*.pyd",
+        "__pycache__",
+        "*.so",
+        "*.dylib",
+        "*.dll",
+        "*.egg-info",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+]
+
+[tool.ruff.lint]
+extend-select = [
+        "A",       # flake8-builtins
+        "B",       # flake8-bugbear
+        "C4",      # flake8-comprehensions
+        "C90",     # mccabe
+        "COM812",  # missing-trailing-comma
+        "COM812",  # prohibited-trailing-comma
+        "D",       # pycodestyle
+        "E",       # Error
+        "F",       # pyflakes
+        "I",       # isort
+        "ISC",     # flake8-implicit-str-concat
+        "NPY201",  # numpy 2.0
+        "PERF401", # manual-list-comprehension
+        "PD",      # pandas vett
+        "PGH",     # pygrep-hooks
+        "Q",       # flake8-quotes
+        "RUF",     # ruff
+        "S",       # flake8-bandit
+        "SIM",     # flake8-simplify
+        "T10",     # flake8-debugger
+        "TRY",     # tryceratops
+        "UP",      # pyupgrade
+        "W",       # Warning
+        "YTT",     # flake8-2020
+]
+ignore = [
+        # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+        "W191",
+        "E111",
+        "E114",
+        "E117",
+        "D206",
+        "D300",
+        ### Various undocumented-X
+        "D100",
+        "D101",
+        "D102",
+        "D103",
+        "D104",
+        "D105",
+        "D106",
+        "D107",
+        # one-blank-line-before-class
+        "D203",
+        # multi-line-summary-second-line
+        "D213",
+        # ends-in-period
+        "D400",
+        # dashed-underline-after-section
+        "D407",
+        # ends-in-punctuation
+        "D415",
+        ###
+        "Q000",
+        "Q001",
+        "Q002",
+        "Q003",
+        "COM812",
+        "COM819",
+        "ISC001",
+        "ISC002",
+        # raise-vanilla-args
+        "TRY003",
+        # blanket-type-ignore
+        "PGH003",
+        # assert
+        "S101",
+]
+
+[tool.ruff.format]
+preview = true
+quote-style = "double"
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"

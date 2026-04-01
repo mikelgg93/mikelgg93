@@ -10,13 +10,14 @@
       <p>
         <b>Hi there👋!</b><br> My name is <b>Miguel García</b> and I am a Product Specialist and Research Consultant at Pupil Labs 👁️‍🗨️.<br>
   Previously, I worked as an Academic Researcher 📚 at the University of Tübingen and as Early Stage Researcher at Carl Zeiss Vision in the framework of European Research Grants.<br>
-  I have a Ph.D. in Neuroscience where I focused on myopia research 👓, and previously I completed my bachelor's and master's degrees in Optics and Optometry 👁️.<br>
-  I have experience programming in Matlab, Python, and C# 🧑🏽‍💻, in the last years I have also gain an interest in AI/ML.
-</p>
+  I have a Ph.D. in Neuroscience where I focused on myopia research 👓, and previously I completed my bachelor's and master's degrees in Optics and Optometry 👁️.
+  <br>
+  I am passionate about using technology to solve real-world problems, and I am always looking for new challenges and opportunities to learn and grow.
+  </p>
     </td>
     <td width="40%">
       <h3>Cited by:</h3>
-      <a href="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en"> <img src="components/data/barplot.png" alt="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en" width="500"/></a>    
+      <a href="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en"> <img src="./portfolio/public/barplot.png" alt="https://scholar.google.com/citations?user=P1qW5Z0AAAAJ&hl=en" width="500"/></a>
     </td>
   </tr>
   <tr>

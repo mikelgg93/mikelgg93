@@ -1,0 +1,236 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+    font-family: 'Optician Sans';
+    src: url('https://raw.githubusercontent.com/anewtype/optician-sans/master/OpenType-PS/OpticianSans-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@theme inline {
+  --font-sans: "Inter", "Geist Sans Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, SFMono-Regular, monospace;
+  --font-serif: "DM Serif Display", "Playfair Display", "Noto Serif Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-display: "Optician Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-foreground: var(--tertiary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+
+  --color-sidebar: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Neutral: #F5F7F7 */
+  --background: hsl(180 11.1% 96.5%);
+  --foreground: hsl(169.9 100% 10%);
+
+  --card: hsl(180 11.1% 96.5%);
+  --card-foreground: hsl(169.9 100% 10%);
+
+  --popover: hsl(180 11.1% 96.5%);
+  --popover-foreground: hsl(169.9 100% 10%);
+
+  /* Primary: #004D40 */
+  --primary: hsl(169.9 100% 15.1%);
+  --primary-foreground: hsl(180 11.1% 96.5%);
+
+  /* Secondary: #455A64 */
+  --secondary: hsl(199.4 18.3% 33.1%);
+  --secondary-foreground: hsl(180 11.1% 96.5%);
+
+  /* Tertiary: #693527 */
+  --tertiary: hsl(12.7 45.8% 28.2%);
+  --tertiary-foreground: hsl(180 11.1% 96.5%);
+
+  --muted: hsl(180 10% 90%);
+  --muted-foreground: hsl(199.4 18.3% 45%);
+
+  --accent: hsl(12.7 45.8% 28.2%);
+  --accent-foreground: hsl(180 11.1% 96.5%);
+
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  --border: hsl(180 10% 85%);
+  --input: hsl(180 10% 85%);
+  --ring: hsl(169.9 100% 15.1%);
+
+  --chart-1: hsl(169.9 100% 15.1%);
+  --chart-2: hsl(199.4 18.3% 33.1%);
+  --chart-3: hsl(12.7 45.8% 28.2%);
+  --chart-4: hsl(43 74% 66%);
+  --chart-5: hsl(27 87% 67%);
+
+  --radius: 0.5rem;
+
+  --sidebar-background: hsl(180 11.1% 96.5%);
+  --sidebar-foreground: hsl(169.9 100% 10%);
+  --sidebar-primary: hsl(169.9 100% 15.1%);
+  --sidebar-primary-foreground: hsl(180 11.1% 96.5%);
+  --sidebar-accent: hsl(180 10% 90%);
+  --sidebar-accent-foreground: hsl(169.9 100% 10%);
+  --sidebar-border: hsl(180 10% 85%);
+  --sidebar-ring: hsl(169.9 100% 15.1%);
+}
+
+.dark {
+  /* Darker teal background for dark mode */
+  --background: hsl(169.9 100% 6%);
+  /* Neutral text */
+  --foreground: hsl(180 11.1% 96.5%);
+
+  --card: hsl(169.9 50% 10%);
+  --card-foreground: hsl(180 11.1% 96.5%);
+
+  --popover: hsl(169.9 50% 10%);
+  --popover-foreground: hsl(180 11.1% 96.5%);
+
+  /* Primary: #004D40, maybe slightly lighter for contrast in dark mode */
+  --primary: hsl(169.9 60% 40%);
+  --primary-foreground: hsl(169.9 100% 8%);
+
+  /* Secondary: #455A64 */
+  --secondary: hsl(199.4 18.3% 45%);
+  --secondary-foreground: hsl(180 11.1% 96.5%);
+
+  /* Tertiary: #693527 */
+  --tertiary: hsl(12.7 45.8% 45%);
+  --tertiary-foreground: hsl(180 11.1% 96.5%);
+
+  --muted: hsl(169.9 30% 15%);
+  --muted-foreground: hsl(180 10% 70%);
+
+  --accent: hsl(12.7 45.8% 45%);
+  --accent-foreground: hsl(180 11.1% 96.5%);
+
+  --destructive: hsl(0 62.8% 40.6%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  --border: hsl(169.9 30% 20%);
+  --input: hsl(169.9 30% 20%);
+  --ring: hsl(169.9 60% 40%);
+
+  --chart-1: hsl(169.9 60% 40%);
+  --chart-2: hsl(199.4 18.3% 45%);
+  --chart-3: hsl(12.7 45.8% 45%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(340 75% 55%);
+
+  --sidebar-background: hsl(169.9 100% 6%);
+  --sidebar-foreground: hsl(180 11.1% 96.5%);
+  --sidebar-primary: hsl(169.9 60% 40%);
+  --sidebar-primary-foreground: hsl(169.9 100% 8%);
+  --sidebar-accent: hsl(169.9 30% 15%);
+  --sidebar-accent-foreground: hsl(180 11.1% 96.5%);
+  --sidebar-border: hsl(169.9 30% 20%);
+  --sidebar-ring: hsl(169.9 60% 40%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.15;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light;
+  }
+
+  .dark body::after {
+    opacity: 0.1;
+    mix-blend-mode: overlay;
+  }
+}
+
+@layer components {
+  .markdown-alert {
+    @apply my-6 rounded-lg border-l-4 p-4 text-sm bg-muted/30 border-primary/50 text-foreground/90 shadow-sm backdrop-blur-sm;
+  }
+
+  .markdown-alert-title {
+    @apply font-bold mb-2 flex items-center gap-2 text-primary font-sans uppercase tracking-widest text-xs;
+  }
+
+  .markdown-alert-note {
+    @apply border-primary/50;
+  }
+
+  .markdown-alert-tip {
+    @apply border-emerald-700/50 dark:border-emerald-500/50;
+  }
+
+  .markdown-alert-warning {
+    @apply border-amber-700/50 dark:border-amber-500/50;
+  }
+
+  .markdown-alert-caution {
+    @apply border-destructive/50;
+  }
+
+  .markdown-alert-important {
+    @apply border-purple-700/50 dark:border-purple-500/50;
+  }
+}

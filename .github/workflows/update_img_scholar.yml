@@ -9,7 +9,7 @@ jobs:
     name: Update profile image with newer citations
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Get Python
         uses: actions/setup-python@v5
@@ -26,7 +26,7 @@ jobs:
           cd scrapper
           uv sync --locked
           uv run playwright install chromium
-          uv run python ggscholar_graph.py --out "${{ github.workspace }}/portfolio/public/"
+          uv run scholar --id "P1qW5Z0AAAAJ" --out "${{ github.workspace }}/portfolio/public/"
 
       # Update Image ReadME
       - name: Update Image - README

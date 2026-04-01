@@ -46,3 +46,10 @@ next-env.d.ts
 components/data/RESUME.json
 *.env
 venv/
+.agents
+/.gemini/
+GEMINI.md
+.gitignore
+skills-lock.json
+resume.json
+es-resume.json

@@ -1,0 +1,69 @@
+---
+import Signature from "@/components/Signature.astro";
+---
+
+<script is:inline>
+  if (
+    typeof sessionStorage !== "undefined" &&
+    sessionStorage.getItem("signature_played") === "true"
+  ) {
+    document.documentElement.classList.add("skip-loader");
+  }
+</script>
+
+<style is:global>
+  html.skip-loader #route-loader {
+    display: none !important;
+  }
+  html:not(.skip-loader) body {
+    overflow: hidden;
+  }
+</style>
+
+<div
+  id="route-loader"
+  class="fixed inset-0 z-[100] flex items-center justify-center bg-background transition-opacity duration-300 pointer-events-auto"
+>
+  <div class="w-64 md:w-80 h-auto text-foreground">
+    <Signature />
+  </div>
+</div>
+
+<script>
+  let hasRun = false;
+
+  document.addEventListener("astro:page-load", () => {
+    const loader = document.getElementById("route-loader");
+
+    if (sessionStorage.getItem("signature_played") === "true" || hasRun) {
+      if (loader) {
+        loader.style.display = "none";
+      }
+      document.body.style.overflow = "";
+      return;
+    }
+
+    hasRun = true;
+
+    if (!loader) return;
+
+    // Start fading out slightly before the 4s animation completely finishes
+    setTimeout(() => {
+      if (document.body.contains(loader)) {
+        loader.style.opacity = "0";
+        loader.style.pointerEvents = "none";
+        document.body.style.overflow = "";
+
+        setTimeout(() => {
+          if (document.body.contains(loader)) {
+            loader.style.display = "none";
+            sessionStorage.setItem("signature_played", "true");
+            document.documentElement.classList.add("skip-loader");
+          }
+        }, 300);
+      } else {
+        document.body.style.overflow = "";
+      }
+    }, 2800);
+  });
+</script>
