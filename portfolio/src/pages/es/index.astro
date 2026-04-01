@@ -253,46 +253,47 @@ const sortedPosts = posts
 
   <script>
     document.addEventListener("astro:page-load", () => {
-
-      const expandBtn = document.getElementById('expand-cv');
-      const experienceItems = document.querySelectorAll('.experience-item');
+      const expandBtn = document.getElementById("expand-cv");
+      const experienceItems = document.querySelectorAll(".experience-item");
       if (expandBtn) {
-        expandBtn.addEventListener('click', () => {
+        expandBtn.addEventListener("click", () => {
           experienceItems.forEach((item, i) => {
-            if (i > 3) item.classList.toggle('hidden');
+            if (i > 3) item.classList.toggle("hidden");
           });
-          const isExpanded = !experienceItems[4]?.classList.contains('hidden');
-          const span = expandBtn.querySelector('span'); if (span) span.textContent = isExpanded ? 'Mostrar menos' : 'Mostrar historial completo';
-          const svg = expandBtn.querySelector('svg'); if (svg) svg.style.transform = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+          const isExpanded = !experienceItems[4]?.classList.contains("hidden");
+          const span = expandBtn.querySelector("span");
+          if (span)
+            span.textContent = isExpanded
+              ? "Mostrar menos"
+              : "Mostrar historial completo";
+          const svg = expandBtn.querySelector("svg");
+          if (svg)
+            svg.style.transform = isExpanded
+              ? "rotate(180deg)"
+              : "rotate(0deg)";
         });
       }
 
-
-      const expandPubsBtn = document.getElementById('expand-pubs');
-      const pubItems = document.querySelectorAll('.pub-item');
+      const expandPubsBtn = document.getElementById("expand-pubs");
+      const pubItems = document.querySelectorAll(".pub-item");
       if (expandPubsBtn) {
-        expandPubsBtn.addEventListener('click', () => {
+        expandPubsBtn.addEventListener("click", () => {
           pubItems.forEach((item, i) => {
-            if (i > 3) item.classList.toggle('hidden');
+            if (i > 3) item.classList.toggle("hidden");
           });
-          const isExpanded = !pubItems[4]?.classList.contains('hidden');
-          const span = expandPubsBtn.querySelector('span'); if (span) span.textContent = isExpanded ? 'Mostrar menos' : 'Mostrar todas las publicaciones';
-          const svg = expandPubsBtn.querySelector('svg'); if (svg) svg.style.transform = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+          const isExpanded = !pubItems[4]?.classList.contains("hidden");
+          const span = expandPubsBtn.querySelector("span");
+          if (span)
+            span.textContent = isExpanded
+              ? "Mostrar menos"
+              : "Mostrar todas las publicaciones";
+          const svg = expandPubsBtn.querySelector("svg");
+          if (svg)
+            svg.style.transform = isExpanded
+              ? "rotate(180deg)"
+              : "rotate(0deg)";
         });
       }
-    });
-  </script>
-</Layout>     }
-    });
-  </script>
-</Layout>
-  </script>
-</Layout> : 'rotate(0deg)';
-        });
-      }
-    });
-  </script>
-</Layout>     }
     });
   </script>
 </Layout>
