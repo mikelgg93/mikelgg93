@@ -40,7 +40,7 @@ jobs:
         working-directory: ./portfolio
 
       - name: Build with Astro
-        run: bun run build
+        run: bun --bun run build
         working-directory: ./portfolio
 
       - name: Upload artifact
