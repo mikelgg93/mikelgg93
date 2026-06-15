@@ -80,8 +80,13 @@ async def ggscholar_scrap(
         )
         bar_plot(citations_per_year, title, UPath(img_path))
 
-    combined_data: dict = {"perYear": citations_per_year, "articles": publications_data}
-    if combined_data:
+    if not citations_per_year:
+        logging.info("No data available")
+    else:
+        combined_data: dict = {
+            "perYear": citations_per_year,
+            "articles": publications_data,
+        }
         file_path = (
             os.path.join(out_path, "citations.json")
             if out_path
@@ -90,8 +95,6 @@ async def ggscholar_scrap(
         with Path(file_path).open("w") as f:
             json.dump(combined_data, f, indent=4)
         logging.info("Updated JSON")
-    else:
-        logging.info("No data available")
 
 
 @app.command()
