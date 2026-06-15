@@ -58,6 +58,20 @@ async def ggscholar_scrap(
     article_year = ".gsc_a_y" if scrap_type == "profile" else None
     article_links = ".gsc_a_at" if scrap_type == "profile" else None
 
+    existing_publications = []
+    file_path = (
+        os.path.join(out_path, "citations.json")
+        if out_path
+        else os.path.join(os.curdir, "citations.json")
+    )
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r") as f:
+                old_data = json.load(f)
+                existing_publications = old_data.get("articles", [])
+        except Exception:
+            pass
+
     citations_per_year, publications_data, title = await playwright_getweb(
         url,
         base_class,
@@ -68,6 +82,7 @@ async def ggscholar_scrap(
         article_links,
         article_citations,
         article_year,
+        existing_publications=existing_publications,
     )
 
     if not citations_per_year:

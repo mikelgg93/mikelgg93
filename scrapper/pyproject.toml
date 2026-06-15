@@ -8,11 +8,15 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "browserforge>=1.2.4",
+    "curl-cffi>=0.15.0",
     "matplotlib>=3.10.1",
+    "msgspec>=0.21.1",
     "numpy>=2.2.4",
+    "patchright>=1.60.1",
     "playwright>=1.51.0",
-    "playwright-stealth>=1.0.6",
     "rich>=14.0.0",
+    "scrapling>=0.4.9",
     "seaborn>=0.13.2",
     "setuptools==78.1.1",
     "typer>=0.15.0",
