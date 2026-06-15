@@ -4,29 +4,29 @@ import "@fontsource/inter";
 import "@fontsource/geist-mono";
 import "@fontsource/playfair-display";
 
-import Header from "@/components/Header.astro";
+import { ClientRouter } from "astro:transitions";
 import Footer from "@/components/Footer.astro";
+import Header from "@/components/Header.astro";
 import RouteLoader from "@/components/RouteLoader.astro";
 import ShortcutsModal from "@/components/ShortcutsModal";
-import { ClientRouter } from "astro:transitions";
 
 interface Props {
-  title?: string;
-  description?: string;
-  image?: string;
-  content?: {
-    title?: string;
-    description?: string;
-  };
+	title?: string;
+	description?: string;
+	image?: string;
+	content?: {
+		title?: string;
+		description?: string;
+	};
 }
 
 const { title, description, image, content } = Astro.props;
 const pageTitle = title || content?.title || "Miguel García";
 const pageDescription =
-  description || content?.description || "Product Specialist & Researcher";
+	description || content?.description || "Product Specialist & Researcher";
 const canonicalURL = new URL(
-  Astro.url.pathname,
-  Astro.site || "https://mgg.contact",
+	Astro.url.pathname,
+	Astro.site || "https://mgg.contact",
 );
 const ogImage = new URL(image || "/hero.png", canonicalURL);
 ---

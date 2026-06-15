@@ -1,23 +1,23 @@
 ---
 import { Image } from "astro:assets";
-import Resume from "public/resume.json";
-import CitationsData from "public/citations.json";
-import Layout from "@/layouts/Layout.astro";
-import CitationsChart from "@/components/CitationsChart";
 import { getCollection } from "astro:content";
 import { Clock } from "lucide-react";
+import CitationsData from "public/citations.json";
+import Resume from "public/resume.json";
+import CitationsChart from "@/components/CitationsChart";
+import Layout from "@/layouts/Layout.astro";
 
 const { name, summary } = Resume.basics;
 
 const posts = await getCollection("blog");
 const sortedPosts = posts
-  .filter((p) => !p.data.lang || p.data.lang === "en")
-  .sort(
-    (a, b) =>
-      new Date(b.data.date || 0).valueOf() -
-      new Date(a.data.date || 0).valueOf(),
-  )
-  .slice(0, 3);
+	.filter((p) => !p.data.lang || p.data.lang === "en")
+	.sort(
+		(a, b) =>
+			new Date(b.data.date || 0).valueOf() -
+			new Date(a.data.date || 0).valueOf(),
+	)
+	.slice(0, 3);
 ---
 
 <Layout title={name} description={summary}>

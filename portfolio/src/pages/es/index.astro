@@ -1,11 +1,11 @@
 ---
 import { Image } from "astro:assets";
-import Resume from "public/es-resume.json";
-import CitationsData from "public/citations.json";
-import Layout from "@/layouts/Layout.astro";
-import CitationsChart from "@/components/CitationsChart";
 import { getCollection } from "astro:content";
 import { Clock } from "lucide-react";
+import CitationsData from "public/citations.json";
+import Resume from "public/es-resume.json";
+import CitationsChart from "@/components/CitationsChart";
+import Layout from "@/layouts/Layout.astro";
 
 const { name, summary } = Resume.basics;
 
