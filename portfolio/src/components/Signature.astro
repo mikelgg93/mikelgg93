@@ -12,6 +12,7 @@ const { class: className } = Astro.props;
   viewBox="0 0 311.56 272.85"
   xml:space="preserve"
   xmlns="http://www.w3.org/2000/svg"
+  style="opacity: 0; transition: opacity 0.2s;"
 >
   <path
     class={styles.m}
@@ -40,14 +41,48 @@ const { class: className } = Astro.props;
 
 <script>
   function animateSignature() {
+    const svg = document.querySelector<SVGElement>(".animated-signature");
+    if (!svg) return;
+
+    const prefersReduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
     const paths = document.querySelectorAll<SVGPathElement>(
       ".animated-signature path",
     );
+
+    if (prefersReduced) {
+      paths.forEach((p) => {
+        p.style.animation = "none";
+        p.style.strokeDasharray = "none";
+        p.style.strokeDashoffset = "0";
+      });
+      svg.style.opacity = "1";
+      document.dispatchEvent(new CustomEvent("signature:done"));
+      return;
+    }
+
     paths.forEach((path) => {
+      // Force restart of CSS animation
+      path.style.animation = "none";
+      void path.offsetHeight; // trigger reflow
+      path.style.animation = "";
+
       const length = path.getTotalLength();
       path.style.setProperty("--length", length.toString());
     });
+
+    // Make visible after length is computed
+    svg.style.opacity = "1";
+
+    // Use a much shorter 1300ms timeout. The actual visible paths finish drawing 
+    // before the full 2s/4s CSS animations technically complete.
+    setTimeout(() => {
+      document.dispatchEvent(new CustomEvent("signature:done"));
+    }, 1300);
   }
 
   document.addEventListener("astro:page-load", animateSignature);
+  document.addEventListener("signature:restart", animateSignature);
 </script>

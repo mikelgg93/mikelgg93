@@ -35,21 +35,7 @@ import Signature from "@/components/Signature.astro";
   document.addEventListener("astro:page-load", () => {
     const loader = document.getElementById("route-loader");
 
-    if (sessionStorage.getItem("signature_played") === "true" || hasRun) {
-      if (loader) {
-        loader.style.display = "none";
-      }
-      document.documentElement.classList.add("skip-loader");
-      document.body.style.overflow = "";
-      return;
-    }
-
-    hasRun = true;
-
-    if (!loader) return;
-
-    // Start fading out slightly before the 4s animation completely finishes
-    setTimeout(() => {
+    const onSignatureDone = () => {
       if (document.body.contains(loader)) {
         loader.style.opacity = "0";
         loader.style.pointerEvents = "none";
@@ -65,6 +51,35 @@ import Signature from "@/components/Signature.astro";
       } else {
         document.body.style.overflow = "";
       }
-    }, 2800);
+    };
+
+    document.addEventListener("signature:done", onSignatureDone);
+
+    if (sessionStorage.getItem("signature_played") === "true" || hasRun) {
+      if (loader) {
+        loader.style.display = "none";
+      }
+      document.documentElement.classList.add("skip-loader");
+      document.body.style.overflow = "";
+      // Don't return here so we don't skip the keydown listener
+    } else {
+      hasRun = true;
+    }
+  });
+
+  // Attach keydown globally outside the page-load event or outside the early return
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "s" || e.key === "S") {
+      const loader = document.getElementById("route-loader");
+      if (loader) {
+        loader.style.display = "flex";
+        loader.style.opacity = "1";
+        loader.style.pointerEvents = "auto";
+        document.body.style.overflow = "hidden";
+        document.documentElement.classList.remove("skip-loader");
+        sessionStorage.setItem("signature_played", "false");
+        document.dispatchEvent(new CustomEvent("signature:restart"));
+      }
+    }
   });
 </script>
