@@ -18,7 +18,7 @@ dependencies = [
     "rich>=14.0.0",
     "scrapling>=0.4.9",
     "seaborn>=0.13.2",
-    "setuptools==78.1.1",
+    "setuptools==83.0.0",
     "typer>=0.15.0",
     "universal-pathlib>=0.3.3",
 ]
