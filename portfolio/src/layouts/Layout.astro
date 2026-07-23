@@ -40,6 +40,20 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={canonicalURL} />
 
+    <!-- Cloudflare Web Analytics -->
+    <script is:inline>
+      if (window.location.hostname === "mgg.contact") {
+        const script = document.createElement("script");
+        script.defer = true;
+        script.src = "https://static.cloudflareinsights.com/beacon.min.js";
+        script.setAttribute(
+          "data-cf-beacon",
+          '{"token": "c1f72a49005146bfa2da0dfc7339c73d"}',
+        );
+        document.head.appendChild(script);
+      }
+    </script>
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
