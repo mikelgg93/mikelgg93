@@ -1,0 +1,152 @@
+---
+// src/components/ui/InteractiveViewer.astro
+---
+<div class="interactive-viewer relative border border-border rounded-lg overflow-hidden my-8 bg-card text-card-foreground">
+  <div class="flex border-b border-border bg-muted/50 p-2 gap-2">
+    <button class="tab-btn px-4 py-1 rounded bg-background shadow-sm text-sm font-medium transition-colors active-tab" data-tab="preview">
+      Preview
+    </button>
+    <button class="tab-btn px-4 py-1 rounded text-muted-foreground hover:bg-background/50 hover:text-foreground text-sm font-medium transition-colors" data-tab="code">
+      Code
+    </button>
+    <button class="tab-btn px-4 py-1 rounded text-muted-foreground hover:bg-background/50 hover:text-foreground text-sm font-medium transition-colors" data-tab="debug">
+      Debug
+    </button>
+  </div>
+
+  <div class="tab-content relative w-full" data-content="preview">
+    <div class="bg-transparent rounded-b-lg relative w-full overflow-hidden flex flex-col">
+      <slot name="preview" />
+    </div>
+  </div>
+
+  <div class="tab-content hidden" data-content="code">
+    <div class="p-0 text-sm overflow-auto max-h-[500px]">
+      <slot name="code" />
+    </div>
+  </div>
+
+  <div class="tab-content hidden relative" data-content="debug">
+    <div class="p-4 bg-[#24292e] text-[#e1e4e8] font-mono text-sm overflow-auto min-h-[150px] max-h-[500px] debug-output whitespace-pre-wrap rounded-b-lg">
+      Interact with the preview to capture camera parameters...
+    </div>
+  </div>
+
+  <!-- Global unified copy button overlaying the content area -->
+  <button class="global-copy-btn absolute top-14 right-3 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-700 shadow-sm text-xs transition-colors z-10 flex items-center gap-1 hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+    <span>Copy Code</span>
+  </button>
+</div>
+
+<script>
+  function setupInteractiveViewers() {
+    const viewers = document.querySelectorAll('.interactive-viewer');
+
+    viewers.forEach(viewer => {
+      // Remove previous event listeners by cloning if necessary, or just rely on the fact that this script runs once per page load
+      const btns = viewer.querySelectorAll('.tab-btn');
+      const contents = viewer.querySelectorAll('.tab-content');
+
+      btns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.getAttribute('data-tab');
+
+          btns.forEach(b => {
+            if (b === btn) {
+              b.classList.add('bg-background', 'shadow-sm', 'text-foreground', 'active-tab');
+              b.classList.remove('text-muted-foreground', 'hover:bg-background/50');
+            } else {
+              b.classList.remove('bg-background', 'shadow-sm', 'text-foreground', 'active-tab');
+              b.classList.add('text-muted-foreground', 'hover:bg-background/50');
+            }
+          });
+
+          const globalCopy = viewer.querySelector('.global-copy-btn');
+          if (globalCopy) {
+            if (targetTab === 'preview') {
+              globalCopy.classList.add('hidden');
+            } else {
+              globalCopy.classList.remove('hidden');
+              const span = globalCopy.querySelector('span');
+              if (span) span.innerText = targetTab === 'code' ? 'Copy Code' : 'Copy JSON';
+            }
+          }
+
+          contents.forEach(content => {
+            if (content.getAttribute('data-content') === targetTab) {
+              content.classList.remove('hidden');
+            } else {
+              content.classList.add('hidden');
+            }
+          });
+        });
+      });
+
+      // Unified Copy button logic
+      const copyBtn = viewer.querySelector('.global-copy-btn');
+      const codeOutput = viewer.querySelector('[data-content="code"]');
+      const debugOutput = viewer.querySelector('[data-content="debug"]');
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          const activeTabElement = viewer.querySelector('.active-tab');
+          if (!activeTabElement) return;
+          const activeTab = activeTabElement.getAttribute('data-tab');
+          let textToCopy = '';
+
+          if (activeTab === 'code' && codeOutput) {
+            textToCopy = (codeOutput as HTMLElement).innerText.trim();
+          } else if (activeTab === 'debug' && debugOutput) {
+            textToCopy = (debugOutput as HTMLElement).innerText.trim();
+          }
+
+          if (textToCopy) {
+            navigator.clipboard.writeText(textToCopy);
+
+            // Visual feedback
+            const span = copyBtn.querySelector('span');
+            const icon = copyBtn.querySelector('svg');
+
+            if (span) span.innerText = 'Copied!';
+            if (icon) icon.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>'; // Checkmark
+            copyBtn.classList.add('text-green-400', 'border-green-400/50');
+
+            setTimeout(() => {
+              if (span) span.innerText = activeTab === 'code' ? 'Copy Code' : 'Copy JSON';
+              if (icon) icon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>'; // Clipboard
+              copyBtn.classList.remove('text-green-400', 'border-green-400/50');
+            }, 2000);
+          }
+        });
+      }
+
+      // Reusable Ctrl-to-Zoom interceptor for all 3D WebGL canvases
+      const previewArea = viewer.querySelector('[data-content="preview"]');
+      if (previewArea) {
+        previewArea.addEventListener('wheel', (e) => {
+          // If the user isn't holding Ctrl/Cmd, stop the event from reaching OrbitControls.
+          // This allows the browser to scroll the page naturally without getting "stuck" in the canvas.
+          if (!e.ctrlKey && !e.metaKey) {
+            e.stopPropagation();
+          } else {
+            // If Ctrl/Cmd is held, let OrbitControls handle the zoom, but prevent the entire browser from zooming.
+            e.preventDefault();
+          }
+        }, { capture: true, passive: false });
+      }
+    });
+  }
+
+  setupInteractiveViewers();
+  document.addEventListener('astro:page-load', setupInteractiveViewers);
+</script>
+
+<style>
+  .interactive-viewer :global(pre) {
+    margin: 0;
+    border-radius: 0 0 0.5rem 0.5rem;
+    padding: 1.5rem;
+    background-color: transparent !important;
+  }
+</style>

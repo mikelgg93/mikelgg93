@@ -241,13 +241,17 @@ const sortedPosts = posts
             >
               SYSTEM STATUS // FEED
             </p>
-            <div class="flex items-center gap-2">
+            <a
+              href="/blog"
+              class="flex items-center gap-2 group/feed w-fit"
+            >
               <div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse">
               </div>
-              <span class="text-xs font-semibold text-foreground"
+              <span
+                class="text-xs font-semibold text-foreground group-hover/feed:text-primary transition-colors"
                 >Updating Lab Journal</span
               >
-            </div>
+            </a>
           </div>
         </div>
       </section>

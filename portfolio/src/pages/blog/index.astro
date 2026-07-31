@@ -44,9 +44,10 @@ const sortedPosts = posts
             {post.data.image && (
               <div class="w-full h-48 mb-4 overflow-hidden rounded-lg bg-background shrink-0">
                 <Image
-                  inferSize={true}
                   src={post.data.image}
                   alt={post.data.title}
+                  width={1200}
+                  height={630}
                   class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
