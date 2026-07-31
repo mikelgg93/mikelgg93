@@ -1,0 +1,247 @@
+---
+title: "Modelando el ojo: La córnea"
+description: "Empezamos por la parte más anterior del ojo. ¿Qué forma tiene la córnea, por qué no es una simple esfera y cómo podemos construirla en WebGL?"
+date: 2026-07-27
+author: "Miguel García"
+tags: ["webgl", "threejs", "ciencia de la visión", "óptica", "anatomía"]
+lang: "es"
+image: "/images/blog/cornea-banner.png"
+---
+
+import { Code } from 'astro:components';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import CorneaStep1 from '../../components/eye/cornea/CorneaStep1';
+import CorneaAspheric from '../../components/eye/cornea/CorneaAspheric';
+import CorneaAstigmatism from '../../components/eye/cornea/CorneaAstigmatism';
+import CorneaLayered from '../../components/eye/cornea/CorneaLayered';
+import CorneaTearFilm from '../../components/eye/cornea/CorneaTearFilm';
+import CorneaMaster from '../../components/eye/cornea/CorneaMaster';
+import CorneaKeratoconus from '../../components/eye/cornea/CorneaKeratoconus';
+import CorneaPlacido from '../../components/eye/cornea/CorneaPlacido';
+import CorneaRealistic from '../../components/eye/cornea/CorneaRealistic';
+
+import CorneaStep1Code from '../../components/eye/cornea/CorneaStep1.tsx?raw';
+import CorneaAsphericCode from '../../components/eye/cornea/CorneaAspheric.tsx?raw';
+import CorneaAstigmatismCode from '../../components/eye/cornea/CorneaAstigmatism.tsx?raw';
+import CorneaLayeredCode from '../../components/eye/cornea/CorneaLayered.tsx?raw';
+import CorneaTearFilmCode from '../../components/eye/cornea/CorneaTearFilm.tsx?raw';
+import CorneaMasterCode from '../../components/eye/cornea/CorneaMaster.tsx?raw';
+import CorneaKeratoconusCode from '../../components/eye/cornea/CorneaKeratoconus.tsx?raw';
+import CorneaPlacidoCode from '../../components/eye/cornea/CorneaPlacido.tsx?raw';
+import CorneaRealisticCode from '../../components/eye/cornea/CorneaRealistic.tsx?raw';
+
+Pídele a un programador gráfico que modele un ojo y su primer instinto será, casi siempre, usar una esfera de cristal. Se renderiza rápido y tiene un aspecto limpio. El problema es que, si un ojo real tuviera la forma de una esfera perfecta, cada farola de la calle en la noche se convertiría en un borrón resplandeciente.
+
+La cúpula transparente de la parte frontal del ojo, la **córnea**, tiene una forma mucho más interesante que una esfera, y es la responsable de la mayor parte del enfoque. De las aproximadamente 60 dioptrías de potencia óptica que tiene el ojo, la córnea aporta unas 43. El famoso cristalino en el interior se encarga del resto y realiza el ajuste fino. Pero, ¿cómo sabemos que no es simplemente una cúpula sólida de cristal biológico? Cuando Antonie van Leeuwenhoek observó por primera vez tejido corneal a través de sus microscopios caseros en la década de 1680, descubrió que no era cristal en absoluto, sino un tejido densamente entrelazado de fibras vivas.
+
+En esta serie vamos a construir el ojo pieza a pieza en WebGL. Cada sección a continuación cuenta con una vista interactiva en 3D y una pestaña de **Código (Code)** con el código fuente completo. Empecemos por la parte frontal.
+
+## El casquete esférico: una primera aproximación
+
+Antes de que existieran los escáneres hospitalarios, la gente medía el ojo con trucos ingeniosos. En 1619, Christoph Scheiner colocó canicas de cristal de un tamaño conocido junto al ojo de una persona y las fue comparando hasta que los reflejos coincidían. Dos siglos de perfeccionamiento después, tenemos el número que todo optometrista sigue utilizando: la parte frontal de la córnea tiene un radio de curvatura de aproximadamente $R \approx 7.8\ \text{mm}$.
+
+La córnea visible es una ventana ligeramente ovalada, de unos $11.7\ \text{mm}$ de ancho y $10.6\ \text{mm}$ de alto, debido a que el blanco del ojo la solapa por arriba y por abajo. Para un primer modelo en WebGL, ignoraremos esto y cortaremos un casquete limpio de una esfera.
+
+En Three.js, una esfera ya sabe cómo dibujarse a sí misma. Solo tenemos que decirle que se quede con la parte frontal limitando el ángulo de barrido vertical:
+
+```ts
+// Una córnea es, a grandes rasgos, un casquete cortado de la parte frontal de una esfera.
+// Los dos últimos argumentos conservan solo la porción superior en lugar de toda la bola.
+const geometry = new THREE.SphereGeometry(
+  1,               // radio
+  64, 64,          // suavidad horizontal y vertical
+  0, Math.PI * 2,  // barrido del círculo completo
+  0, Math.PI / 4   // pero solo 45 grados hacia abajo desde la parte superior
+);
+```
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaStep1 client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaStep1Code} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+Entonces, ¿por qué una esfera es una mala lente? Los rayos de luz que inciden en el borde escarpado de una esfera se curvan mucho más bruscamente que los rayos cerca del centro, por lo que enfocan en puntos ligeramente diferentes. El resultado es la **aberración esférica**: un punto brillante de luz se difumina en un suave halo en lugar de formar un punto nítido. Para ver bien de noche, el ojo tuvo que abandonar la esfera.
+
+## La córnea asférica: aplanando los bordes (el valor Q)
+
+La naturaleza corrige la aberración esférica aplanando suavemente la córnea hacia sus bordes mientras mantiene el centro más curvo. Los ingenieros ópticos describen esta forma matemáticamente usando secciones cónicas (como elipses o parábolas), regidas por un solo número: la **constante cónica** $Q$. La altura de la superficie (llamada sagita, $z$) a una distancia $r$ desde el centro se define como:
+
+$$z(r) = \frac{c\, r^2}{1 + \sqrt{1 - (1+Q)\, c^2 r^2}}$$
+
+Aquí $c = 1/R$ es la curvatura en el centro exacto (ápex). El valor de $Q$ cambia la forma:
+
+- **$Q = 0$ (esfera):** curvatura constante en todas partes. Fuertes halos alrededor de las luces nocturnas.
+- **$Q < 0$ (prolata):** centro más curvo, bordes más planos. La córnea humana sana se sitúa cerca de $Q \approx -0.26$.
+- **$Q > 0$ (oblata):** centro más plano, bordes más curvos. Común después de cirugía láser; empeora el deslumbramiento nocturno.
+
+Curiosamente, la córnea humana no se aplana *totalmente* hasta el valor que cancelaría por completo la aberración esférica (aproximadamente $-0.53$). Deja un poco a propósito, porque el cristalino, más profundo en el ojo, curva la luz en sentido opuesto y cancela la mayor parte de lo que queda. Ambos se compensan mutuamente en un ojo joven y sano.
+
+Traducir la fórmula de la sagita a código es casi una copia directa:
+
+```ts
+const c = 1 / R;                 // curvatura en el ápex
+for (let r = 0; r <= maxR; r += step) {
+  const root = 1 - (1 + Q) * c * c * r * r;
+  const z = (c * r * r) / (1 + Math.sqrt(root)); // altura de la superficie en el radio r
+  // ...colocar un anillo de vértices a esta altura
+}
+```
+
+Usa los botones a continuación para cambiar entre una córnea humana sana, una esfera perfecta y una forma oblata postcirugía. El color va desde el verde en el centro hasta el color de la forma en el borde, para que puedas ver dónde curva la luz cada una de manera diferente.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaAspheric client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaAsphericCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Astigmatismo: una córnea con forma de balón de rugby
+
+Una córnea perfecta está igualmente curvada en todas las direcciones, como un corte de una pelota de baloncesto. Una córnea astigmática está más curvada en una dirección que en otra, como la parte posterior de una cuchara o un balón de rugby. Esto es el **astigmatismo regular**, y Thomas Young lo midió por primera vez en sus propios ojos en 1801.
+
+Lo modelamos dándole a los dos ejes sus propias curvaturas en lugar de compartir una sola. Esto se llama una superficie **tórica**. En código, es la misma fórmula de la sagita de antes, pero con una curvatura separada para $x$ y para $y$:
+
+```ts
+// Ya no basta con una sola curvatura: cx a lo largo de X, cy a lo largo de Y.
+const root = 1 - (1 + Q) * (cx*cx*x*x + cy*cy*y*y);
+const z = (cx*x*x + cy*y*y) / (1 + Math.sqrt(root));
+```
+
+Las dos direcciones de máxima y mínima curvatura se denominan **meridianos**. En la vista a continuación, el meridiano más plano está dibujado en azul y el más curvo en rojo. Debido a que los dos meridianos enfocan a distancias diferentes, un ojo astigmático nunca forma un único punto nítido. La luz colapsa en dos líneas focales cortas con una zona de "menor desenfoque" entre ellas, una forma que en óptica se llama **conoide de Sturm**.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaAstigmatism client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaAstigmatismCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Dentro de la córnea: seis capas
+
+De cerca, la córnea no es una única lámina transparente, sino seis capas superpuestas, todas concentradas en aproximadamente medio milímetro (el espesor central medio es de unos $540\ \mu\text{m}$):
+
+| Capa | Espesor | Índice de refracción | Función |
+| :--- | :---: | :---: | :--- |
+| **1. Epitelio** | $\approx 50\ \mu\text{m}$ | $1.401$ | Células externas de renovación; da a las lágrimas una superficie lisa. |
+| **2. Capa de Bowman** | $\approx 10\ \mu\text{m}$ | $1.380$ | Resistente lámina de colágeno; protege contra arañazos. |
+| **3. Estroma** | $\approx 452\ \mu\text{m}$ | $1.376$ | 90% del grosor; cientos de láminas de colágeno ordenadas. |
+| **4. Capa de Dua** | $\approx 15\ \mu\text{m}$ | $1.376$ | Capa pre-Descemet delgada pero muy resistente. |
+| **5. Membrana de Descemet** | $\approx 8\ \mu\text{m}$ | $1.358$ | Base elástica sobre la que se asienta el endotelio. |
+| **6. Endotelio** | $\approx 5\ \mu\text{m}$ | $1.335$ | Monocapa de células que bombean agua hacia afuera. |
+
+**¿Por qué es transparente?** El estroma está hecho de colágeno, la misma proteína de la que están hechos los tendones (que son blancos y opacos). El truco está en la separación: las fibras de colágeno están empaquetadas a una distancia menor que la mitad de la longitud de onda de la luz, de modo que la luz que dispersan se cancela lateralmente y solo sobrevive la luz que viaja hacia adelante (Benedek, 1971). Si las bombas endoteliales fallan y entra agua, las fibras se separan, la cancelación se rompe y la córnea se vuelve blanca y turbia.
+
+**Un debate anatómico reciente.** Durante más de un siglo, los libros de texto enumeraban firmemente cinco capas. Luego, en 2013, investigadores propusieron una controvertida sexta capa (la capa de Dua), una lámina fina e inusualmente dura justo delante de la membrana de Descemet. Aunque muchos anatomistas aún debaten si se trata realmente de una capa nueva o simplemente del borde posterior denso del estroma, su descubrimiento ayudó a explicar por qué una técnica quirúrgica que inyecta una burbuja de aire para separar el tejido corneal lo divide exactamente por donde lo hace.
+
+El modelo a continuación es una **sección transversal anatómica dibujada a escala**, para que puedas ver cuánta córnea es realmente estroma. Las láminas de colágeno del estroma se muestran como fibras cuya dirección gira de una lámina a otra (como el contrachapado, de donde obtiene su resistencia), y el endotelio se dibuja como su verdadero mosaico hexagonal. Presiona el botón para separar las capas.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaLayered client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaLayeredCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## La película lagrimal y sus colores de mancha de aceite
+
+Lo primero que encuentra la luz no son células, sino lágrimas. Una película de solo $3$ a $5\ \mu\text{m}$ de grosor recubre la córnea, y su piel más externa es una capa de aceite (lípida) de apenas $40$ a $100\ \text{nm}$ de espesor, esparcida por las glándulas de los párpados para frenar la evaporación.
+
+Esa capa de aceite es más delgada que una longitud de onda de luz, que es exactamente la condición para la **interferencia de película delgada**, el mismo efecto que pinta arcoíris en las pompas de jabón y los charcos de agua. La luz que rebota en la parte superior de la película y la que rebota en el fondo recorren distancias ligeramente diferentes, por lo que algunos colores se refuerzan y otros se cancelan. Los colores que brillan más satisfacen:
+
+$$2\, n\, d \cos\theta = \left(m - \tfrac{1}{2}\right)\lambda, \quad m = 1, 2, 3, \dots$$
+
+donde $n$ es el índice de refracción del aceite, $d$ su espesor, $\theta$ el ángulo de la luz dentro de la película, $\lambda$ la longitud de onda, y $m$ es el orden entero de interferencia. Arrastra el modelo para atrapar el tenue brillo cambiante a lo largo de la superficie.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaTearFilm client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaTearFilmCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Cuando algo va mal: el queratocono
+
+Si el colágeno del estroma se debilita, la presión normal del ojo puede empujar la córnea hacia afuera formando un cono. Esto se conoce como **queratocono**, y el abultamiento suele formarse abajo y ligeramente descentrado en lugar de en el ápex.
+
+Biomecánicamente, el queratocono implica un peligroso adelgazamiento del tejido. Pero para aproximarlo de forma puramente visual en nuestro shader, podemos hacer lo contrario: empezamos con una córnea esférica sana y añadimos un pequeño bulto gaussiano debajo del centro.
+
+```ts
+let z = Math.sqrt(R*R - rho*rho) - R;   // córnea esférica sana
+const dist = Math.hypot(x, y + 1.5);    // cono centrado a 1.5 mm debajo del ápex
+z += 1.5 * Math.exp(-(dist * dist) / 2); // añadimos el abultamiento hacia adelante
+```
+
+El efecto en la visión es peor que la simple miopía. El cono no es simétrico, por lo que no solo desplaza el enfoque, sino que lo distorsiona. Una farola se difumina en un rayo parecido a un cometa (los ópticos llaman a esto **coma**), y esta forma irregular no se puede corregir con gafas normales, solo con lentes de contacto rígidas o cirugía que remoldee o refuerce el tejido. Arrastra el modelo para ver el cono de perfil.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaKeratoconus client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaKeratoconusCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Midiendo la forma: discos de Plácido
+
+¿Cómo mide un óptico estas diminutas protuberancias sin tocar el ojo? Observando los reflejos. En 1880, António Plácido proyectó un objetivo de anillos concéntricos blancos y negros sobre la córnea y observó el reflejo. En una córnea lisa, los anillos se reflejan como círculos limpios. Donde la córnea es más pronunciada, los anillos reflejados se agrupan más juntos; donde es más plana, se separan. Una córnea distorsionada produce anillos distorsionados, como mirar a través de un cristal deformado. Los topógrafos computarizados modernos siguen funcionando exactamente de la misma manera.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaPlacido client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaPlacidoCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Ensamblándolo todo
+
+El modelo final combina todo lo anterior: las seis capas, una forma tórica con sus dos curvaturas representadas en dioptrías clínicas ($K = 337.5 / R$ en mm), el aplanamiento asférico $Q$ y un espesor ajustable. Los rayos de luz representan un trazado simplificado únicamente a través de la superficie frontal. Muestran *cómo* el astigmatismo y la asfericidad difuminan un foco, sin pretender ser una simulación óptica completa.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaMaster client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaMasterCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Un acabado hiperrealista
+
+Los modelos anteriores están construidos para explicar, por lo que priman los colores claros y esquemáticos frente al fotorrealismo. Para cerrar el ciclo, aquí tienes la córnea vestida de gala: la misma forma asférica, ahora como un menisco transparente (una superficie frontal asférica con una superficie posterior más pronunciada) de un material cristalino transmisivo con un revestimiento transparente, que refracta un entorno de estudio sintético. El reflejo brillante que se desliza por la superficie es el reflejo corneal que los ópticos llaman imagen de Purkinje P1, el mismo reflejo del que dependen los anillos de Plácido. Arrastra para moverlo alrededor de la cúpula.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <CorneaRealistic client:visible />
+  </div>
+  <div slot="code">
+    <Code code={CorneaRealisticCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+Eso nos da una superficie frontal sólida para el ojo.
+
+## Referencias
+
+1. **Young, T. (1801)**. *On the Mechanism of the Eye*. Philosophical Transactions of the Royal Society of London, 91, 23-88.
+2. **Helmholtz, H. von (1854)**. *Ueber die Accommodation des Auges*. Graefes Archiv für Ophthalmologie, 1(2), 1-74.
+3. **Atchison, D. A., & Smith, G. (2000)**. *Optics of the Human Eye*. Butterworth-Heinemann, Oxford, Capítulo 2.
+4. **Maurice, D. M. (1957)**. *The structure and transparency of the cornea*. Journal of Physiology, 136(2), 263-286.
+5. **Benedek, G. B. (1971)**. *Theory of transparency of the eye*. Applied Optics, 10(3), 459-473.
+6. **Dua, H. S., Faraj, L. A., Said, D. G., Gray, T., & Lowe, J. (2013)**. *Human Corneal Anatomy Redefined: A Novel Layer (Dua's Layer)*. Ophthalmology, 120(9), 1778-1785.
+7. **Plácido, A. (1880)**. *Novo instrumento para analyse da curvatura da cornea*. Periodico Ophthalmologico, 2(5), 44-49, Lisboa.
