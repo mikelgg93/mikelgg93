@@ -43,6 +43,7 @@
 		"gsap": "^3.15.0",
 		"lenis": "^1.3.25",
 		"lucide-react": "^1.26.0",
+		"mermaid": "^11.16.0",
 		"picomatch": "^4.0.5",
 		"pretext": "^0.3.0",
 		"react": "^19.2.8",
