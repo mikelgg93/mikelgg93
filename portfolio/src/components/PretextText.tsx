@@ -17,16 +17,25 @@ export default function PretextText({
   as = "div",
 }: PretextTextProps) {
   const containerRef = useRef<HTMLElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(() => {
+    if (typeof window !== "undefined" && (window as any).__PRETEXT_WIDTH_CACHE) {
+      return (window as any).__PRETEXT_WIDTH_CACHE;
+    }
+    return 0;
+  });
 
   useEffect(() => {
     if (containerRef.current) {
-      setContainerWidth(containerRef.current.clientWidth);
+      const w = containerRef.current.clientWidth;
+      setContainerWidth(w);
+      (window as any).__PRETEXT_WIDTH_CACHE = w;
     }
 
     const ob = new ResizeObserver((entries) => {
       if (entries[0] && entries[0].contentRect.width > 0) {
-        setContainerWidth(entries[0].contentRect.width);
+        const w = entries[0].contentRect.width;
+        setContainerWidth(w);
+        (window as any).__PRETEXT_WIDTH_CACHE = w;
       }
     });
 
@@ -55,7 +64,7 @@ export default function PretextText({
     return (
       <Tag
         ref={containerRef}
-        className={`w-full ${className} leading-[${lineHeightPx}px] opacity-0`}
+        className={`w-full ${className} leading-[${lineHeightPx}px] text-balance text-pretty`}
       >
         {text}
       </Tag>
