@@ -36,7 +36,7 @@ const sortedPosts = posts
           >
               {post.data.image && (
                 <div class="w-full h-48 mb-4 overflow-hidden rounded-lg bg-background shrink-0">
-                  <Image inferSize={true} src={post.data.image} alt={post.data.title} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                  <Image width={1200} height={630} src={post.data.image} alt={post.data.title} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
                 </div>
               )}
               <div class="flex justify-between items-start mb-4">

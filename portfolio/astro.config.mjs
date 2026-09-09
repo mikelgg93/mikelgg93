@@ -6,6 +6,8 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import remarkDirective from "remark-directive";
 import remarkGithubBlockquoteAlert from "remark-github-blockquote-alert";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 
 // https://astro.build/config
 export default defineConfig({
@@ -17,12 +19,16 @@ export default defineConfig({
 		plugins: [tailwindcss()],
 	},
 
-	integrations: [react(), mdx()],
+	integrations: [react(), mdx({
+		remarkPlugins: [remarkMath, remarkDirective, remarkGithubBlockquoteAlert],
+		rehypePlugins: [rehypeKatex],
+	})],
 	prefetch: {
 		prefetchAll: true,
 		defaultStrategy: "hover",
 	},
 	markdown: {
-		remarkPlugins: [remarkDirective, remarkGithubBlockquoteAlert],
+		remarkPlugins: [remarkMath, remarkDirective, remarkGithubBlockquoteAlert],
+		rehypePlugins: [rehypeKatex],
 	},
 });

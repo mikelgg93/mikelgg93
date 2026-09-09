@@ -1,10 +1,12 @@
 ---
 import { Image } from "astro:assets";
-import Layout from "@/layouts/Layout.astro";
 import BlogFeatures from "@/components/BlogFeatures";
+import BlogToc from "@/components/BlogToc.astro";
 import PretextText from "@/components/PretextText";
+import Layout from "@/layouts/Layout.astro";
+import "katex/dist/katex.min.css";
 
-const { frontmatter } = Astro.props;
+const { frontmatter, prevUrl = null, nextUrl = null } = Astro.props;
 ---
 
 <Layout title={frontmatter.title} description={frontmatter.description}>
@@ -16,7 +18,8 @@ const { frontmatter } = Astro.props;
         <Image
           id="blog-hero-image"
           src={frontmatter.image}
-          inferSize={true}
+          width={1200}
+          height={630}
           alt={frontmatter.title}
           class="absolute inset-0 w-full h-full object-cover"
           crossorigin="anonymous"
@@ -27,11 +30,14 @@ const { frontmatter } = Astro.props;
   }
 
   <article
+    data-prev-url={prevUrl}
+    data-next-url={nextUrl}
     class={`prose dark:prose-invert prose-h1:font-serif prose-h2:font-serif prose-h3:font-serif prose-h4:font-serif mx-auto max-w-3xl px-4 sm:px-6 relative z-20 ${frontmatter.image ? "-mt-24 pb-24" : "py-24"}`}
   >
+    <BlogToc />
     <div class="mb-4">
       <PretextText
-        client:only="react"
+        client:load
         as="h1"
         text={frontmatter.title}
         font='700 36px "DM Serif Display"'
@@ -42,7 +48,7 @@ const { frontmatter } = Astro.props;
     {
       frontmatter.description && (
         <PretextText
-          client:only="react"
+          client:load
           as="p"
           text={frontmatter.description}
           font="18px Inter"
@@ -57,6 +63,37 @@ const { frontmatter } = Astro.props;
     </div>
   </article>
 </Layout>
+
+<script>
+  // Left / right arrow keys move to the previous / next article. Bound once on
+  // document (which survives view transitions); it reads the current article's
+  // data attributes each press. Ignored while typing in a field or nudging a
+  // slider so the interactive demos still work.
+  function eyeArrowNav(e: KeyboardEvent) {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const el = document.activeElement as HTMLElement | null;
+    if (
+      el &&
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.tagName === "SELECT" ||
+        el.isContentEditable)
+    )
+      return;
+    const article = document.querySelector("article[data-prev-url], article[data-next-url]") as HTMLElement | null;
+    if (!article) return;
+    const url = e.key === "ArrowLeft" ? article.dataset.prevUrl : article.dataset.nextUrl;
+    if (url) {
+      e.preventDefault();
+      window.location.assign(url);
+    }
+  }
+  if (!(window as any).__eyeArrowNavBound) {
+    (window as any).__eyeArrowNavBound = true;
+    document.addEventListener("keydown", eyeArrowNav);
+  }
+</script>
 
 <script>
   import { FastAverageColor } from "fast-average-color";
