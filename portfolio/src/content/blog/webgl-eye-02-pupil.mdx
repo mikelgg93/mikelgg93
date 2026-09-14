@@ -19,6 +19,8 @@ import PupilStep1Code from '../../components/eye/pupil/PupilStep1.tsx?raw';
 import IrisParametricCode from '../../components/eye/pupil/IrisParametric.tsx?raw';
 import PupilStep2Code from '../../components/eye/pupil/PupilStep2.tsx?raw';
 import PupilReflexCode from '../../components/eye/pupil/PupilReflex.tsx?raw';
+import PupilHardwareSync from '../../components/eye/pupil/PupilHardwareSync';
+import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.tsx?raw';
 
 In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil**, and the colored ring around it, the **iris**, is the muscle that opens and closes it.
 
@@ -168,6 +170,26 @@ Here is everything together. Slide the scene brightness and watch the reflex fir
 With the cornea shaped and the pupil now opening and closing on its own, our eye controls both how light is focused and how much of it gets in.
 
 **[In Part 3 we build the crystalline lens, model how it changes shape to focus, and simulate cataract surgery.](/blog/webgl-eye-03-lens)**
+
+
+## Hardware Sync: Pupil Labs Realtime API
+
+Since we are talking about pupils, why just simulate them when you can drive the 3D model with your actual eyes? If you have access to a pair of [Pupil Labs Neon](https://pupil-labs.com/products/neon) eye-tracking glasses, you can hook them up directly to this blog post!
+
+Normally, connecting to these glasses requires downloading third-party Python or C++ libraries because the device streams data using RTSP (Real-Time Streaming Protocol) packed in binary RTP packets, which browsers don't natively understand.
+
+But we love a good hack. Since the Neon device allows cross-origin requests, we've built a **pure, zero-dependency RTSP client and binary depacketizer** right into this webpage!
+
+Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click **Connect**. The browser will perform the RTSP handshake over WebSockets, strip the binary RTP wrappers, blindly slice the MsgPack payload for the `pupil_diameter_mm` byte signature, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilHardwareSync client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilHardwareSyncCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
 
 ## References
 
