@@ -56,9 +56,12 @@ export default function PupilHardwareSync() {
 			ws.onerror = () => setStatus("disconnected");
 
 			ws.onmessage = (event) => {
-				if (typeof event.data === "string") {
+				const buffer = new Uint8Array(event.data);
+
+				if (buffer[0] !== 0x24) {
+					// Not an interleaved binary packet ('$')
 					// Handle RTSP text responses
-					const response = event.data;
+					const response = new TextDecoder().decode(buffer);
 
 					// Parse Session ID if present
 					const sessionMatch = response.match(/Session:\s*([^\r\n;]+)/i);
@@ -85,7 +88,6 @@ export default function PupilHardwareSync() {
 				}
 
 				// Handle binary interleaved RTP packets
-				const buffer = new Uint8Array(event.data);
 				if (buffer[0] === 0x24) {
 					// '$' signifies interleaved binary data
 					// buffer[1] is channel, buffer[2..3] is length

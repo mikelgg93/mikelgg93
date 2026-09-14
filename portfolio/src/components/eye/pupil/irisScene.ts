@@ -241,17 +241,7 @@ export function createIrisScene(
 	dir.position.set(-3, 4, 5);
 	scene.add(dir);
 
-	// Sclera ring behind the iris.
-	const sclera = new THREE.Mesh(
-		new THREE.RingGeometry(0.86, 1.6, 96),
-		new THREE.MeshStandardMaterial({
-			color: 0xf1e9df,
-			roughness: 0.6,
-			side: THREE.DoubleSide,
-		}),
-	);
-	sclera.position.z = -0.05;
-	scene.add(sclera);
+	// Sclera ring removed at user request.
 
 	// Iris.
 	const irisGeo = dishedIris();
@@ -359,8 +349,6 @@ export function createIrisScene(
 			irisMat.dispose();
 			corneaGeo.dispose();
 			corneaMat.dispose();
-			sclera.geometry.dispose();
-			(sclera.material as THREE.Material).dispose();
 			envTex.dispose();
 			pmrem.dispose();
 			renderer.dispose();
