@@ -1,0 +1,178 @@
+---
+title: "Modelling the eye (Part 2): The dynamic pupil"
+description: "Part 2 of the WebGL eye series. We build the eye's aperture: the iris, how pupil size sets the light reaching the retina, and the reflex that drives it."
+date: 2026-08-10
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "optics", "anatomy"]
+lang: "en"
+image: "/images/blog/eyeball-banner.png"
+---
+
+import { Code } from 'astro:components';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import PupilStep1 from '../../components/eye/pupil/PupilStep1';
+import IrisParametric from '../../components/eye/pupil/IrisParametric';
+import PupilStep2 from '../../components/eye/pupil/PupilStep2';
+import PupilReflex from '../../components/eye/pupil/PupilReflex';
+
+import PupilStep1Code from '../../components/eye/pupil/PupilStep1.tsx?raw';
+import IrisParametricCode from '../../components/eye/pupil/IrisParametric.tsx?raw';
+import PupilStep2Code from '../../components/eye/pupil/PupilStep2.tsx?raw';
+import PupilReflexCode from '../../components/eye/pupil/PupilReflex.tsx?raw';
+
+In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil**, and the colored ring around it, the **iris**, is the muscle that opens and closes it.
+
+The pupil is not just a passive hole. It reacts to light in a fraction of a second, it trades sharpness against brightness, and it never sits perfectly still. People have been fascinated by it for a long time: Renaissance women used drops of deadly nightshade (*belladonna*, "beautiful lady") to widen their pupils, not knowing the plant was quietly poisoning them. In this part we model the iris, work out how pupil size sets the light reaching the retina, and simulate the reflex that drives it.
+
+## The iris: a living aperture
+
+The iris is what gives eyes their color, but to an optical engineer it is a muscle that changes the pupil between about $2\ \text{mm}$ wide (in bright light) and $8\ \text{mm}$ wide (in the dark). It does this with two opposing muscles:
+
+1. **The sphincter** is a ring of muscle around the pupil edge. When it contracts it makes the pupil smaller (**constriction**). It runs on the parasympathetic "rest and digest" nervous system.
+2. **The dilator** is a set of fibers arranged like spokes, running outward from the pupil. When it contracts it pulls the pupil open (**dilation**). It runs on the sympathetic "fight or flight" system.
+
+The front of the iris is split into two rings by a wavy ridge called the **collarette**: an inner *pupillary zone* around the pupil and an outer *ciliary zone* out toward the white of the eye. It is dotted with pits and folds called **Fuchs crypts**, and that texture is what makes every iris look unique.
+
+The model below builds the iris in 3D under a glassy cornea. The iris itself is drawn in a shader whose recipe is essentially two circles: throw away everything outside the iris, paint the hole in the middle black, and fill the ring between them with procedural noise for the crypts and fibers.
+
+```glsl
+float dist = distance(uv, center);   // distance from the pupil center
+if (dist > irisRadius) discard;      // outside the iris: nothing to draw
+if (dist < pupilRadius) {            // inside the pupil: the dark hole
+  gl_FragColor = vec4(0.01, 0.01, 0.02, 1.0);
+  return;
+}
+// in between: the colored iris, textured with layered noise (fbm)
+```
+
+Drag the diameter slider to open and close the pupil, turn on the muscle map to see the red sphincter ring and the blue radial dilator fibers, and switch the pigment to see how melanin changes the color. Drag the view to orbit it.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilStep1 client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilStep1Code} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## How much light gets through: pupil area and trolands
+
+Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole, and area grows with the square of the diameter.
+
+We measure the light on the retina in a unit called the **troland**, named after vision scientist Leonard Troland. It is simply the scene brightness $L$ (in candela per square meter) multiplied by the pupil area $A$:
+
+$$E = L \cdot A = L \cdot \frac{\pi d^2}{4}$$
+
+Because the diameter $d$ is squared, small changes in pupil size have a big effect. Going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a $4^2 = 16$x change in area. That single trick lets the eye soak up far more light at night while protecting the retina by day.
+
+### The Stiles-Crawford effect
+
+Area is not quite the whole story. In 1933, Stiles and Crawford noticed something strange: light entering through the *edge* of a wide pupil is much less effective than light entering through the center. The reason is that the cone cells in the retina behave like tiny optical fibers pointing back toward the middle of the pupil, so light arriving at a steep angle from the rim couples in poorly.
+
+The upshot is that the *effective* pupil area grows more slowly than the geometric area once the pupil is wide. It is modeled with a gentle saturating curve:
+
+$$A_e(d) = \frac{\pi}{\rho} \left(1 - e^{-\rho d^2 / 4}\right)$$
+
+where $\rho \approx 0.085\ \text{mm}^{-2}$ sets how quickly the edges lose effectiveness. The simulator at the end of this article lets you toggle this effect on and off to see how much it changes the light on the retina.
+
+> [!NOTE]
+> **How big should the pupil be at a given brightness?**
+> A useful rule of thumb comes from Moon and Spencer (1944): the resting pupil diameter follows a smooth curve of scene brightness,
+> $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) - 0.2\right)$$
+> This gives a diameter in millimeters across the full range from starlight to bright sun. Watson and Yellott (2012) later extended it to account for age and how much of your field of view is lit. In code it is a one-liner:
+> ```ts
+> function pupilDiameter(L) {                 // L = scene luminance (cd/m²)
+>   const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) - 0.2);
+>   return Math.min(8, Math.max(2, d));       // clamp to 2-8 mm
+> }
+> ```
+
+In the model below you set the pupil size and the scene brightness by hand and read off the light reaching the retina: the geometric pupil area, the retinal illuminance in trolands, and how much the Stiles-Crawford falloff trims it once the pupil is wide.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <IrisParametric client:visible />
+  </div>
+  <div slot="code">
+    <Code code={IrisParametricCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## The pupillary light reflex
+
+Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex**, and it is one of the first things a doctor checks, because it runs through the brainstem: light is detected in the retina, the signal travels up the optic nerve, crosses through the midbrain, and comes back down to drive the sphincter muscle. Constrict, then relax.
+
+The loop is a feedback controller, and like any real controller it is not instant. Three things shape how the pupil actually moves:
+
+- **A delay.** It takes about $220\ \text{ms}$ for the signal to make the round trip before the muscle even starts moving.
+- **Asymmetry.** Constriction is fast (a time constant near $0.12\ \text{s}$); dilation is slow (nearer $0.65\ \text{s}$). Your pupil snaps shut but opens back up lazily.
+- **Hippus.** Even under perfectly steady light the pupil quivers slightly, a low, constant wobble of a few tenths of a millimeter.
+
+The delay and the asymmetry are the whole character of the reflex, and both are only a few lines of code. Each frame, the pupil eases toward the target diameter it was told to reach $220\ \text{ms}$ ago, and it moves faster when closing than when opening:
+
+```ts
+const diff = targetDiameter - currentDiameter;
+const tau = diff < 0 ? 0.12 : 0.65;   // fast to constrict, slow to dilate
+currentDiameter += (diff / tau) * dt; // ease toward the target this frame
+```
+
+The model below pairs the pupil with an oscilloscope. The dashed line is the target the reflex is chasing; the solid line is where the pupil actually is. Switch the light from dark to bright and watch the lag and the asymmetry play out. Turn the latency off to see how twitchy the pupil would be without its built-in delay.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilStep2 client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilStep2Code} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Why not just stay wide open? The aperture trade-off
+
+If a wide pupil gathers more light, why doesn't the eye stay wide open all the time? Because aperture size trades off two kinds of blur that pull in opposite directions.
+
+### Diffraction blur
+
+Light is a wave, and squeezing it through a small hole makes it spread out into a fuzzy ring called an **Airy disk**. The smaller the pupil, the worse this spreading. The blur size grows as the pupil shrinks:
+
+$$W_d = 2.44 \frac{\lambda f}{d}$$
+
+Here $\lambda \approx 550\ \text{nm}$ is the wavelength of green light and $f \approx 17\ \text{mm}$ is the focal length of the eye. So a tiny $2\ \text{mm}$ pupil is actually a bit soft, purely because of physics.
+
+### Spherical aberration
+
+Open the pupil wide instead, and now the outer rays passing through the edge of the cornea and lens bend too much compared to the central rays, the same spherical aberration we met in Part 1. This kind of blur grows very fast with pupil size, roughly with the fourth power of the diameter:
+
+$$\text{aberration} \propto d^4$$
+
+So a small pupil is limited by diffraction and a large one by aberration. Plot both against pupil size and the two curves cross in the middle: that crossing is where the eye sees its sharpest.
+
+> [!NOTE]
+> **The 3 to 4 mm sweet spot**
+> At a pupil diameter of about **3 to 4 mm**, the two kinds of blur roughly cancel and the eye sees its sharpest. That happens to be about where your pupil sits in comfortable daylight, which is not a coincidence.
+
+## The full pupil simulator
+
+Here is everything together. Slide the scene brightness and watch the reflex fire after its $220\ \text{ms}$ delay, hit the penlight button for a sudden flash, toggle the Stiles-Crawford effect to see how much the pupil edges really count, and switch the iris pigment between brown, hazel, blue, and albino.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilReflex client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilReflexCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+With the cornea shaped and the pupil now opening and closing on its own, our eye controls both how light is focused and how much of it gets in.
+
+**[In Part 3 we build the crystalline lens, model how it changes shape to focus, and simulate cataract surgery.](/blog/webgl-eye-03-lens)**
+
+## References
+
+1. **Moon, P., & Spencer, D. (1944)**. *On the Stiles-Crawford effect and the design of telescopes*. Journal of the Optical Society of America, 34(6), 319-329.
+2. **Watson, A. B., & Yellott, J. I. (2012)**. *A unified formula for light-adapted pupil size*. Journal of Vision, 12(10):12, 1-16.
+3. **Stiles, W. S., & Crawford, B. H. (1933)**. *The luminous efficiency of rays entering the eye pupil at different points*. Proceedings of the Royal Society of London B, 112(778), 428-450.
+4. **Loewenfeld, I. E. (1993)**. *The Pupil: Anatomy, Physiology, and Clinical Applications*. Wayne State University Press.
+5. **Troland, L. T. (1917)**. *On the measurement of visual stimulation intensities*. Journal of Experimental Psychology, 2(1), 1-33.
