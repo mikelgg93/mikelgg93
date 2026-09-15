@@ -162,14 +162,15 @@ export default function PupilHardwareSync() {
 			};
 
 			// 3. Fetch the device's webapp dynamically
-			const htmlRes = await fetch(`http://${deviceIp}:8080/`);
+			const fetchOpts = { headers: { "Connection": "close" }, cache: "no-store" as RequestCache };
+			const htmlRes = await fetch(`http://${deviceIp}:8080/`, fetchOpts);
 			const html = await htmlRes.text();
 			const scriptMatch = html.match(/src="(\/assets\/index-[^"]+\.js)"/);
 			if (!scriptMatch)
 				throw new Error("Could not find index.js in the Neon device response");
 
 			// 4. Fetch the JS bundle and sandbox its mount point & location
-			const jsRes = await fetch(`http://${deviceIp}:8080${scriptMatch[1]}`);
+			const jsRes = await fetch(`http://${deviceIp}:8080${scriptMatch[1]}`, fetchOpts);
 			let scriptText = await jsRes.text();
 
 			// Nuke its ability to take over our #root element
