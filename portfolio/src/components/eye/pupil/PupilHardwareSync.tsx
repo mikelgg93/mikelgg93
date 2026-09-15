@@ -4,7 +4,7 @@ import { createIrisScene, type IrisScene } from "./irisScene";
 export default function PupilHardwareSync() {
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
-	const [deviceIp, setDeviceIp] = useState("neon.local");
+	const [deviceIp, setDeviceIp] = useState("192.168.18.39");
 	const [status, setStatus] = useState<
 		"disconnected" | "connecting" | "connected"
 	>("disconnected");
@@ -97,72 +97,77 @@ export default function PupilHardwareSync() {
 			document.body.appendChild(dummyRoot);
 			dummyRootRef.current = dummyRoot;
 
-			// 2. Intercept WebSocket globally to steal the gaze data
+			// 2. Intercept WebSocket globally to steal the gaze data using ES6 Class extending Original WS
 			originalWsRef.current = window.WebSocket;
-			(window as any).WebSocket = (
-				url: string,
-				protocols?: string | string[],
-			) => {
-				const ws = new originalWsRef.current(url, protocols);
 
-				// Only scan websockets going to our device that aren't the JSON status endpoints
-				if (url.includes(deviceIp) && !url.includes("status")) {
-					setStatus("connected"); // The app successfully started a stream!
+			class InterceptedWebSocket extends originalWsRef.current {
+				constructor(url: string, protocols?: string | string[]) {
+					super(url, protocols);
 
-					ws.addEventListener("message", (event: MessageEvent) => {
-						if (typeof event.data === "string") return;
-						const buffer = new Uint8Array(event.data);
-						if (buffer[0] !== 0x24) return; // Must be interleaved binary packet
+					// Only scan websockets going to our device that aren't the JSON status endpoints
+					if (url.includes(deviceIp) && !url.includes("status")) {
+						setStatus("connected"); // The app successfully started a stream!
 
-						const rtpHeaderSize = 12;
-						const payloadOffset = 4 + rtpHeaderSize;
-						if (buffer.length <= payloadOffset) return;
+						this.addEventListener("message", (event: MessageEvent) => {
+							if (typeof event.data === "string") return;
+							const buffer = new Uint8Array(event.data);
+							if (buffer[0] !== 0x24) return; // Must be interleaved binary packet
 
-						const targetKey = "pupil_diameter_mm";
-						let foundIndex = -1;
-						for (
-							let i = payloadOffset;
-							i < buffer.length - targetKey.length - 8;
-							i++
-						) {
-							if (buffer[i] === 0xb1) {
-								let match = true;
-								for (let j = 0; j < targetKey.length; j++) {
-									if (buffer[i + 1 + j] !== targetKey.charCodeAt(j)) {
-										match = false;
+							const rtpHeaderSize = 12;
+							const payloadOffset = 4 + rtpHeaderSize;
+							if (buffer.length <= payloadOffset) return;
+
+							const targetKey = "pupil_diameter_mm";
+							let foundIndex = -1;
+							for (
+								let i = payloadOffset;
+								i < buffer.length - targetKey.length - 8;
+								i++
+							) {
+								if (buffer[i] === 0xb1) {
+									let match = true;
+									for (let j = 0; j < targetKey.length; j++) {
+										if (buffer[i + 1 + j] !== targetKey.charCodeAt(j)) {
+											match = false;
+											break;
+										}
+									}
+									if (match) {
+										foundIndex = i + 1 + targetKey.length;
 										break;
 									}
 								}
-								if (match) {
-									foundIndex = i + 1 + targetKey.length;
-									break;
+							}
+
+							if (foundIndex !== -1 && sceneRef.current) {
+								const typeByte = buffer[foundIndex];
+								let diameter = 0;
+								const dataView = new DataView(buffer.buffer);
+								if (typeByte === 0xca) {
+									diameter = dataView.getFloat32(foundIndex + 1, false);
+								} else if (typeByte === 0xcb) {
+									diameter = dataView.getFloat64(foundIndex + 1, false);
+								}
+
+								if (diameter > 0 && diameter < 10) {
+									sceneRef.current.params.pupilRadius = diameter / 24;
+									setPupilMm(diameter);
+									updateGraph(diameter);
 								}
 							}
-						}
-
-						if (foundIndex !== -1 && sceneRef.current) {
-							const typeByte = buffer[foundIndex];
-							let diameter = 0;
-							const dataView = new DataView(buffer.buffer);
-							if (typeByte === 0xca) {
-								diameter = dataView.getFloat32(foundIndex + 1, false);
-							} else if (typeByte === 0xcb) {
-								diameter = dataView.getFloat64(foundIndex + 1, false);
-							}
-
-							if (diameter > 0 && diameter < 10) {
-								sceneRef.current.params.pupilRadius = diameter / 24;
-								setPupilMm(diameter);
-								updateGraph(diameter);
-							}
-						}
-					});
+						});
+					}
 				}
-				return ws;
-			};
+			}
+
+			// Replace it in window so the injected script uses it
+			(window as any).WebSocket = InterceptedWebSocket;
 
 			// 3. Fetch the device's webapp dynamically
-			const fetchOpts = { headers: { "Connection": "close" }, cache: "no-store" as RequestCache };
+			const fetchOpts = {
+				headers: { Connection: "close" },
+				cache: "no-store" as RequestCache,
+			};
 			const htmlRes = await fetch(`http://${deviceIp}:8080/`, fetchOpts);
 			const html = await htmlRes.text();
 			const scriptMatch = html.match(/src="(\/assets\/index-[^"]+\.js)"/);
@@ -170,7 +175,10 @@ export default function PupilHardwareSync() {
 				throw new Error("Could not find index.js in the Neon device response");
 
 			// 4. Fetch the JS bundle and sandbox its mount point & location
-			const jsRes = await fetch(`http://${deviceIp}:8080${scriptMatch[1]}`, fetchOpts);
+			const jsRes = await fetch(
+				`http://${deviceIp}:8080${scriptMatch[1]}`,
+				fetchOpts,
+			);
 			let scriptText = await jsRes.text();
 
 			// Nuke its ability to take over our #root element
