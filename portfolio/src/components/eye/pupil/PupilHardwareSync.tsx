@@ -184,12 +184,12 @@ export default function PupilHardwareSync() {
 				`("http://${deviceIp}:8080/")`,
 			);
 			scriptText = scriptText.replace(
-				/window\.location\.host/g,
-				`("${deviceIp}:8080")`,
-			);
-			scriptText = scriptText.replace(
 				/window\.location\.hostname/g,
 				`("${deviceIp}")`,
+			);
+			scriptText = scriptText.replace(
+				/window\.location\.host/g,
+				`("${deviceIp}:8080")`,
 			);
 
 			// 5. Execute the sandboxed JS
