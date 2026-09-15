@@ -8,6 +8,7 @@ export default function PupilHardwareSync() {
 	const [status, setStatus] = useState<
 		"disconnected" | "connecting" | "connected"
 	>("disconnected");
+	const [errorMsg, setErrorMsg] = useState("");
 	const [pupilMm, setPupilMm] = useState<number>(3.0);
 
 	const scriptRef = useRef<HTMLScriptElement | null>(null);
@@ -87,6 +88,7 @@ export default function PupilHardwareSync() {
 		}
 
 		setStatus("connecting");
+		setErrorMsg("");
 		try {
 			// 1. Create a hidden dummy root for the Neon app to mount to
 			const dummyRoot = document.createElement("div");
@@ -103,13 +105,14 @@ export default function PupilHardwareSync() {
 			) => {
 				const ws = new originalWsRef.current(url, protocols);
 
-				if (url.includes("camera=gaze")) {
-					setStatus("connected"); // The app successfully started the gaze stream!
+				// Only scan websockets going to our device that aren't the JSON status endpoints
+				if (url.includes(deviceIp) && !url.includes("status")) {
+					setStatus("connected"); // The app successfully started a stream!
 
 					ws.addEventListener("message", (event: MessageEvent) => {
 						if (typeof event.data === "string") return;
 						const buffer = new Uint8Array(event.data);
-						if (buffer[0] !== 0x24) return;
+						if (buffer[0] !== 0x24) return; // Must be interleaved binary packet
 
 						const rtpHeaderSize = 12;
 						const payloadOffset = 4 + rtpHeaderSize;
@@ -165,7 +168,7 @@ export default function PupilHardwareSync() {
 			if (!scriptMatch)
 				throw new Error("Could not find index.js in the Neon device response");
 
-			// 4. Fetch the JS bundle and sandbox its mount point
+			// 4. Fetch the JS bundle and sandbox its mount point & location
 			const jsRes = await fetch(`http://${deviceIp}:8080${scriptMatch[1]}`);
 			let scriptText = await jsRes.text();
 
@@ -175,14 +178,31 @@ export default function PupilHardwareSync() {
 				"getElementById('neon-dummy-root')",
 			);
 
+			// Force it to connect to the device IP instead of the blog's localhost
+			scriptText = scriptText.replace(
+				/window\.location\.href/g,
+				`("http://${deviceIp}:8080/")`,
+			);
+			scriptText = scriptText.replace(
+				/window\.location\.host/g,
+				`("${deviceIp}:8080")`,
+			);
+			scriptText = scriptText.replace(
+				/window\.location\.hostname/g,
+				`("${deviceIp}")`,
+			);
+
 			// 5. Execute the sandboxed JS
 			const script = document.createElement("script");
 			script.type = "module";
 			script.textContent = scriptText;
 			document.body.appendChild(script);
 			scriptRef.current = script;
-		} catch (e) {
+		} catch (e: any) {
 			console.error("Neon Connection Error:", e);
+			setErrorMsg(
+				e.message || "Failed to fetch. Device asleep or cross-origin blocked.",
+			);
 			cleanupSandbox();
 		}
 	};
@@ -228,6 +248,11 @@ export default function PupilHardwareSync() {
 						</span>
 					</span>
 				</div>
+				{errorMsg && (
+					<div className="mt-1 text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20">
+						{errorMsg}
+					</div>
+				)}
 
 				{/* Real-time Graph */}
 				<div className="mt-2 border border-border rounded overflow-hidden bg-black/20 h-16 relative">
