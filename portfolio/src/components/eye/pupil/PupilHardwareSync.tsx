@@ -108,31 +108,39 @@ export default function PupilHardwareSync() {
 					if (url.includes(deviceIp) && !url.includes("status")) {
 						setStatus("connected"); // The app successfully started a stream!
 
+						let expectingRtpPacket = false;
 						this.addEventListener("message", (event: MessageEvent) => {
 							if (typeof event.data === "string") return;
 							const buffer = new Uint8Array(event.data);
-							if (buffer[0] !== 0x24) return; // Must be interleaved binary packet
 
-							const rtpHeaderSize = 12;
-							const payloadOffset = 4 + rtpHeaderSize;
-							const payloadSize = buffer.length - payloadOffset;
+							// The Axis RTSP server sends the 4-byte interleaved header ($ + channel + length)
+							// as one WebSocket message, and the actual RTP packet as the next message.
+							if (buffer[0] === 0x24 && buffer.length === 4) {
+								expectingRtpPacket = true;
+								return;
+							}
 
-							// The Real-Time API sends gaze data as a raw C-struct (not MsgPack!).
-							// Basic GazeData is 9 bytes (!ffB -> x, y, worn).
-							// Neon devices append eyestate data, making it >= 65 bytes.
-							// pupil_diameter_left is a Float32 at byte offset 9 of the payload.
-							if (payloadSize >= 65 && sceneRef.current) {
-								const dataView = new DataView(buffer.buffer);
-								// false = Big-Endian (Network Byte Order, "!" in python struct)
-								const pupil_left = dataView.getFloat32(
-									payloadOffset + 9,
-									false,
-								);
+							if (expectingRtpPacket) {
+								expectingRtpPacket = false;
+								const rtpHeaderSize = 12;
+								// The 4-byte interleaved header was in the previous message, so it's not here
+								const payloadOffset = rtpHeaderSize;
+								const payloadSize = buffer.length - payloadOffset;
 
-								if (pupil_left > 0 && pupil_left < 15) {
-									sceneRef.current.params.pupilRadius = pupil_left / 24;
-									setPupilMm(pupil_left);
-									updateGraph(pupil_left);
+								// The Real-Time API sends gaze data as a raw C-struct
+								if (payloadSize >= 65 && sceneRef.current) {
+									const dataView = new DataView(buffer.buffer);
+									// pupil_diameter_left is a Float32 at byte offset 9 of the payload.
+									const pupil_left = dataView.getFloat32(
+										payloadOffset + 9,
+										false,
+									);
+
+									if (pupil_left > 0 && pupil_left < 15) {
+										sceneRef.current.params.pupilRadius = pupil_left / 24;
+										setPupilMm(pupil_left);
+										updateGraph(pupil_left);
+									}
 								}
 							}
 						});
