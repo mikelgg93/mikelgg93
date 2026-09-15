@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import { Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { createIrisScene, type IrisScene } from "./irisScene";
 
 export default function PupilHardwareSync() {
@@ -9,7 +11,8 @@ export default function PupilHardwareSync() {
 		"disconnected" | "connecting" | "connected"
 	>("disconnected");
 	const [errorMsg, setErrorMsg] = useState("");
-	const [pupilMm, setPupilMm] = useState<number>(3.0);
+	const [pupilMm, setPupilMm] = useState<number>(0);
+	const [isSettingsOpen, setIsSettingsOpen] = useState(true);
 
 	const scriptRef = useRef<HTMLScriptElement | null>(null);
 	const originalWsRef = useRef<any>(null);
@@ -17,7 +20,7 @@ export default function PupilHardwareSync() {
 
 	// Graph state
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const historyRef = useRef<number[]>(Array(100).fill(3.0));
+	const historyRef = useRef<number[]>([]);
 
 	useEffect(() => {
 		if (!mountRef.current) return;
@@ -40,7 +43,8 @@ export default function PupilHardwareSync() {
 	const updateGraph = (val: number) => {
 		const history = historyRef.current;
 		history.push(val);
-		if (history.length > 100) history.shift();
+		// 5 seconds at 200 Hz = 1000 points
+		if (history.length > 1000) history.shift();
 
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -214,72 +218,91 @@ export default function PupilHardwareSync() {
 
 	return (
 		<div className="relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
-			{/* Overlay */}
-			<div className="absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col gap-2 z-10 w-64 shadow-xl pointer-events-auto">
-				<div className="flex items-center justify-between">
-					<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-						Hardware Sync
-					</span>
-					<div
-						className={`w-2.5 h-2.5 rounded-full ${status === "connected" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
-					/>
-				</div>
-				<input
-					type="text"
-					value={deviceIp}
-					onChange={(e) => setDeviceIp(e.target.value)}
-					disabled={status !== "disconnected"}
-					className="bg-background/50 border border-input rounded-md px-2 py-1.5 text-[11px] text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-ring"
-				/>
-				<button
-					type="button"
-					onClick={toggleConnection}
-					className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors w-full ${status === "connected" ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+			{/* Collapsible Settings Overlay */}
+			<div className="absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 shadow-xl pointer-events-auto transition-all">
+				<div
+					className="flex items-center justify-between cursor-pointer select-none"
+					onClick={() => setIsSettingsOpen(!isSettingsOpen)}
 				>
-					{status === "connected"
-						? "Disconnect"
-						: status === "connecting"
-							? "Connecting App..."
-							: "Connect (Background App)"}
-				</button>
-				<div className="flex items-end justify-between mt-1">
-					<span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-						Diameter
-					</span>
-					<span className="text-lg font-mono font-bold text-foreground">
-						{pupilMm.toFixed(2)}{" "}
-						<span className="text-xs font-semibold text-muted-foreground">
-							mm
+					<div className="flex items-center gap-2">
+						<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
+						<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+							Hardware Sync
 						</span>
-					</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<div
+							className={`w-2 h-2 rounded-full ${status === "connected" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
+						/>
+						{isSettingsOpen ? (
+							<ChevronUp className="w-3 h-3 text-muted-foreground" />
+						) : (
+							<ChevronDown className="w-3 h-3 text-muted-foreground" />
+						)}
+					</div>
 				</div>
-				{errorMsg && (
-					<div className="mt-1 text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20">
-						{errorMsg}
+
+				{isSettingsOpen && (
+					<div className="flex flex-col gap-2 mt-3">
+						<input
+							type="text"
+							value={deviceIp}
+							onChange={(e) => setDeviceIp(e.target.value)}
+							disabled={status !== "disconnected"}
+							className="bg-background/50 border border-input rounded-md px-2 py-1.5 text-[11px] text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+						/>
+						<button
+							type="button"
+							onClick={toggleConnection}
+							className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors w-full ${status === "connected" ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+						>
+							{status === "connected"
+								? "Disconnect"
+								: status === "connecting"
+									? "Connecting..."
+									: "Connect"}
+						</button>
+						{errorMsg && (
+							<div className="text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20">
+								{errorMsg}
+							</div>
+						)}
 					</div>
 				)}
-
-				{/* Real-time Graph */}
-				<div className="mt-2 border border-border rounded overflow-hidden bg-black/20 h-16 relative">
-					<canvas
-						ref={canvasRef}
-						width={228}
-						height={64}
-						className="w-full h-full"
-					/>
-					<div className="absolute left-1 bottom-0.5 text-[8px] text-muted-foreground leading-none">
-						1mm
-					</div>
-					<div className="absolute left-1 top-1 text-[8px] text-muted-foreground leading-none">
-						9mm
-					</div>
-				</div>
 			</div>
 
 			<div
 				ref={mountRef}
 				className="w-full h-full cursor-grab active:cursor-grabbing"
 			/>
+
+			{/* Main View Real-time Graph (Bottom) */}
+			<div className="absolute bottom-0 left-0 w-full h-28 bg-gradient-to-t from-background/90 to-transparent pointer-events-none flex items-end">
+				<canvas
+					ref={canvasRef}
+					width={1000}
+					height={112}
+					className="absolute bottom-0 left-0 w-full h-full opacity-70"
+				/>
+				<div className="absolute left-2 bottom-2 text-[10px] text-muted-foreground font-mono">
+					1mm
+				</div>
+				<div className="absolute left-2 top-2 text-[10px] text-muted-foreground font-mono">
+					9mm
+				</div>
+				<div className="absolute right-2 top-2 text-[10px] text-emerald-500/70 font-mono font-bold tracking-wider uppercase">
+					LAST 5s
+				</div>
+
+				<div className="absolute right-4 bottom-2 flex items-end gap-1">
+					<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">
+						{pupilMm.toFixed(2)}
+					</span>
+					<span className="text-xs font-semibold text-muted-foreground mb-1">
+						mm
+					</span>
+				</div>
+			</div>
 		</div>
 	);
 }
