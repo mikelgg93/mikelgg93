@@ -115,44 +115,24 @@ export default function PupilHardwareSync() {
 
 							const rtpHeaderSize = 12;
 							const payloadOffset = 4 + rtpHeaderSize;
-							if (buffer.length <= payloadOffset) return;
+							const payloadSize = buffer.length - payloadOffset;
 
-							const targetBytes = [0x70, 0x75, 0x70, 0x69, 0x6c]; // "pupil"
-							let foundIndex = -1;
-							for (let i = payloadOffset; i < buffer.length - 20; i++) {
-								let match = true;
-								for (let j = 0; j < targetBytes.length; j++) {
-									if (buffer[i + j] !== targetBytes[j]) {
-										match = false;
-										break;
-									}
-								}
-								if (match) {
-									foundIndex = i;
-									break;
-								}
-							}
+							// The Real-Time API sends gaze data as a raw C-struct (not MsgPack!).
+							// Basic GazeData is 9 bytes (!ffB -> x, y, worn).
+							// Neon devices append eyestate data, making it >= 65 bytes.
+							// pupil_diameter_left is a Float32 at byte offset 9 of the payload.
+							if (payloadSize >= 65 && sceneRef.current) {
+								const dataView = new DataView(buffer.buffer);
+								// false = Big-Endian (Network Byte Order, "!" in python struct)
+								const pupil_left = dataView.getFloat32(
+									payloadOffset + 9,
+									false,
+								);
 
-							if (foundIndex !== -1 && sceneRef.current) {
-								const lengthByte = buffer[foundIndex - 1];
-								// Ensure it's a valid msgpack fixstr (0xa0 - 0xbf)
-								if (lengthByte >= 0xa0 && lengthByte <= 0xbf) {
-									const strLen = lengthByte - 0xa0;
-									const valueIndex = foundIndex + strLen;
-									const typeByte = buffer[valueIndex];
-									const dataView = new DataView(buffer.buffer);
-									let diameter = 0;
-									if (typeByte === 0xca) {
-										diameter = dataView.getFloat32(valueIndex + 1, false);
-									} else if (typeByte === 0xcb) {
-										diameter = dataView.getFloat64(valueIndex + 1, false);
-									}
-
-									if (diameter > 0 && diameter < 10) {
-										sceneRef.current.params.pupilRadius = diameter / 24;
-										setPupilMm(diameter);
-										updateGraph(diameter);
-									}
+								if (pupil_left > 0 && pupil_left < 15) {
+									sceneRef.current.params.pupilRadius = pupil_left / 24;
+									setPupilMm(pupil_left);
+									updateGraph(pupil_left);
 								}
 							}
 						});
