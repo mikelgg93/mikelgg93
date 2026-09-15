@@ -117,42 +117,42 @@ export default function PupilHardwareSync() {
 							const payloadOffset = 4 + rtpHeaderSize;
 							if (buffer.length <= payloadOffset) return;
 
-							const targetKey = "pupil_diameter_mm";
+							const targetBytes = [0x70, 0x75, 0x70, 0x69, 0x6c]; // "pupil"
 							let foundIndex = -1;
-							for (
-								let i = payloadOffset;
-								i < buffer.length - targetKey.length - 8;
-								i++
-							) {
-								if (buffer[i] === 0xb1) {
-									let match = true;
-									for (let j = 0; j < targetKey.length; j++) {
-										if (buffer[i + 1 + j] !== targetKey.charCodeAt(j)) {
-											match = false;
-											break;
-										}
-									}
-									if (match) {
-										foundIndex = i + 1 + targetKey.length;
+							for (let i = payloadOffset; i < buffer.length - 20; i++) {
+								let match = true;
+								for (let j = 0; j < targetBytes.length; j++) {
+									if (buffer[i + j] !== targetBytes[j]) {
+										match = false;
 										break;
 									}
+								}
+								if (match) {
+									foundIndex = i;
+									break;
 								}
 							}
 
 							if (foundIndex !== -1 && sceneRef.current) {
-								const typeByte = buffer[foundIndex];
-								let diameter = 0;
-								const dataView = new DataView(buffer.buffer);
-								if (typeByte === 0xca) {
-									diameter = dataView.getFloat32(foundIndex + 1, false);
-								} else if (typeByte === 0xcb) {
-									diameter = dataView.getFloat64(foundIndex + 1, false);
-								}
+								const lengthByte = buffer[foundIndex - 1];
+								// Ensure it's a valid msgpack fixstr (0xa0 - 0xbf)
+								if (lengthByte >= 0xa0 && lengthByte <= 0xbf) {
+									const strLen = lengthByte - 0xa0;
+									const valueIndex = foundIndex + strLen;
+									const typeByte = buffer[valueIndex];
+									const dataView = new DataView(buffer.buffer);
+									let diameter = 0;
+									if (typeByte === 0xca) {
+										diameter = dataView.getFloat32(valueIndex + 1, false);
+									} else if (typeByte === 0xcb) {
+										diameter = dataView.getFloat64(valueIndex + 1, false);
+									}
 
-								if (diameter > 0 && diameter < 10) {
-									sceneRef.current.params.pupilRadius = diameter / 24;
-									setPupilMm(diameter);
-									updateGraph(diameter);
+									if (diameter > 0 && diameter < 10) {
+										sceneRef.current.params.pupilRadius = diameter / 24;
+										setPupilMm(diameter);
+										updateGraph(diameter);
+									}
 								}
 							}
 						});
@@ -186,6 +186,11 @@ export default function PupilHardwareSync() {
 				/getElementById\(['"]root['"]\)/g,
 				"getElementById('neon-dummy-root')",
 			);
+
+			// Force the app to always subscribe to the gaze stream regardless of UI toggles/tabs
+			localStorage.setItem("forceGazeSize", "10");
+			scriptText = scriptText.replace(/gazeRadiusPercent/g, "forceGazeSize");
+			scriptText = scriptText.replace(/!document\.hidden/g, "true");
 
 			// Force it to connect to the device IP instead of the blog's localhost
 			scriptText = scriptText.replace(
