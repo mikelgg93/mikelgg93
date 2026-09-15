@@ -172,6 +172,9 @@ export default function PupilHardwareSync() {
 			scriptText = scriptText.replace(/gazeRadiusPercent/g, "forceGazeSize");
 			scriptText = scriptText.replace(/!document\.hidden/g, "true");
 
+			// Completely disable the heavy 1080p world video stream from rendering or wasting bandwidth
+			scriptText = scriptText.replace(/WORLD="world"/g, 'WORLD="DISABLED"');
+
 			// Force it to connect to the device IP instead of the blog's localhost
 			scriptText = scriptText.replace(
 				/window\.location\.href/g,
