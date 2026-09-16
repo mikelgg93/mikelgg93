@@ -40,7 +40,8 @@ export default function PupilHardwareSync() {
 			}
 			cleanupSandbox();
 		};
-	}, [cleanupSandbox]);
+		// biome-ignore lint/correctness/useExhaustiveDependencies: mount only
+	}, []);
 
 	const updateGraph = (val: { left: number; right: number }) => {
 		const history = historyRef.current;
