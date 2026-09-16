@@ -11,7 +11,10 @@ export default function PupilHardwareSync() {
 		"disconnected" | "connecting" | "connected"
 	>("disconnected");
 	const [errorMsg, setErrorMsg] = useState("");
-	const [pupilMm, setPupilMm] = useState<number>(0);
+	const [pupilMm, setPupilMm] = useState<{ left: number; right: number }>({
+		left: 0,
+		right: 0,
+	});
 	const [isSettingsOpen, setIsSettingsOpen] = useState(true);
 
 	const scriptRef = useRef<HTMLScriptElement | null>(null);
@@ -20,7 +23,7 @@ export default function PupilHardwareSync() {
 
 	// Graph state
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const historyRef = useRef<number[]>([]);
+	const historyRef = useRef<{ left: number; right: number }[]>([]);
 
 	useEffect(() => {
 		if (!mountRef.current) return;
@@ -40,7 +43,7 @@ export default function PupilHardwareSync() {
 		};
 	}, []);
 
-	const updateGraph = (val: number) => {
+	const updateGraph = (val: { left: number; right: number }) => {
 		const history = historyRef.current;
 		history.push(val);
 		// 5 seconds at 200 Hz = 1000 points
@@ -55,14 +58,25 @@ export default function PupilHardwareSync() {
 		const h = canvas.height;
 		ctx.clearRect(0, 0, w, h);
 
-		ctx.beginPath();
-		ctx.strokeStyle = "#10b981"; // emerald-500
 		ctx.lineWidth = 2;
 
+		// Draw Right Eye (Blue)
+		ctx.beginPath();
+		ctx.strokeStyle = "#3b82f6"; // blue-500
 		for (let i = 0; i < history.length; i++) {
 			const x = (i / (history.length - 1)) * w;
-			// Map diameter from 1mm-9mm to canvas height
-			const y = h - ((history[i] - 1) / 8) * h;
+			const y = h - ((history[i].right - 1) / 8) * h;
+			if (i === 0) ctx.moveTo(x, y);
+			else ctx.lineTo(x, y);
+		}
+		ctx.stroke();
+
+		// Draw Left Eye (Emerald)
+		ctx.beginPath();
+		ctx.strokeStyle = "#10b981"; // emerald-500
+		for (let i = 0; i < history.length; i++) {
+			const x = (i / (history.length - 1)) * w;
+			const y = h - ((history[i].left - 1) / 8) * h;
 			if (i === 0) ctx.moveTo(x, y);
 			else ctx.lineTo(x, y);
 		}
@@ -139,11 +153,19 @@ export default function PupilHardwareSync() {
 										payloadOffset + 9,
 										false,
 									);
+									// pupil_diameter_right is at offset 37 (9 + 4 + 12 + 12)
+									const pupil_right = dataView.getFloat32(
+										payloadOffset + 37,
+										false,
+									);
 
 									if (pupil_left > 0 && pupil_left < 15) {
-										sceneRef.current.params.pupilRadius = pupil_left / 24;
-										setPupilMm(pupil_left);
-										updateGraph(pupil_left);
+										// Set 3D model pupil to average of both eyes
+										sceneRef.current.params.pupilRadius =
+											(pupil_left + pupil_right) / 2 / 24;
+										const newData = { left: pupil_left, right: pupil_right };
+										setPupilMm(newData);
+										updateGraph(newData);
 									}
 								}
 							}
@@ -294,13 +316,33 @@ export default function PupilHardwareSync() {
 					LAST 5s
 				</div>
 
-				<div className="absolute right-4 bottom-2 flex items-end gap-1">
-					<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">
-						{pupilMm.toFixed(2)}
-					</span>
-					<span className="text-xs font-semibold text-muted-foreground mb-1">
-						mm
-					</span>
+				<div className="absolute right-4 bottom-2 flex gap-4">
+					<div className="flex flex-col items-end">
+						<span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-0.5">
+							Left
+						</span>
+						<div className="flex items-baseline gap-1">
+							<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">
+								{pupilMm.left.toFixed(2)}
+							</span>
+							<span className="text-xs font-semibold text-muted-foreground">
+								mm
+							</span>
+						</div>
+					</div>
+					<div className="flex flex-col items-end">
+						<span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">
+							Right
+						</span>
+						<div className="flex items-baseline gap-1">
+							<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">
+								{pupilMm.right.toFixed(2)}
+							</span>
+							<span className="text-xs font-semibold text-muted-foreground">
+								mm
+							</span>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
