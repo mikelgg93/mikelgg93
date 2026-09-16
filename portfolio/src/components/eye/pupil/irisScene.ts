@@ -136,7 +136,7 @@ void main() {
 // Dished iris disc: a full disc that sinks toward the pupil, so orbiting shows
 // real depth. The shader discards the pupil and the region beyond the iris.
 function dishedIris() {
-	const R = 1.0;
+	const R = 0.95;
 	const dish = 0.12;
 	const rings = 72;
 	const seg = 128;

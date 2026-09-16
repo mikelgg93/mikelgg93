@@ -22,6 +22,7 @@ import PupilReflexCode from '../../components/eye/pupil/PupilReflex.tsx?raw';
 import PupilHardwareSync from '../../components/eye/pupil/PupilHardwareSync';
 import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.tsx?raw';
 import NervePathway from '../../components/eye/pupil/NervePathway';
+import NervePathwayCode from '../../components/eye/pupil/NervePathway.tsx?raw';
 
 In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil**, and the colored ring around it, the **iris**, is the muscle that opens and closes it.
 
@@ -116,9 +117,14 @@ Shine a light in someone's eye and their pupil shrinks. That is the **pupillary 
 
 The loop is a feedback controller, and like any real controller it is not instant. The neural pathway of this reflex is a fascinating 3D circuit that crosses the brainstem:
 
-<div className="my-8">
-  <NervePathway client:visible />
-</div>
+<InteractiveViewer>
+  <div slot="preview">
+    <NervePathway client:visible />
+  </div>
+  <div slot="code">
+    <Code code={NervePathwayCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
 
 Three things shape how the pupil actually moves:
 
