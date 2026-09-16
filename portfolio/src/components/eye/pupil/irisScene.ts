@@ -110,7 +110,7 @@ void main() {
 
   // Muscle map overlay: red sphincter ring near the pupil, blue radial dilator.
   if (uShowMuscles) {
-    if (radialNorm < 0.22) {
+    if (dist < uPupilRadius + 0.04) {
       float ring = sin(radialNorm * 120.0) * 0.5 + 0.5;
       finalColor = mix(finalColor, vec3(1.0, 0.2, 0.2), 0.55 + 0.25 * ring);
     } else {
@@ -261,10 +261,10 @@ export function createIrisScene(
 	scene.add(iris);
 
 	// Glassy cornea dome over the iris.
-	const corneaGeo = corneaCap(1.6, 0.95, 0.5);
+	const corneaGeo = corneaCap(1.6, 0.95, 0.25);
 	const corneaMat = new THREE.MeshPhysicalMaterial({
 		transmission: 1.0,
-		thickness: 0.4,
+		thickness: 0.15,
 		ior: 1.376,
 		roughness: 0.03,
 		metalness: 0.0,
