@@ -1,0 +1,220 @@
+---
+title: "Modelando el ojo II: La pupila dinámica"
+description: "Parte 2 de la serie WebGL del ojo. Construimos la apertura del ojo: el iris, cómo el tamaño de la pupila ajusta la luz que llega a la retina, y el reflejo que la controla."
+date: 2026-08-10
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "optics", "anatomy"]
+lang: "es"
+image: "/images/blog/pupil-banner.gif"
+---
+
+import { Code } from 'astro:components';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import PupilStep1 from '../../components/eye/pupil/PupilStep1';
+import IrisParametric from '../../components/eye/pupil/IrisParametric';
+import PupilStep2 from '../../components/eye/pupil/PupilStep2';
+import PupilReflex from '../../components/eye/pupil/PupilReflex';
+
+import PupilStep1Code from '../../components/eye/pupil/PupilStep1.tsx?raw';
+import IrisParametricCode from '../../components/eye/pupil/IrisParametric.tsx?raw';
+import PupilStep2Code from '../../components/eye/pupil/PupilStep2.tsx?raw';
+import PupilReflexCode from '../../components/eye/pupil/PupilReflex.tsx?raw';
+import PupilHardwareSync from '../../components/eye/pupil/PupilHardwareSync';
+import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.tsx?raw';
+
+En la [Parte 1](/es/blog/webgl-eye-01-cornea) moldeamos la córnea, la lente frontal fija del ojo. Pero una cámara necesita más que una lente: necesita una apertura, un orificio ajustable que controla cuánta luz entra. En el ojo ese orificio es la **pupila**, y el anillo de color a su alrededor, el **iris**, es el músculo que la abre y la cierra.
+
+> *"El ojo que ves no es ojo porque tú lo veas; es ojo porque te ve."*
+> 
+> - Antonio Machado, *Proverbios y cantares*
+
+La pupila no es solo un orificio pasivo. Reacciona a la luz en una fracción de segundo, intercambia nitidez por brillo, y nunca se queda perfectamente quieta. La gente ha estado fascinada por ella durante mucho tiempo: las mujeres del Renacimiento usaban gotas de belladona ("hermosa dama") para dilatar sus pupilas, sin saber que la planta las estaba envenenando silenciosamente. En esta parte modelamos el iris, calculamos cómo el tamaño de la pupila determina la luz que llega a la retina, y simulamos el reflejo que la controla.
+
+## El iris: una apertura viva
+
+El iris es lo que da color a los ojos, pero para un ingeniero óptico es un músculo que cambia la pupila entre unos $2\ \text{mm}$ de ancho (con luz brillante) y $8\ \text{mm}$ de ancho (en la oscuridad). Lo hace con dos músculos opuestos:
+
+1. **El esfínter** es un anillo de músculo alrededor del borde de la pupila. Cuando se contrae hace que la pupila sea más pequeña (**constricción**). Funciona con el sistema nervioso parasimpático de "descanso y digestión".
+2. **El dilatador** es un conjunto de fibras dispuestas como radios, que se extienden hacia afuera desde la pupila. Cuando se contrae abre la pupila (**dilatación**). Funciona con el sistema de "lucha o huida" simpático.
+
+El frente del iris está dividido en dos anillos por una cresta ondulada llamada **collarete**: una *zona pupilar* interna alrededor de la pupila y una *zona ciliar* externa hacia el blanco del ojo. Está salpicado de hoyos y pliegues llamados **criptas de Fuchs**, y esa textura es lo que hace que cada iris se vea único.
+
+El modelo a continuación construye el iris en 3D bajo una córnea vidriosa. El iris en sí se dibuja en un shader cuya receta son esencialmente dos círculos: descartar todo lo que esté fuera del iris, pintar de negro el agujero en el medio, y rellenar el anillo entre ellos con ruido procedimental para las criptas y las fibras.
+
+```glsl
+float dist = distance(uv, center);   // distancia desde el centro de la pupila
+if (dist > irisRadius) discard;      // fuera del iris: nada que dibujar
+if (dist < pupilRadius) {            // dentro de la pupila: el agujero oscuro
+  gl_FragColor = vec4(0.01, 0.01, 0.02, 1.0);
+  return;
+}
+// en el medio: el iris coloreado, texturizado con ruido en capas (fbm)
+```
+
+Arrastra el control deslizante de diámetro para abrir y cerrar la pupila, enciende el mapa muscular para ver el anillo del esfínter rojo y las fibras dilatadoras radiales azules, y cambia el pigmento para ver cómo la melanina cambia el color. Arrastra la vista para orbitarla.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilStep1 client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilStep1Code} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Cuánta luz entra: área pupilar y trolands
+
+¿Por qué importa tanto el tamaño de la pupila? Porque la cantidad de luz que llega a la retina depende del *área* del agujero, y el área crece con el cuadrado del diámetro.
+
+Medimos la luz en la retina en una unidad llamada **troland**, llamada así por el científico de la visión Leonard Troland. Es simplemente el brillo de la escena $L$ (en candelas por metro cuadrado) multiplicado por el área de la pupila $A$:
+
+$$E = L \cdot A = L \cdot \frac{\pi d^2}{4}$$
+
+Debido a que el diámetro $d$ está al cuadrado, pequeños cambios en el tamaño de la pupila tienen un gran efecto. Pasar de una pupila de $2\ \text{mm}$ a la luz del sol a una pupila de $8\ \text{mm}$ en la oscuridad es un cambio de 4x en el diámetro, pero un cambio de $4^2 = 16$x en el área. Ese simple truco permite que el ojo absorba mucha más luz por la noche mientras protege la retina de día.
+
+### El efecto Stiles-Crawford
+
+El área no es toda la historia. En 1933, Stiles y Crawford notaron algo extraño: la luz que entra por el *borde* de una pupila ancha es mucho menos efectiva que la luz que entra por el centro. La razón es que las células de los conos en la retina se comportan como pequeñas fibras ópticas apuntando hacia el centro de la pupila, por lo que la luz que llega en un ángulo pronunciado desde el borde se acopla mal.
+
+El resultado es que el área pupilar *efectiva* crece más lentamente que el área geométrica una vez que la pupila es ancha. Se modela con una suave curva de saturación:
+
+$$A_e(d) = \frac{\pi}{\rho} \left(1 - e^{-\rho d^2 / 4}\right)$$
+
+donde $\rho \approx 0.085\ \text{mm}^{-2}$ establece la rapidez con la que los bordes pierden eficacia. El simulador al final de este artículo te permite activar y desactivar este efecto para ver cuánto cambia la luz en la retina.
+
+> [!TIP]
+> **Una nota sobre notación matemática**
+> Si lees los artículos originales de ciencia de la visión (como Watson & Yellott 2012), a menudo verás la caída de Stiles-Crawford escrita en base-10 como $10^{-p r^2}$ en lugar de base-$e$. En la óptica computacional moderna, es estándar convertir esto a base-$e$ (usando $e^{-\rho r^2}$, donde $\rho \approx p \ln 10$) porque simplifica las derivaciones y se ejecuta un poco más rápido en los shaders gráficos. La física es idéntica, pero la constante $\rho$ está escalada.
+
+> [!NOTE]
+> **¿Qué tan grande debería ser la pupila a un brillo dado?**
+> Una regla empírica útil proviene de Moon y Spencer (1944): el diámetro de la pupila en reposo sigue una curva suave del brillo de la escena,
+> $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) - 0.2\right)$$
+> Esto da un diámetro en milímetros en todo el rango desde la luz de las estrellas hasta el sol brillante. Watson y Yellott (2012) luego lo ampliaron para tener en cuenta la edad y qué parte de tu campo de visión está iluminada. En código es una sola línea:
+> ```ts
+> function pupilDiameter(L) {                 // L = luminancia de la escena (cd/m²)
+>   const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) - 0.2);
+>   return Math.min(8, Math.max(2, d));       // limitar a 2-8 mm
+> }
+> ```
+
+En el modelo a continuación, configuras el tamaño de la pupila y el brillo de la escena a mano y lees la luz que llega a la retina: el área geométrica de la pupila, la iluminancia retiniana en trolands, y cuánto la recorta la caída de Stiles-Crawford una vez que la pupila es ancha.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <IrisParametric client:visible />
+  </div>
+  <div slot="code">
+    <Code code={IrisParametricCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## El reflejo pupilar a la luz
+
+Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz**, y es una de las primeras cosas que revisa un médico, porque pasa a través del tronco encefálico: la luz se detecta en la retina, la señal viaja por el nervio óptico, cruza por el cerebro medio, y vuelve a bajar para controlar el músculo esfínter. Se contrae, luego se relaja.
+
+El bucle es un controlador de retroalimentación, y como cualquier controlador real, no es instantáneo. Tres cosas dan forma a cómo se mueve realmente la pupila:
+
+- **Un retraso.** La señal tarda unos $220\ \text{ms}$ en hacer el viaje de ida y vuelta antes de que el músculo empiece a moverse.
+- **Asimetría.** La constricción es rápida (una constante de tiempo cercana a $0.12\ \text{s}$); la dilatación es lenta (más cerca de $0.65\ \text{s}$). Tu pupila se cierra de golpe pero se vuelve a abrir perezosamente.
+- **Hippus.** Incluso bajo una luz perfectamente estable, la pupila tiembla ligeramente, un tambaleo bajo y constante de unas pocas décimas de milímetro.
+
+El retraso y la asimetría son todo el carácter del reflejo, y ambos son solo un par de líneas de código. Cada fotograma, la pupila se acerca al diámetro objetivo que se le ordenó alcanzar hace $220\ \text{ms}$, y se mueve más rápido al cerrarse que al abrirse:
+
+```ts
+const diff = targetDiameter - currentDiameter;
+const tau = diff < 0 ? 0.12 : 0.65;   // rápido para contraer, lento para dilatar
+currentDiameter += (diff / tau) * dt; // suavizar hacia el objetivo este frame
+```
+
+El modelo a continuación empareja la pupila con un osciloscopio. La línea punteada es el objetivo que persigue el reflejo; la línea sólida es donde está realmente la pupila. Cambia la luz de oscura a brillante y observa cómo se desarrollan el retraso y la asimetría. Apaga la latencia para ver cuán espasmódica sería la pupila sin su retraso incorporado.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilStep2 client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilStep2Code} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Más allá de la luz: Pupilometría
+
+Aunque el reflejo a la luz es el conductor más fuerte de la pupila, no es el único. El tamaño de la pupila es un tira y afloja continuo entre dos sistemas nerviosos opuestos:
+
+| Sistema | Músculo | Acción | Desencadenantes Comunes | Efectos de Drogas |
+| :--- | :--- | :--- | :--- | :--- |
+| **Parasimpático** ("Descansar y Digerir") | Esfínter | **Contrae** (Miosis) | Luz brillante, enfocar objetos cercanos, relajación | Los opiáceos y la heroína lo sobreestimulan, causando pupilas extremas en "punta de alfiler". |
+| **Simpático** ("Lucha o Huida") | Dilatador | **Dilata** (Midriasis) | Oscuridad, estrés, excitación, carga cognitiva, adrenalina | Los estimulantes (MDMA, cocaína, anfetaminas) o psicodélicos causan una dilatación masiva y abierta. |
+
+Debido a que el músculo dilatador está conectado directamente al sistema nervioso simpático, tus pupilas se expanden ligeramente cuando estás estresado, excitado o pensando mucho. Si le das a alguien un problema matemático complejo para que lo resuelva mentalmente, sus pupilas se dilatarán, alcanzando su punto máximo en el momento de mayor carga cognitiva, y se encogerán de nuevo en el momento en que lo resuelvan. Los diseñadores de interfaces de usuario y los psicólogos usan rastreadores oculares para medir esta "carga cognitiva" invisible y ver si una interfaz de software es demasiado frustrante de usar.
+
+La pupila también cambia de tamaño cuando te enfocas en algo cerca de tu cara. A esto se le llama la **tríada de cerca**: tus ojos convergen (giran hacia adentro), tus lentes se acomodan (se abultan para enfocar), y tus pupilas se contraen. Contraer la pupila al mirar algo de cerca aumenta tu profundidad de campo, exactamente igual que cerrar el diafragma en una lente macro en una cámara.
+
+## ¿Por qué no quedarse siempre abierta? El compromiso de la apertura
+
+Si una pupila ancha recoge más luz, ¿por qué el ojo no permanece abierto todo el tiempo? Porque el tamaño de la apertura intercambia dos tipos de desenfoque que tiran en direcciones opuestas.
+
+### Desenfoque por difracción
+
+La luz es una onda, y exprimirla a través de un pequeño orificio hace que se extienda en un anillo difuso llamado **disco de Airy**. Cuanto más pequeña es la pupila, peor es esta dispersión. El tamaño del desenfoque crece a medida que la pupila se encoge:
+
+$$W_d = 2.44 \frac{\lambda f}{d}$$
+
+Aquí $\lambda \approx 550\ \text{nm}$ es la longitud de onda de la luz verde y $f \approx 17\ \text{mm}$ es la distancia focal del ojo. Así que una pequeña pupila de $2\ \text{mm}$ es en realidad un poco suave, puramente por la física.
+
+### Aberración esférica
+
+En cambio, abre la pupila de par en par, y ahora los rayos exteriores que pasan por el borde de la córnea y el cristalino se doblan demasiado en comparación con los rayos centrales, la misma aberración esférica que conocimos en la Parte 1. Este tipo de desenfoque crece muy rápido con el tamaño de la pupila, aproximadamente con la cuarta potencia del diámetro:
+
+$$\text{aberración} \propto d^4$$
+
+Por lo tanto, una pupila pequeña está limitada por la difracción y una grande por la aberración. Traza ambas frente al tamaño de la pupila y las dos curvas se cruzan en el medio: ese cruce es donde el ojo ve más nítido.
+
+> [!NOTE]
+> **El punto óptimo de 3 a 4 mm**
+> Con un diámetro de pupila de unos **3 a 4 mm**, los dos tipos de desenfoque se cancelan aproximadamente y el ojo ve más nítido. Resulta que es aproximadamente donde se sitúa tu pupila bajo una luz diurna cómoda, lo cual no es una coincidencia.
+
+## El simulador completo de la pupila
+
+Aquí está todo junto. Desliza el brillo de la escena y observa cómo se dispara el reflejo después de su retraso de $220\ \text{ms}$, presiona el botón de la linterna para un destello repentino, activa el efecto Stiles-Crawford para ver cuánto cuentan realmente los bordes de la pupila, y cambia el pigmento del iris entre marrón, avellana, azul y albino.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilReflex client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilReflexCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+Con la córnea moldeada y la pupila ahora abriéndose y cerrándose por sí sola, nuestro ojo controla tanto cómo se enfoca la luz como cuánta entra.
+
+## Hardware Sync: API en Tiempo Real de Pupil Labs
+
+Ya que estamos hablando de pupilas, ¿por qué solo simularlas cuando puedes conducir el modelo 3D con tus ojos reales? Si tienes acceso a un par de gafas de seguimiento ocular [Pupil Labs Neon](https://pupil-labs.com/products/neon), ¡puedes conectarlas directamente a esta publicación del blog!
+
+Normalmente, conectarse a estas gafas requiere descargar bibliotecas de Python o C++ de terceros porque el dispositivo transmite datos utilizando RTSP (Protocolo de Transmisión en Tiempo Real) empaquetados en paquetes binarios RTP, que los navegadores no entienden de forma nativa.
+
+Pero nos encanta un buen hack. Dado que el dispositivo Neon permite solicitudes de origen cruzado, podemos obtener e inyectar dinámicamente la propia aplicación web del dispositivo en un elemento oculto del DOM para manejar el complejo apretón de manos RTSP. Luego, parcheamos la API `WebSocket` del navegador para interceptar la transmisión de video entrante.
+
+Al analizar la API oficial de Python, sabemos que los paquetes binarios crudos RTP empaquetan los datos de la mirada como un C-struct (¡no MsgPack!). Los diámetros de la pupila izquierda y derecha son Float32 Big-Endian ubicados exactamente en los desplazamientos de bytes 9 y 37 de la carga útil.
+
+Asegúrate de que tu computadora o iPad esté en la misma red Wi-Fi que tu rastreador ocular y haz clic en **Connect**. El navegador interceptará la transmisión binaria, analizará las estructuras sobre la marcha y ajustará instantáneamente el modelo de iris 3D para que coincida con el diámetro físico real de tu pupila en tiempo real.
+
+<InteractiveViewer>
+  <div slot="preview">
+    <PupilHardwareSync client:visible />
+  </div>
+  <div slot="code">
+    <Code code={PupilHardwareSyncCode} lang="tsx" theme="github-dark" />
+  </div>
+</InteractiveViewer>
+
+## Referencias
+
+1. **Moon, P., & Spencer, D. (1944)**. *On the Stiles-Crawford effect and the design of telescopes*. Journal of the Optical Society of America, 34(6), 319-329.
+2. **Watson, A. B., & Yellott, J. I. (2012)**. *A unified formula for light-adapted pupil size*. Journal of Vision, 12(10):12, 1-16.
+3. **Stiles, W. S., & Crawford, B. H. (1933)**. *The luminous efficiency of rays entering the eye pupil at different points*. Proceedings of the Royal Society of London B, 112(778), 428-450.
+4. **Loewenfeld, I. E. (1993)**. *The Pupil: Anatomy, Physiology, and Clinical Applications*. Wayne State University Press.
+5. **Troland, L. T. (1917)**. *On the measurement of visual stimulation intensities*. Journal of Experimental Psychology, 2(1), 1-33.
