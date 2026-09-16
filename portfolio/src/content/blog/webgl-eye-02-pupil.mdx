@@ -178,9 +178,11 @@ Since we are talking about pupils, why just simulate them when you can drive the
 
 Normally, connecting to these glasses requires downloading third-party Python or C++ libraries because the device streams data using RTSP (Real-Time Streaming Protocol) packed in binary RTP packets, which browsers don't natively understand.
 
-But we love a good hack. Since the Neon device allows cross-origin requests, we've built a **pure, zero-dependency RTSP client and binary depacketizer** right into this webpage!
+But we love a good hack. Since the Neon device allows cross-origin requests, we can dynamically fetch and inject the device's own web app into a hidden DOM element to handle the complex RTSP handshake. We then monkey-patch the browser's `WebSocket` API to intercept the incoming video stream. 
 
-Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click **Connect**. The browser will perform the RTSP handshake over WebSockets, strip the binary RTP wrappers, blindly slice the MsgPack payload for the `pupil_diameter_mm` byte signature, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
+By analyzing the official Python API, we know the raw binary RTP packets pack the gaze data as a C-struct (not MsgPack!). The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload. 
+
+Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click **Connect**. The browser will intercept the binary stream, parse the structs on the fly, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
 
 <InteractiveViewer>
   <div slot="preview">

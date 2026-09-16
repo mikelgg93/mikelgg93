@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { Settings2, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
 
 export default function PupilHardwareSync() {
@@ -41,7 +40,7 @@ export default function PupilHardwareSync() {
 			}
 			cleanupSandbox();
 		};
-	}, []);
+	}, [cleanupSandbox]);
 
 	const updateGraph = (val: { left: number; right: number }) => {
 		const history = historyRef.current;
@@ -88,11 +87,11 @@ export default function PupilHardwareSync() {
 			window.WebSocket = originalWsRef.current;
 			originalWsRef.current = null;
 		}
-		if (scriptRef.current && scriptRef.current.parentNode) {
+		if (scriptRef.current?.parentNode) {
 			scriptRef.current.parentNode.removeChild(scriptRef.current);
 			scriptRef.current = null;
 		}
-		if (dummyRootRef.current && dummyRootRef.current.parentNode) {
+		if (dummyRootRef.current?.parentNode) {
 			dummyRootRef.current.parentNode.removeChild(dummyRootRef.current);
 			dummyRootRef.current = null;
 		}
