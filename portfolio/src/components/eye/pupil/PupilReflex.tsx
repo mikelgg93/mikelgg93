@@ -52,7 +52,7 @@ export default function PupilReflex() {
 	useEffect(() => {
 		if (!mountRef.current) return;
 		const s = createIrisScene(mountRef.current, {
-			pupilRadius: 4.5 / 24,
+			pupilRadius: 4.5 * (0.46 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
 			stilesCrawford: true,
@@ -121,7 +121,7 @@ export default function PupilReflex() {
 			const effTrolands = L * effArea;
 			const scEfficiency = effArea / area;
 
-			s.params.pupilRadius = actualD / 24;
+			s.params.pupilRadius = actualD * (0.46 / 12.0);
 			s.params.pigmentation = PIGMENTATION_MAP[p.pigmentation];
 			s.params.stilesCrawford = p.stilesCrawford;
 

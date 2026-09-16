@@ -27,7 +27,7 @@ export default function PupilHardwareSync() {
 	useEffect(() => {
 		if (!mountRef.current) return;
 		sceneRef.current = createIrisScene(mountRef.current, {
-			pupilRadius: 3.0 / 24,
+			pupilRadius: 3.0 * (0.46 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
 			stilesCrawford: false,
@@ -162,7 +162,7 @@ export default function PupilHardwareSync() {
 									if (pupil_left > 0 && pupil_left < 15) {
 										// Set 3D model pupil to average of both eyes
 										sceneRef.current.params.pupilRadius =
-											(pupil_left + pupil_right) / 2 / 24;
+											((pupil_left + pupil_right) / 2) * (0.46 / 12.0);
 										const newData = { left: pupil_left, right: pupil_right };
 										setPupilMm(newData);
 										updateGraph(newData);

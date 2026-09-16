@@ -25,7 +25,7 @@ export default function IrisParametric() {
 	useEffect(() => {
 		if (!mountRef.current) return;
 		const s = createIrisScene(mountRef.current, {
-			pupilRadius: 4.0 / 24,
+			pupilRadius: 4.0 * (0.46 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
 			stilesCrawford: true,
@@ -48,7 +48,7 @@ export default function IrisParametric() {
 	useEffect(() => {
 		const s = sceneRef.current;
 		if (!s) return;
-		s.params.pupilRadius = diameter / 24;
+		s.params.pupilRadius = diameter * (0.46 / 12.0);
 		s.params.stilesCrawford = stilesCrawford;
 		s.params.pigmentation = pigment;
 		s.setDebug(() => ({
