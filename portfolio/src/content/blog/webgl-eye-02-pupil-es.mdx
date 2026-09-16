@@ -21,6 +21,7 @@ import PupilStep2Code from '../../components/eye/pupil/PupilStep2.tsx?raw';
 import PupilReflexCode from '../../components/eye/pupil/PupilReflex.tsx?raw';
 import PupilHardwareSync from '../../components/eye/pupil/PupilHardwareSync';
 import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.tsx?raw';
+import NervePathway from '../../components/eye/pupil/NervePathway';
 
 En la [Parte 1](/es/blog/webgl-eye-01-cornea) moldeamos la córnea, la lente frontal fija del ojo. Pero una cámara necesita más que una lente: necesita una apertura, un orificio ajustable que controla cuánta luz entra. En el ojo ese orificio es la **pupila**, y el anillo de color a su alrededor, el **iris**, es el músculo que la abre y la cierra.
 
@@ -113,7 +114,13 @@ En el modelo a continuación, configuras el tamaño de la pupila y el brillo de 
 
 Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz**, y es una de las primeras cosas que revisa un médico, porque pasa a través del tronco encefálico: la luz se detecta en la retina, la señal viaja por el nervio óptico, cruza por el cerebro medio, y vuelve a bajar para controlar el músculo esfínter. Se contrae, luego se relaja.
 
-El bucle es un controlador de retroalimentación, y como cualquier controlador real, no es instantáneo. Tres cosas dan forma a cómo se mueve realmente la pupila:
+El bucle es un controlador de retroalimentación, y como cualquier controlador real, no es instantáneo. La vía neuronal de este reflejo es un circuito 3D fascinante que cruza el tronco encefálico:
+
+<div className="my-8">
+  <NervePathway client:visible />
+</div>
+
+Tres cosas dan forma a cómo se mueve realmente la pupila:
 
 - **Un retraso.** La señal tarda unos $220\ \text{ms}$ en hacer el viaje de ida y vuelta antes de que el músculo empiece a moverse.
 - **Asimetría.** La constricción es rápida (una constante de tiempo cercana a $0.12\ \text{s}$); la dilatación es lenta (más cerca de $0.65\ \text{s}$). Tu pupila se cierra de golpe pero se vuelve a abrir perezosamente.

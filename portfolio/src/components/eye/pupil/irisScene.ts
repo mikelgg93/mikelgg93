@@ -68,7 +68,7 @@ float fbm(vec2 uv) {
 void main() {
   vec2 center = vec2(0.5, 0.5);
   float dist = distance(vUv, center);
-  float irisRadius = 0.46;
+  float irisRadius = 0.5;
   if (dist > irisRadius) discard;
 
   if (dist < uPupilRadius) {
@@ -106,7 +106,6 @@ void main() {
   vec3 finalColor = baseColor * (0.75 + 0.35 * fibers) + vec3(n2 * 0.07);
   float crest = 1.0 - smoothstep(0.0, 0.03, abs(radialNorm - collarette));
   finalColor += vec3(0.12, 0.10, 0.06) * crest;
-  finalColor *= smoothstep(1.0, 0.82, radialNorm);
 
   // Muscle map overlay: red sphincter ring near the pupil, blue radial dilator.
   if (uShowMuscles) {

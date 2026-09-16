@@ -22,7 +22,7 @@ export default function PupilStep2() {
 		if (!mountRef.current) return;
 
 		const s = createIrisScene(mountRef.current, {
-			pupilRadius: 6.0 * (0.46 / 12.0),
+			pupilRadius: 6.0 * (0.5 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
 			stilesCrawford: false,
@@ -60,7 +60,7 @@ export default function PupilStep2() {
 				const tau = diff < 0 ? 0.12 : 0.65;
 				currentD += (diff / tau) * dt;
 			}
-			s.params.pupilRadius = currentD * (0.46 / 12.0);
+			s.params.pupilRadius = currentD * (0.5 / 12.0);
 
 			history.push({ targetD, actualD: currentD, time: now });
 			while (history.length > 300) history.shift();

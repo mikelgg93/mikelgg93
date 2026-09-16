@@ -14,7 +14,7 @@ export default function PupilStep1() {
 	useEffect(() => {
 		if (!mountRef.current) return;
 		const s = createIrisScene(mountRef.current, {
-			pupilRadius: 4.0 * (0.46 / 12.0),
+			pupilRadius: 4.0 * (0.5 / 12.0),
 			pigmentation: 1,
 			showMuscles: true,
 			stilesCrawford: false,
@@ -29,7 +29,7 @@ export default function PupilStep1() {
 	useEffect(() => {
 		const s = sceneRef.current;
 		if (!s) return;
-		s.params.pupilRadius = diameter * (0.46 / 12.0);
+		s.params.pupilRadius = diameter * (0.5 / 12.0);
 		s.params.showMuscles = showMuscles;
 		s.params.pigmentation = pigment;
 	}, [diameter, showMuscles, pigment]);

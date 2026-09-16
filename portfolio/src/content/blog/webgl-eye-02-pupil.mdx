@@ -21,6 +21,7 @@ import PupilStep2Code from '../../components/eye/pupil/PupilStep2.tsx?raw';
 import PupilReflexCode from '../../components/eye/pupil/PupilReflex.tsx?raw';
 import PupilHardwareSync from '../../components/eye/pupil/PupilHardwareSync';
 import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.tsx?raw';
+import NervePathway from '../../components/eye/pupil/NervePathway';
 
 In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil**, and the colored ring around it, the **iris**, is the muscle that opens and closes it.
 
@@ -113,7 +114,13 @@ In the model below you set the pupil size and the scene brightness by hand and r
 
 Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex**, and it is one of the first things a doctor checks, because it runs through the brainstem: light is detected in the retina, the signal travels up the optic nerve, crosses through the midbrain, and comes back down to drive the sphincter muscle. Constrict, then relax.
 
-The loop is a feedback controller, and like any real controller it is not instant. Three things shape how the pupil actually moves:
+The loop is a feedback controller, and like any real controller it is not instant. The neural pathway of this reflex is a fascinating 3D circuit that crosses the brainstem:
+
+<div className="my-8">
+  <NervePathway client:visible />
+</div>
+
+Three things shape how the pupil actually moves:
 
 - **A delay.** It takes about $220\ \text{ms}$ for the signal to make the round trip before the muscle even starts moving.
 - **Asymmetry.** Constriction is fast (a time constant near $0.12\ \text{s}$); dilation is slow (nearer $0.65\ \text{s}$). Your pupil snaps shut but opens back up lazily.
