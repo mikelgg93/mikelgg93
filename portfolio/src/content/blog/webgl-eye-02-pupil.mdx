@@ -78,6 +78,10 @@ $$A_e(d) = \frac{\pi}{\rho} \left(1 - e^{-\rho d^2 / 4}\right)$$
 
 where $\rho \approx 0.085\ \text{mm}^{-2}$ sets how quickly the edges lose effectiveness. The simulator at the end of this article lets you toggle this effect on and off to see how much it changes the light on the retina.
 
+> [!TIP]
+> **A note on mathematical notation**
+> If you read the original vision science papers (like Watson & Yellott 2012), you will often see the Stiles-Crawford falloff written in base-10 as $10^{-p r^2}$ rather than base-$e$. In modern computational optics, it is standard to convert this to base-$e$ (using $e^{-\rho r^2}$, where $\rho \approx p \ln 10$) because it simplifies derivations and runs slightly faster in graphics shaders. The physics is identical, but the constant $\rho$ is scaled.
+
 > [!NOTE]
 > **How big should the pupil be at a given brightness?**
 > A useful rule of thumb comes from Moon and Spencer (1944): the resting pupil diameter follows a smooth curve of scene brightness,
@@ -129,6 +133,14 @@ The model below pairs the pupil with an oscilloscope. The dashed line is the tar
     <Code code={PupilStep2Code} lang="tsx" theme="github-dark" />
   </div>
 </InteractiveViewer>
+
+## Beyond light: Pupillometry
+
+While the light reflex is the strongest driver of the pupil, it is not the only one. If you track someone's pupil size accurately in a controlled lighting environment, you can actually measure their brain activity. This field of study is called **pupillometry**.
+
+Because the dilator muscle is wired directly to the sympathetic nervous system, your pupils expand slightly when you are stressed, aroused, or thinking hard. If you give someone a complex math problem to solve in their head, their pupils will dilate, peaking at the moment of highest cognitive load, and shrink back down the moment they solve it. UI designers and psychologists use eye trackers to measure this invisible "cognitive load" to see if a software interface is too frustrating to use.
+
+The pupil also changes size when you focus on something close to your face. This is called the **near triad**: your eyes converge (turn inward), your lenses accommodate (bulge to focus), and your pupils constrict. Constricting the pupil when looking at something close increases your depth of field—exactly like stopping down a macro lens on a camera.
 
 ## Why not just stay wide open? The aperture trade-off
 
