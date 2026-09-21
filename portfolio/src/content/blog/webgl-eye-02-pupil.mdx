@@ -1,6 +1,6 @@
 ---
 title: "Modelling the eye II: The pupil"
-description: "Part 2 of the WebGL eye series. We build the eye's aperture: the iris, how pupil size sets the light reaching the retina, and the reflex that drives it."
+description: "Part 2 of the WebGL eye series. We build a dynamic pupil, program the light reflex, and connect real eye-tracking hardware."
 date: 2026-08-10
 author: "Miguel García"
 tags: ["webgl", "threejs", "vision science", "optics", "anatomy"]
@@ -32,7 +32,7 @@ In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front len
 
 The pupil is not just a passive hole. It reacts to light in a fraction of a second, it trades sharpness against brightness, and it never sits perfectly still. People have been fascinated by it for a long time: Renaissance women used drops of deadly nightshade (*belladonna*, "beautiful lady") to widen their pupils, not knowing the plant was quietly poisoning them. In this part we model the iris, work out how pupil size sets the light reaching the retina, and simulate the reflex that drives it.
 
-## The iris: a living aperture
+## Programming the Iris: A living aperture
 
 The iris is what gives eyes their color, but to an optical engineer it is a muscle that changes the pupil between about $2\ \text{mm}$ wide (in bright light) and $8\ \text{mm}$ wide (in the dark). It does this with two opposing muscles:
 
@@ -64,7 +64,7 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
   </div>
 </InteractiveViewer>
 
-## How much light gets through: pupil area and trolands
+## Calculating light: Pupil area and Trolands
 
 Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole, and area grows with the square of the diameter.
 
@@ -111,7 +111,7 @@ In the model below you set the pupil size and the scene brightness by hand and r
   </div>
 </InteractiveViewer>
 
-## The pupillary light reflex
+## Coding the brain: The light reflex
 
 Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex**, and it is one of the first things a doctor checks, because it runs through the brainstem: light is detected in the retina, the signal travels up the optic nerve, crosses through the midbrain, and comes back down to drive the sphincter muscle. Constrict, then relax.
 
@@ -151,7 +151,7 @@ The model below pairs the pupil with an oscilloscope. The dashed line is the tar
   </div>
 </InteractiveViewer>
 
-## Beyond light: Pupillometry
+## Beyond light: Cognitive load and pupillometry
 
 While the light reflex is the strongest driver of the pupil, it is not the only one. The pupil's size is a continuous tug-of-war between two opposing nervous systems:
 
@@ -164,7 +164,7 @@ Because the dilator muscle is wired directly to the sympathetic nervous system, 
 
 The pupil also changes size when you focus on something close to your face. This is called the **near triad**: your eyes converge (turn inward), your lenses accommodate (bulge to focus), and your pupils constrict. Constricting the pupil when looking at something close increases your depth of field, exactly like stopping down a macro lens on a camera.
 
-## Why not just stay wide open? The aperture trade-off
+## The physical limit: Diffraction vs Aberration
 
 If a wide pupil gathers more light, why doesn't the eye stay wide open all the time? Because aperture size trades off two kinds of blur that pull in opposite directions.
 
@@ -188,7 +188,7 @@ So a small pupil is limited by diffraction and a large one by aberration. Plot b
 > **The 3 to 4 mm sweet spot**
 > At a pupil diameter of about **3 to 4 mm**, the two kinds of blur roughly cancel and the eye sees its sharpest. That happens to be about where your pupil sits in comfortable daylight, which is not a coincidence.
 
-## The full pupil simulator
+## The final simulator: Putting it together
 
 Here is everything together. Slide the scene brightness and watch the reflex fire after its $220\ \text{ms}$ delay, hit the penlight button for a sudden flash, toggle the Stiles-Crawford effect to see how much the pupil edges really count, and switch the iris pigment between brown, hazel, blue, and albino.
 

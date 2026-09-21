@@ -33,18 +33,45 @@ export default function NervePathway() {
 			return mesh;
 		};
 
-		// Helper to create glowing nerve tracts (tubes)
+		// Helper to create glowing nerve tracts (tubes) with animated pulses
+		const uniformsList: any[] = [];
 		const createTract = (
 			points: THREE.Vector3[],
 			color: number,
 			thickness = 0.04,
+			pulseOffset = 0,
 		) => {
 			const curve = new THREE.CatmullRomCurve3(points);
 			const geo = new THREE.TubeGeometry(curve, 64, thickness, 8, false);
-			const mat = new THREE.MeshBasicMaterial({
-				color,
+			const uniforms = {
+				uTime: { value: 0 },
+				uColor: { value: new THREE.Color(color) },
+				uOffset: { value: pulseOffset },
+			};
+			uniformsList.push(uniforms);
+
+			const mat = new THREE.ShaderMaterial({
+				uniforms,
 				transparent: true,
-				opacity: 0.7,
+				vertexShader: `
+					varying vec2 vUv;
+					void main() {
+						vUv = uv;
+						gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+					}
+				`,
+				fragmentShader: `
+					uniform float uTime;
+					uniform vec3 uColor;
+					uniform float uOffset;
+					varying vec2 vUv;
+					void main() {
+						// vUv.x goes from 0 to 1 along the tube
+						float pulse = fract(vUv.x * 3.0 - uTime * 2.0 + uOffset);
+						float intensity = smoothstep(0.8, 1.0, pulse) * 2.0 + 0.3;
+						gl_FragColor = vec4(uColor * intensity, 0.7);
+					}
+				`,
 			});
 			const mesh = new THREE.Mesh(geo, mat);
 			scene.add(mesh);
@@ -82,7 +109,6 @@ export default function NervePathway() {
 		createNode(ganglionR, colNode);
 
 		// Optic Nerves -> Optic Tracts -> Pretectal Nucleus
-		// Left eye to both pretectal (crossing at chiasm)
 		createTract(
 			[
 				eyeL,
@@ -92,6 +118,8 @@ export default function NervePathway() {
 				pretectalR,
 			],
 			colSensory,
+			0.04,
+			0.0,
 		);
 		createTract(
 			[
@@ -101,9 +129,9 @@ export default function NervePathway() {
 				pretectalL,
 			],
 			colSensory,
+			0.04,
+			0.0,
 		);
-
-		// Right eye to both pretectal (crossing at chiasm)
 		createTract(
 			[
 				eyeR,
@@ -113,6 +141,8 @@ export default function NervePathway() {
 				pretectalL,
 			],
 			colSensory,
+			0.04,
+			0.0,
 		);
 		createTract(
 			[
@@ -122,27 +152,53 @@ export default function NervePathway() {
 				pretectalR,
 			],
 			colSensory,
+			0.04,
+			0.0,
 		);
 
-		// Interneurons: Pretectal to Edinger-Westphal (Bilateral! This is why both eyes constrict to 1 light)
+		// Interneurons: Pretectal to Edinger-Westphal
 		createTract(
 			[pretectalL, new THREE.Vector3(-0.6, 0.15, -0.2), ewL],
 			colInter,
+			0.04,
+			-0.3,
 		);
-		createTract([pretectalL, new THREE.Vector3(0, 0.2, -0.1), ewR], colInter);
+		createTract(
+			[pretectalL, new THREE.Vector3(0, 0.2, -0.1), ewR],
+			colInter,
+			0.04,
+			-0.3,
+		);
 		createTract(
 			[pretectalR, new THREE.Vector3(0.6, 0.15, -0.2), ewR],
 			colInter,
+			0.04,
+			-0.3,
 		);
-		createTract([pretectalR, new THREE.Vector3(0, 0.2, -0.1), ewL], colInter);
+		createTract(
+			[pretectalR, new THREE.Vector3(0, 0.2, -0.1), ewL],
+			colInter,
+			0.04,
+			-0.3,
+		);
 
-		// Motor: Edinger-Westphal to Ciliary Ganglion (Oculomotor Nerve CN III)
-		createTract([ewL, new THREE.Vector3(-1.0, 0, 1.5), ganglionL], colMotor);
-		createTract([ewR, new THREE.Vector3(1.0, 0, 1.5), ganglionR], colMotor);
+		// Motor: Edinger-Westphal to Ciliary Ganglion
+		createTract(
+			[ewL, new THREE.Vector3(-1.0, 0, 1.5), ganglionL],
+			colMotor,
+			0.04,
+			-0.6,
+		);
+		createTract(
+			[ewR, new THREE.Vector3(1.0, 0, 1.5), ganglionR],
+			colMotor,
+			0.04,
+			-0.6,
+		);
 
-		// Motor: Ciliary Ganglion to Iris Sphincter (Short ciliary nerves)
-		createTract([ganglionL, eyeL], colMotor);
-		createTract([ganglionR, eyeR], colMotor);
+		// Motor: Ciliary Ganglion to Iris Sphincter
+		createTract([ganglionL, eyeL], colMotor, 0.04, -0.8);
+		createTract([ganglionR, eyeR], colMotor, 0.04, -0.8);
 
 		// Simple animation loop for glowing pulses (moving along tracts)
 		const _clock = new THREE.Clock();
@@ -155,6 +211,10 @@ export default function NervePathway() {
 
 		const animate = () => {
 			raf = requestAnimationFrame(animate);
+			const t = _clock.getElapsedTime();
+			for (const u of uniformsList) {
+				u.uTime.value = t;
+			}
 			orbit.update();
 			renderer.render(scene, camera);
 		};

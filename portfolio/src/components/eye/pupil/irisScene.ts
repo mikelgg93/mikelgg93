@@ -260,7 +260,7 @@ export function createIrisScene(
 	scene.add(iris);
 
 	// Glassy cornea dome over the iris.
-	const corneaGeo = corneaCap(1.6, 0.95, 0.25);
+	const corneaGeo = corneaCap(1.6, 1.05, 0.25);
 	const corneaMat = new THREE.MeshPhysicalMaterial({
 		transmission: 1.0,
 		thickness: 0.15,
