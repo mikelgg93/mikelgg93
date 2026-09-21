@@ -145,7 +145,7 @@ function dishedIris() {
 	const idx: number[] = [];
 	for (let i = 0; i <= rings; i++) {
 		const rr = (i / rings) * R;
-		const z = -dish * (1.0 - rr / R);
+		const z = -0.127 + dish * (1.0 - rr / R); // Edge is at -0.127, center bulges forward
 		for (let j = 0; j <= seg; j++) {
 			const th = (j / seg) * Math.PI * 2;
 			const x = rr * Math.cos(th);
