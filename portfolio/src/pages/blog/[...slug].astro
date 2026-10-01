@@ -21,6 +21,6 @@ const { post, prevUrl, nextUrl } = Astro.props;
 const { Content } = await render(post);
 ---
 
-<BlogLayout frontmatter={post.data} prevUrl={prevUrl} nextUrl={nextUrl}>
+<BlogLayout frontmatter={post.data} prevUrl={prevUrl} nextUrl={nextUrl} id={post.id}>
   <Content />
 </BlogLayout>
