@@ -15,17 +15,16 @@ import Signature from "@/components/Signature.astro";
   html.skip-loader #route-loader {
     display: none !important;
   }
-  html:not(.skip-loader) body {
-    overflow: hidden;
-  }
 </style>
 
 <div
   id="route-loader"
-  class="fixed inset-0 h-[100dvh] w-screen z-[100] flex items-center justify-center bg-background transition-opacity duration-300 pointer-events-auto"
+  class="absolute top-0 left-0 w-full min-h-[200vh] z-[100] bg-background transition-opacity duration-300 pointer-events-auto"
 >
-  <div class="w-64 md:w-80 h-auto text-foreground">
-    <Signature />
+  <div class="sticky top-0 w-full h-[100dvh] flex items-center justify-center pb-[env(safe-area-inset-bottom,0px)]">
+    <div class="w-64 md:w-80 h-auto text-foreground">
+      <Signature />
+    </div>
   </div>
 </div>
 
@@ -39,7 +38,6 @@ import Signature from "@/components/Signature.astro";
       if (document.body.contains(loader)) {
         loader.style.opacity = "0";
         loader.style.pointerEvents = "none";
-        document.body.style.overflow = "";
 
         setTimeout(() => {
           if (document.body.contains(loader)) {
@@ -48,8 +46,6 @@ import Signature from "@/components/Signature.astro";
             document.documentElement.classList.add("skip-loader");
           }
         }, 300);
-      } else {
-        document.body.style.overflow = "";
       }
     };
 
@@ -60,7 +56,6 @@ import Signature from "@/components/Signature.astro";
         loader.style.display = "none";
       }
       document.documentElement.classList.add("skip-loader");
-      document.body.style.overflow = "";
       // Don't return here so we don't skip the keydown listener
     } else {
       hasRun = true;
@@ -75,7 +70,6 @@ import Signature from "@/components/Signature.astro";
         loader.style.display = "flex";
         loader.style.opacity = "1";
         loader.style.pointerEvents = "auto";
-        document.body.style.overflow = "hidden";
         document.documentElement.classList.remove("skip-loader");
         sessionStorage.setItem("signature_played", "false");
         document.dispatchEvent(new CustomEvent("signature:restart"));
