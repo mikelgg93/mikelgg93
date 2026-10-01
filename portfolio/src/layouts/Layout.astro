@@ -70,6 +70,7 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
 
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
+    <meta name="theme-color" content="#f6fffd" id="theme-color-meta" />
     <script is:inline>
       const setTheme = () => {
         const theme = (() => {
@@ -84,10 +85,13 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
             : "light";
         })();
 
+        const meta = document.getElementById("theme-color-meta");
         if (theme === "light") {
           document.documentElement.classList.remove("dark");
+          if (meta) meta.setAttribute("content", "#f6fffd");
         } else {
           document.documentElement.classList.add("dark");
+          if (meta) meta.setAttribute("content", "#001e19");
         }
       };
 
@@ -112,6 +116,8 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
             const next = current === "dark" ? "light" : "dark";
             localStorage.setItem("theme", next);
             document.documentElement.classList.toggle("dark", next === "dark");
+            const meta = document.getElementById("theme-color-meta");
+            if (meta) meta.setAttribute("content", next === "dark" ? "#001e19" : "#f6fffd");
           } else if (e.key.toLowerCase() === "j") {
             e.preventDefault();
             const isEs = window.location.pathname.startsWith("/es");

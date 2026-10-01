@@ -42,8 +42,9 @@ export default function MobileMenu({
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="bg-background/95 backdrop-blur-md border-border/50 flex flex-col w-[85vw] max-w-sm"
+        className="bg-transparent border-none flex flex-col w-[85vw] max-w-sm"
       >
+        <div className="absolute -inset-y-32 inset-x-0 bg-background/95 backdrop-blur-md border-l border-border/50 -z-10" />
         <SheetHeader className="sr-only">
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>

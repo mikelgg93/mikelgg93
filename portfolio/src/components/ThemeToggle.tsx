@@ -15,6 +15,11 @@ export default function ThemeToggle() {
     setTheme(newTheme);
     document.documentElement.classList.toggle("dark", newTheme === "dark");
     localStorage.setItem("theme", newTheme);
+    
+    const meta = document.getElementById("theme-color-meta");
+    if (meta) {
+      meta.setAttribute("content", newTheme === "dark" ? "#001e19" : "#f6fffd");
+    }
   };
 
   if (!theme) {
