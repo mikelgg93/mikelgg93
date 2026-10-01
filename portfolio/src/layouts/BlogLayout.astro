@@ -6,10 +6,11 @@ import PretextText from "@/components/PretextText";
 import Layout from "@/layouts/Layout.astro";
 import "katex/dist/katex.min.css";
 
-const { frontmatter, prevUrl = null, nextUrl = null } = Astro.props;
+const { frontmatter, prevUrl = null, nextUrl = null, id } = Astro.props;
+const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
 ---
 
-<Layout title={frontmatter.title} description={frontmatter.description}>
+<Layout title={frontmatter.title} description={frontmatter.description} image={ogImage}>
   <BlogFeatures client:load />
 
   {
