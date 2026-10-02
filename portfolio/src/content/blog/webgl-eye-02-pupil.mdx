@@ -64,9 +64,9 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
 
 ## Calculating light
 
-Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows más slowly than the geometric area.
+Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows more slowly than the geometric area.
 
-How big should the pupil be at a given brightness? A useful rule of thumb comes from Moon and Spencer (1944): the resting pupil diameter follows a smooth curve of scene brightness.
+How big should the pupil be at a given brightness? A useful rule of thumb comes from Moon and Spencer (1944): the resting, binocular steady-state pupil diameter follows a smooth curve of scene brightness.
 
 $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) - 0.2\right)$$
 
@@ -92,7 +92,7 @@ In the model below you set the pupil size and the scene brightness by hand and r
 
 ## The light reflex
 
-We know how the pupil size affects incoming light, but how does the body actually regulate this size to control light entering? Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex** (PLR). It is a simple but critical feedback loop: light is detected by the retina, the signal travels up the optic nerve, crosses through the midbrain in the brainstem, and comes back down the oculomotor nerve to drive the sphincter muscle. Constrict, then relax.
+We know how the pupil size affects incoming light, but how does the body actually regulate this size to control light entering? Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex** (PLR). It is a simple but critical feedback loop: light is detected by the retina, the signal travels up the optic nerve, crosses through the pretectal nucleus and the Edinger-Westphal nucleus in the brainstem, and comes back down via the ciliary ganglion to drive the sphincter muscle. Constrict, then relax.
 
 Because this neural circuit runs deep through the brainstem, it acts as a diagnostic window into the brain. If a patient has suffered a traumatic brain injury, a doctor will shine a light in their eyes; a pupil that remains fixed and dilated can indicate severe pressure on the brainstem. The reflex is also heavily influenced by drugs, which is why opiates cause pinpoint pupils and stimulants cause massive dilation.
 
@@ -113,7 +113,7 @@ Three things shape how the pupil actually moves:
 - **Asymmetry.** Constriction is fast (a time constant near $0.12\ \text{s}$); dilation is slow (nearer $0.65\ \text{s}$). Your pupil snaps shut but opens back up lazily.
 - **Hippus.** Even under perfectly steady light the pupil quivers slightly, a low, constant wobble of a few tenths of a millimeter.
 
-The delay and the asymmetry are the whole character of the reflex, and both are only a few lines of code. Each frame, the pupil eases toward the target diameter it was told to reach $220\ \text{ms}$ ago, and it moves faster when closing than when opening:
+The delay and the asymmetry give the reflex its character. While a true physiological model involves complex non-linear muscle kinetics, for rendering purposes we can approximate it with a few lines of code. Each frame, the pupil eases toward the target diameter it was told to reach $220\ \text{ms}$ ago, using a simple exponential decay that moves faster when closing than when opening:
 
 ```ts
 const diff = targetDiameter - currentDiameter;
@@ -167,9 +167,9 @@ With the cornea shaped and the pupil now opening and closing on its own, our eye
 
 Since we are talking about pupils, why just simulate them when you can drive the 3D model with your actual eyes? If you have access to a pair of [Pupil Labs Neon](https://pupil-labs.com/products/neon) eye-tracking glasses, you can hook them up directly to this blog post!
 
-Since the Neon Companion app bundles the monitor app, and it allows cross-origin requests, we can dynamically fetch and inject the device’s own web app into a hidden DOM element to handle the complex RTSP handshake. We then monkey-patch the browser’s WebSocket API to intercept the incoming gaze stream.
+Since the Neon Companion app bundles the monitor app, we can fetch it and embed it into a hidden DOM element. By quietly reading the gaze payload from its data stream, we have everything we need without complex integrations.
 
-By analyzing the official API, we know the raw binary RTP packets pack the gaze data as a C-struct. The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload, so we can simply read them and plot them.
+By analyzing the official API, we know the raw packets pack the gaze data as a C-struct. The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload, so we can simply read them and plot them.
 
 Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click Connect. The browser will intercept the binary stream, parse the structs on the fly, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
 
