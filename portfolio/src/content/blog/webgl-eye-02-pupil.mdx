@@ -30,7 +30,7 @@ In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front len
 
 The pupil is not just a passive hole. It reacts to light in a fraction of a second, it trades sharpness against brightness, and it never sits perfectly still. In this part we model the iris, work out how pupil size sets the light reaching the retina, and simulate the reflex that drives it.
 
-## Programming the Iris: A living aperture
+## The Iris: A living aperture
 
 The iris is what gives eyes their color, but to an optical engineer it is a muscle that changes the pupil between about $2\ \text{mm}$ wide (in bright light) and $8\ \text{mm}$ wide (in the dark). It does this with two opposing muscles:
 
@@ -62,41 +62,22 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
   </div>
 </InteractiveViewer>
 
-## Calculating light: Pupil area and Trolands
+## Calculating light
 
-Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole, and area grows with the square of the diameter.
+Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows más slowly than the geometric area.
 
-We measure the light on the retina in a unit called the **troland**, named after vision scientist Leonard Troland. It is simply the scene brightness $L$ (in candela per square meter) multiplied by the pupil area $A$:
+How big should the pupil be at a given brightness? A useful rule of thumb comes from Moon and Spencer (1944): the resting pupil diameter follows a smooth curve of scene brightness.
 
-$$E = L \cdot A = L \cdot \frac{\pi d^2}{4}$$
+$$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) - 0.2\right)$$
 
-Because the diameter $d$ is squared, small changes in pupil size have a big effect. Going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a $4^2 = 16$x change in area. That single trick lets the eye soak up far more light at night while protecting the retina by day.
+This gives a diameter in millimeters across the full range from starlight to bright sun. In code it is a one-liner:
 
-### The Stiles-Crawford effect
-
-Area is not quite the whole story. In 1933, Stiles and Crawford noticed something strange: light entering through the *edge* of a wide pupil is much less effective than light entering through the center. The reason is that the cone cells in the retina behave like tiny optical fibers pointing back toward the middle of the pupil, so light arriving at a steep angle from the rim couples in poorly.
-
-The upshot is that the *effective* pupil area grows more slowly than the geometric area once the pupil is wide. It is modeled with a gentle saturating curve:
-
-$$A_e(d) = \frac{\pi}{\rho} \left(1 - e^{-\rho d^2 / 4}\right)$$
-
-where $\rho \approx 0.085\ \text{mm}^{-2}$ sets how quickly the edges lose effectiveness. The simulator at the end of this article lets you toggle this effect on and off to see how much it changes the light on the retina.
-
-> [!TIP]
-> **A note on mathematical notation**
-> If you read the original vision science papers (like Watson & Yellott 2012), you will often see the Stiles-Crawford falloff written in base-10 as $10^{-p r^2}$ rather than base-$e$. In modern computational optics, it is standard to convert this to base-$e$ (using $e^{-\rho r^2}$, where $\rho \approx p \ln 10$) because it simplifies derivations and runs slightly faster in graphics shaders. The physics is identical, but the constant $\rho$ is scaled.
-
-> [!NOTE]
-> **How big should the pupil be at a given brightness?**
-> A useful rule of thumb comes from Moon and Spencer (1944): the resting pupil diameter follows a smooth curve of scene brightness,
-> $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) - 0.2\right)$$
-> This gives a diameter in millimeters across the full range from starlight to bright sun. Watson and Yellott (2012) later extended it to account for age and how much of your field of view is lit. In code it is a one-liner:
-> ```ts
-> function pupilDiameter(L) {                 // L = scene luminance (cd/m²)
->   const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) - 0.2);
->   return Math.min(8, Math.max(2, d));       // clamp to 2-8 mm
-> }
-> ```
+```ts
+function pupilDiameter(L) {                 // L = scene luminance (cd/m²)
+  const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) - 0.2);
+  return Math.min(8, Math.max(2, d));       // clamp to 2-8 mm
+}
+```
 
 In the model below you set the pupil size and the scene brightness by hand and read off the light reaching the retina: the geometric pupil area, the retinal illuminance in trolands, and how much the Stiles-Crawford falloff trims it once the pupil is wide.
 
@@ -109,9 +90,11 @@ In the model below you set the pupil size and the scene brightness by hand and r
   </div>
 </InteractiveViewer>
 
-## Coding the brain: The light reflex
+## The light reflex
 
-Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex**, and it is one of the first things a doctor checks, because it runs through the brainstem: light is detected in the retina, the signal travels up the optic nerve, crosses through the midbrain, and comes back down to drive the sphincter muscle. Constrict, then relax.
+We know how the pupil size affects incoming light, but how does the body actually regulate this size to control light entering? Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex** (PLR). It is a simple but critical feedback loop: light is detected by the retina, the signal travels up the optic nerve, crosses through the midbrain in the brainstem, and comes back down the oculomotor nerve to drive the sphincter muscle. Constrict, then relax.
+
+Because this neural circuit runs deep through the brainstem, it acts as a diagnostic window into the brain. If a patient has suffered a traumatic brain injury, a doctor will shine a light in their eyes; a pupil that remains fixed and dilated can indicate severe pressure on the brainstem. The reflex is also heavily influenced by drugs, which is why opiates cause pinpoint pupils and stimulants cause massive dilation.
 
 The loop is a feedback controller, and like any real controller it is not instant. The neural pathway of this reflex is a fascinating 3D circuit that crosses the brainstem:
 
@@ -158,33 +141,11 @@ While the light reflex is the strongest driver of the pupil, it is not the only 
 | **Parasympathetic** ("Rest & Digest") | Sphincter | **Constricts** (Miosis) | Bright light, focusing on near objects, relaxation | Opiates and heroin over-stimulate this, causing extreme "pinpoint" pupils. |
 | **Sympathetic** ("Fight or Flight") | Dilator | **Dilates** (Mydriasis) | Darkness, stress, arousal, cognitive load, adrenaline | Stimulants (MDMA, cocaine, amphetamines) or psychedelics cause massive, wide-open dilation. |
 
-Because the dilator muscle is wired directly to the sympathetic nervous system, your pupils expand slightly when you are stressed, aroused, or thinking hard. If you give someone a complex math problem to solve in their head, their pupils will dilate, peaking at the moment of highest cognitive load, and shrink back down the moment they solve it. UI designers and psychologists use eye trackers to measure this invisible "cognitive load" to see if a software interface is too frustrating to use.
+Because the dilator muscle is wired directly to the sympathetic nervous system, your pupils expand slightly when you are stressed, aroused, or thinking hard. If you give someone a complex math problem to solve in their head, their pupils will dilate, peaking at the moment of highest cognitive load, and shrink back down the moment they solve it.
+
+UI designers, psychologists, and researchers use eye trackers to measure this invisible "cognitive load" to see if a software interface is too frustrating to use or to assess arousal. When analyzing pupil size for these purposes, one typically has to take into account that the pupil light reflex is much stronger than cognitive responses. You must ensure lighting conditions remain strictly constant, remove blinks and artifacts, and establish a baseline pupil size before measuring the tiny task-evoked dilations (often just a fraction of a millimeter).
 
 The pupil also changes size when you focus on something close to your face. This is called the **near triad**: your eyes converge (turn inward), your lenses accommodate (bulge to focus), and your pupils constrict. Constricting the pupil when looking at something close increases your depth of field, exactly like stopping down a macro lens on a camera.
-
-## The physical limit: Diffraction vs Aberration
-
-If a wide pupil gathers more light, why doesn't the eye stay wide open all the time? Because aperture size trades off two kinds of blur that pull in opposite directions.
-
-### Diffraction blur
-
-Light is a wave, and squeezing it through a small hole makes it spread out into a fuzzy ring called an **Airy disk**. The smaller the pupil, the worse this spreading. The blur size grows as the pupil shrinks:
-
-$$W_d = 2.44 \frac{\lambda f}{d}$$
-
-Here $\lambda \approx 550\ \text{nm}$ is the wavelength of green light and $f \approx 17\ \text{mm}$ is the focal length of the eye. So a tiny $2\ \text{mm}$ pupil is actually a bit soft, purely because of physics.
-
-### Spherical aberration
-
-Open the pupil wide instead, and now the outer rays passing through the edge of the cornea and lens bend too much compared to the central rays, the same spherical aberration we met in Part 1. This kind of blur grows very fast with pupil size, roughly with the fourth power of the diameter:
-
-$$\text{aberration} \propto d^4$$
-
-So a small pupil is limited by diffraction and a large one by aberration. Plot both against pupil size and the two curves cross in the middle: that crossing is where the eye sees its sharpest.
-
-> [!NOTE]
-> **The 3 to 4 mm sweet spot**
-> At a pupil diameter of about **3 to 4 mm**, the two kinds of blur roughly cancel and the eye sees its sharpest. That happens to be about where your pupil sits in comfortable daylight, which is not a coincidence.
 
 ## The final simulator: Putting it together
 
@@ -202,17 +163,15 @@ Here is everything together. Slide the scene brightness and watch the reflex fir
 With the cornea shaped and the pupil now opening and closing on its own, our eye controls both how light is focused and how much of it gets in.
 
 
-## Hardware Sync: Pupil Labs Realtime API
+## Beyond simulating, render in realtime with Neon
 
 Since we are talking about pupils, why just simulate them when you can drive the 3D model with your actual eyes? If you have access to a pair of [Pupil Labs Neon](https://pupil-labs.com/products/neon) eye-tracking glasses, you can hook them up directly to this blog post!
 
-Normally, connecting to these glasses requires downloading third-party Python or C++ libraries because the device streams data using RTSP (Real-Time Streaming Protocol) packed in binary RTP packets, which browsers don't natively understand.
+Since the Neon Companion app bundles the monitor app, and it allows cross-origin requests, we can dynamically fetch and inject the device’s own web app into a hidden DOM element to handle the complex RTSP handshake. We then monkey-patch the browser’s WebSocket API to intercept the incoming gaze stream.
 
-But we love a good hack. Since the Neon device allows cross-origin requests, we can dynamically fetch and inject the device's own web app into a hidden DOM element to handle the complex RTSP handshake. We then monkey-patch the browser's `WebSocket` API to intercept the incoming video stream.
+By analyzing the official API, we know the raw binary RTP packets pack the gaze data as a C-struct. The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload, so we can simply read them and plot them.
 
-By analyzing the official Python API, we know the raw binary RTP packets pack the gaze data as a C-struct (not MsgPack!). The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload.
-
-Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click **Connect**. The browser will intercept the binary stream, parse the structs on the fly, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
+Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click Connect. The browser will intercept the binary stream, parse the structs on the fly, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
 
 <InteractiveViewer>
   <div slot="preview">

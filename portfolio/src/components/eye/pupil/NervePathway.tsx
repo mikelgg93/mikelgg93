@@ -229,7 +229,7 @@ export default function NervePathway() {
 	}, []);
 
 	return (
-		<div className="relative w-full h-[400px] bg-slate-950 overflow-hidden rounded-lg">
+		<div className="relative w-full h-[400px] bg-transparent overflow-hidden rounded-lg">
 			<div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-blue-500"></div>
