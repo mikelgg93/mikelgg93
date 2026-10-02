@@ -76,8 +76,8 @@ void main() {
   
   // Make the pupil margin an irregular, dynamic ellipse
   float constriction = smoothstep(0.35, 0.05, uPupilRadius);
-  float pupilEllipse = (cos(angle*2.0 - 0.5)*0.015) * (constriction + 0.2); // elliptical stretch
-  float pupilIrregularity = (sin(angle*3.0)*0.006 + cos(angle*7.0 + uTime*0.5)*0.004) * (constriction + 0.1);
+  float pupilEllipse = (cos(angle*2.0 - 0.5)*0.003) * (constriction + 0.2); // very subtle elliptical stretch
+  float pupilIrregularity = (sin(angle*3.0)*0.0015 + cos(angle*7.0 + uTime*0.5)*0.001) * (constriction + 0.1);
   float effectivePupilRadius = uPupilRadius + pupilEllipse + pupilIrregularity;
 
   if (dist < effectivePupilRadius) {
