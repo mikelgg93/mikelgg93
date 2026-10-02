@@ -13,6 +13,18 @@ function PathwayScene() {
 			const mat = new THREE.MeshBasicMaterial({ color });
 			const mesh = new THREE.Mesh(geo, mat);
 			mesh.position.copy(pos);
+			
+			const glowGeo = new THREE.SphereGeometry(size * 1.5, 32, 32);
+			const glowMat = new THREE.MeshBasicMaterial({
+				color,
+				transparent: true,
+				opacity: 0.25,
+				blending: THREE.AdditiveBlending,
+				depthWrite: false
+			});
+			const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+			mesh.add(glowMesh);
+			
 			scene.add(mesh);
 			return mesh;
 		};
@@ -122,6 +134,11 @@ function PathwayScene() {
 			<Html position={[-2, 0.4, 4]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
 					Retina
+				</div>
+			</Html>
+			<Html position={[0, 0.4, 2]} center zIndexRange={[100, 0]}>
+				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
+					Optic Chiasm
 				</div>
 			</Html>
 			<Html position={[-0.8, 0.3, 0]} center zIndexRange={[100, 0]}>

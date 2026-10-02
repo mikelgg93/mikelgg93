@@ -72,7 +72,15 @@ void main() {
   float irisRadius = 0.5;
   if (dist > irisRadius) discard;
 
-  if (dist < uPupilRadius) {
+  float angle = atan(vUv.y - center.y, vUv.x - center.x);
+  
+  // Make the pupil margin an irregular, dynamic ellipse
+  float constriction = smoothstep(0.35, 0.05, uPupilRadius);
+  float pupilEllipse = (cos(angle*2.0 - 0.5)*0.015) * (constriction + 0.2); // elliptical stretch
+  float pupilIrregularity = (sin(angle*3.0)*0.006 + cos(angle*7.0 + uTime*0.5)*0.004) * (constriction + 0.1);
+  float effectivePupilRadius = uPupilRadius + pupilEllipse + pupilIrregularity;
+
+  if (dist < effectivePupilRadius) {
     if (uPigmentation == 3) {
       float redGlow = 0.16 + 0.10 * sin(uTime * 1.5);
       gl_FragColor = vec4(redGlow, 0.02, 0.03, 1.0);
@@ -82,8 +90,7 @@ void main() {
     return;
   }
 
-  float radialNorm = (dist - uPupilRadius) / (irisRadius - uPupilRadius);
-  float angle = atan(vUv.y - center.y, vUv.x - center.x);
+  float radialNorm = (dist - effectivePupilRadius) / (irisRadius - effectivePupilRadius);
 
   float stretch = mix(2.5, 6.0, clamp((0.35 - uPupilRadius) / 0.25, 0.0, 1.0));
   vec2 noiseUV = vec2(angle * 12.0, radialNorm * stretch);
@@ -110,7 +117,7 @@ void main() {
 
   // Muscle map overlay: red sphincter ring near the pupil, blue radial dilator.
   if (uShowMuscles) {
-    if (dist < uPupilRadius + 0.04) {
+    if (dist < effectivePupilRadius + 0.04) {
       float ring = sin(radialNorm * 120.0) * 0.5 + 0.5;
       finalColor = mix(finalColor, vec3(1.0, 0.2, 0.2), 0.55 + 0.25 * ring);
     } else {
