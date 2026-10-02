@@ -1,15 +1,14 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
 import satori from "satori";
-import { html } from "satori-html";
 import { Resvg } from "@resvg/resvg-js";
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
   const ids = Array.from(new Set(posts.map(p => p.id.replace("-es", ""))));
-  
+
   return ids.map(id => {
     const post = posts.find(p => p.id === id) || posts.find(p => p.id === `${id}-es`);
     return {
@@ -24,7 +23,7 @@ export const GET: APIRoute = async ({ props }) => {
 
   const interRegularPath = path.resolve(process.cwd(), "node_modules/@fontsource/inter/files/inter-latin-400-normal.woff");
   const interBoldPath = path.resolve(process.cwd(), "node_modules/@fontsource/inter/files/inter-latin-700-normal.woff");
-  
+
   const interRegular = await fs.readFile(interRegularPath);
   const interBold = await fs.readFile(interBoldPath);
 
@@ -62,77 +61,102 @@ export const GET: APIRoute = async ({ props }) => {
 
   const blogUrl = `mgg.contact/blog/${post.slug || post.id.replace('-es', '')}`;
 
-  const markup = html`
-    <div style="display: flex; width: 100%; height: 100%; position: relative; color: #ffffff; font-family: 'Inter'; overflow: hidden;">
-      
-      <img id="hero-image" style="position: absolute; top: -10px; left: -10px; width: 105%; height: 105%; object-fit: cover; filter: blur(6px); display: none;" />
-      
-      <div style="display: flex; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(to right, rgba(0, 26, 20, 0.85) 0%, rgba(0, 26, 20, 0.1) 100%);"></div>
-
-      <div id="hero-fallback" style="display: flex; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #001a14; display: none;"></div>
-
-      <div style="display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; padding: 80px; position: relative;">
-        <div style="display: flex; flex-direction: column; max-width: 850px;">
-          <h1 style="font-size: 56px; font-weight: 700; line-height: 1.1; margin-bottom: 24px; color: #f8fafc; text-shadow: 0px 4px 16px rgba(0,0,0,0.8);">
-            ${post.data.title}
-          </h1>
-          <p style="font-size: 26px; font-weight: 400; color: #cbd5e1; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0px 2px 12px rgba(0,0,0,0.8);">
-            ${post.data.description}
-          </p>
-        </div>
-        <div style="display: flex; align-items: center; width: 100%;">
-          <img id="avatar-image" style="width: 72px; height: 72px; border-radius: 50%; margin-right: 20px; object-fit: cover; display: none;" />
-          <div style="display: flex; flex-direction: column;">
-            <span style="font-size: 28px; font-weight: 700; color: #f8fafc; text-shadow: 0px 2px 8px rgba(0,0,0,0.6);">
-              ${post.data.author || "Miguel García"}
-            </span>
-            <span style="font-size: 24px; color: #10b981; margin-top: 4px; text-shadow: 0px 2px 8px rgba(0,0,0,0.6);">
-              ${blogUrl}
-            </span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  `;
-
-  const findNode = (node: any, id: string): any => {
-    if (node?.props?.id === id) return node;
-    if (node?.props?.children) {
-      const children = Array.isArray(node.props.children) ? node.props.children : [node.props.children];
-      for (const child of children) {
-        if (child && typeof child === 'object') {
-          const found = findNode(child, id);
-          if (found) return found;
+  const markup = {
+    type: "div",
+    props: {
+      style: { display: "flex", width: "100%", height: "100%", position: "relative", color: "#ffffff", fontFamily: "Inter", overflow: "hidden" },
+      children: [
+        postImageBase64 ? {
+          type: "img",
+          props: {
+            src: postImageBase64,
+            style: { position: "absolute", top: "-10px", left: "-10px", width: "105%", height: "105%", objectFit: "cover", filter: "blur(6px)", display: "flex" }
+          }
+        } : {
+          type: "div",
+          props: {
+            style: { display: "flex", position: "absolute", top: "0", left: "0", width: "100%", height: "100%", backgroundColor: "#001a14" }
+          }
+        },
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", position: "absolute", top: "0", left: "0", width: "100%", height: "100%", backgroundImage: "linear-gradient(to right, rgba(0, 26, 20, 0.85) 0%, rgba(0, 26, 20, 0.1) 100%)" }
+          }
+        },
+        {
+          type: "div",
+          props: {
+            style: { display: "flex", flexDirection: "column", justifyContent: "space-between", width: "100%", height: "100%", padding: "80px", position: "relative" },
+            children: [
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", flexDirection: "column", maxWidth: "850px" },
+                  children: [
+                    {
+                      type: "h1",
+                      props: {
+                        style: { fontSize: "56px", fontWeight: 700, lineHeight: 1.1, marginBottom: "24px", color: "#f8fafc", textShadow: "0px 4px 16px rgba(0,0,0,0.8)" },
+                        children: post.data.title
+                      }
+                    },
+                    {
+                      type: "p",
+                      props: {
+                        style: { fontSize: "26px", fontWeight: 400, color: "#cbd5e1", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden", textShadow: "0px 2px 12px rgba(0,0,0,0.8)" },
+                        children: post.data.description
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                type: "div",
+                props: {
+                  style: { display: "flex", alignItems: "center", width: "100%" },
+                  children: [
+                    avatarBase64 ? {
+                      type: "img",
+                      props: {
+                        src: avatarBase64,
+                        style: { width: "72px", height: "72px", borderRadius: "50%", marginRight: "20px", objectFit: "cover", display: "flex" }
+                      }
+                    } : null,
+                    {
+                      type: "div",
+                      props: {
+                        style: { display: "flex", flexDirection: "column" },
+                        children: [
+                          {
+                            type: "span",
+                            props: {
+                              style: { fontSize: "28px", fontWeight: 700, color: "#f8fafc", textShadow: "0px 2px 8px rgba(0,0,0,0.6)" },
+                              children: post.data.author || "Miguel García"
+                            }
+                          },
+                          {
+                            type: "span",
+                            props: {
+                              style: { fontSize: "24px", color: "#10b981", marginTop: "4px", textShadow: "0px 2px 8px rgba(0,0,0,0.6)" },
+                              children: blogUrl
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ].filter(Boolean)
+                }
+              }
+            ]
+          }
         }
-      }
+      ]
     }
-    return null;
   };
 
-  if (postImageBase64) {
-    const imgNode = findNode(markup, "hero-image");
-    if (imgNode) {
-      imgNode.props.src = postImageBase64;
-      imgNode.props.style = { ...imgNode.props.style, display: 'flex' };
-    }
-  } else {
-    const fallbackNode = findNode(markup, "hero-fallback");
-    if (fallbackNode) {
-      fallbackNode.props.style = { ...fallbackNode.props.style, display: 'flex' };
-    }
-  }
-  
-  if (avatarBase64) {
-    const avatarNode = findNode(markup, "avatar-image");
-    if (avatarNode) {
-      avatarNode.props.src = avatarBase64;
-      avatarNode.props.style = { ...avatarNode.props.style, display: 'flex' };
-    }
-  }
-
   const svg = await satori(
-    markup,
+    markup as any,
     {
       width: 1200,
       height: 630,
