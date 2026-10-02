@@ -16,7 +16,7 @@ export default function PupilReflex() {
 	const [luminance, setLuminance] = useState(100.0);
 	const [baselineOffset, setBaselineOffset] = useState(0.0);
 	const [stilesCrawford, setStilesCrawford] = useState(true);
-	const [pigmentation, setPigmentation] = useState<PigmentationType>("hazel");
+	const [pigmentation, setPigmentation] = useState<PigmentationType>("blue");
 	const [isFlashActive, setIsFlashActive] = useState(false);
 
 	const [hud, setHud] = useState({
@@ -33,7 +33,7 @@ export default function PupilReflex() {
 		luminance: 100.0,
 		baselineOffset: 0.0,
 		stilesCrawford: true,
-		pigmentation: "hazel" as PigmentationType,
+		pigmentation: "blue" as PigmentationType,
 		flashUntilTime: 0,
 	});
 	useEffect(() => {
@@ -65,7 +65,7 @@ export default function PupilReflex() {
 
 		const watson = (L: number, offset: number) => {
 			const d =
-				4.9 - 3.0 * Math.tanh(0.4 * Math.log10(Math.max(0.0001, L)) - 0.2);
+				4.9 - 3.0 * Math.tanh(0.4 * Math.log10(Math.max(0.0001, L)) + 0.4);
 			return Math.min(8, Math.max(2, d + offset));
 		};
 

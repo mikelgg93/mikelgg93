@@ -35,7 +35,7 @@ export default function PupilStep2() {
 
 		const calcWatson = (L: number) => {
 			const logL = Math.log10(Math.max(0.0001, L));
-			return Math.min(8, Math.max(2, 4.9 - 3.0 * Math.tanh(0.4 * logL - 0.2)));
+			return Math.min(8, Math.max(2, 4.9 - 3.0 * Math.tanh(0.4 * logL + 0.4)));
 		};
 
 		s.setOnFrame((dt) => {

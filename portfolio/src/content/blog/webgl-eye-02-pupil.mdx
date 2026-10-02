@@ -24,7 +24,7 @@ import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.
 import NervePathway from '../../components/eye/pupil/NervePathway';
 import NervePathwayCode from '../../components/eye/pupil/NervePathway.tsx?raw';
 
-In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil** (which is actually slightly eccentric, being nasally and inferiorly displaced), and the colored ring around it, the **iris**, is the muscle that opens and closes it.
+In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil**, and the colored ring around it, the **iris**, is the muscle that opens and closes it.
 
 > *Renaissance women used drops of deadly nightshade (Atropa belladonna, "beautiful lady") to widen their pupils for cosmetic effect, often not knowing the plant was quietly poisoning them.*
 
@@ -37,9 +37,9 @@ The iris is what gives eyes their color, but to an optical engineer it is a musc
 1. **The sphincter** is a ring of muscle around the pupil edge. When it contracts it makes the pupil smaller (**constriction**). It runs on the parasympathetic "rest and digest" nervous system.
 2. **The dilator** is a set of myoepithelial cells arranged like spokes, running outward from the pupil. When it contracts it pulls the pupil open (**dilation**). It runs on the sympathetic "fight or flight" system.
 
-The front of the iris is split into two rings by a wavy ridge called the **collarette**: an inner *pupillary zone* around the pupil and an outer *ciliary zone* out toward the white of the eye. It is dotted with pits and folds called **Fuchs crypts**, **Wolffian nodules** near the pupillary margin, and concentric **contraction furrows** in the outer zone, all of which give every iris its unique texture.
+The front of the iris is split into two rings by a wavy ridge called the **collarette**: an inner *pupillary zone* around the pupil and an outer *ciliary zone* out toward the white of the eye. It is dotted with pits and folds called **Fuchs crypts**, **Wölfflin nodules** in the periphery, and the **pupillary ruff** at the margin, along with concentric **contraction furrows** in the outer zone. These anatomical features are what give every iris its unique, mesmerizing texture.
 
-The model below builds the iris in 3D under a glassy cornea. The iris itself is drawn in a shader whose recipe is essentially two circles: throw away everything outside the iris, paint the hole in the middle black, and fill the ring between them with procedural noise for the crypts and fibers.
+To capture this biological complexity in our simulation, the model below builds the iris in 3D under a glassy cornea (although strictly speaking, the pupil is often slightly eccentric). The iris itself is drawn in a shader whose recipe is essentially two circles: throw away everything outside the iris, paint the hole in the middle black, and fill the ring between them with procedural noise to mimic the crypts and muscle fibers.
 
 ```glsl
 float dist = distance(uv, center);   // distance from the pupil center
@@ -64,19 +64,23 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
 
 ## Calculating light
 
-Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect of the first kind (SCE-I)** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows more slowly than the geometric area. This happens because the retina is not a flat, uniform sensor array; its photoreceptors act like tiny fiber optics pointed toward the pupil center, and the effect varies significantly depending on retinal topography.
+Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect of the first kind (SCE-I)** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows more slowly than the geometric area. This happens because the retina is not a flat, uniform sensor array; its cones act like tiny fiber optics pointed toward the pupil center. Because SCE-I is a property of cones (photopic vision), an 8mm pupil in the dark is scotopic (driven by rods) and exhibits virtually no Stiles-Crawford effect.
 
 Beyond just letting light in, the pupil acts as the eye's aperture for sharpness. The optical quality of the eye is governed by its Point Spread Function (PSF) and Modulation Transfer Function (MTF), both of which are tightly coupled to pupil diameter. If the pupil is too small, diffraction blurs the image; if it is too large, peripheral optical aberrations from the cornea and lens ruin the focus. The resting pupil size of around 3 to 4 mm naturally optimizes visual sharpness by finding the perfect balance between diffraction and aberrations.
 
+> [!NOTE] 
+> **Does iris color affect how much light enters?** 
+> Yes. Dark brown irises act as near-perfect opaque aperture stops because they are packed with light-absorbing melanin. Lighter irises (like blue, green, or hazel) have less melanin, allowing more stray light to scatter directly through the iris tissue and into the eye. This is why people with light-colored eyes are generally more sensitive to glare and bright sunlight.
+
 How big should the pupil be at a given brightness? A useful rule of thumb often derived from Moon and Spencer (1944) gives a resting, binocular steady-state pupil diameter following a smooth curve of scene brightness. (For a more modern and comprehensive model that accounts for age and field size, one would use the Watson and Yellott (2012) formula, and remember that these describe *steady-state* adaptation, not the transient reflex).
 
-$$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) - 0.2\right)$$
+$$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) + 0.4\right)$$
 
 This gives a diameter in millimeters across the full range from starlight to bright sun. In code it is a one-liner:
 
 ```ts
 function pupilDiameter(L) {                 // L = scene luminance (cd/m²)
-  const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) - 0.2);
+  const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) + 0.4);
   return Math.min(8, Math.max(2, d));       // clamp to 2-8 mm
 }
 ```
@@ -94,11 +98,11 @@ In the model below you set the pupil size and the scene brightness by hand and r
 
 ## The light reflex
 
-We know how the pupil size affects incoming light, but how does the body actually regulate this size to control light entering? Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex** (PLR). It is a simple but critical feedback loop: light is detected by intrinsically photosensitive retinal ganglion cells (ipRGCs) using the photopigment melanopsin, the signal travels up the optic nerve, projects bilaterally to both the ipsilateral and contralateral pretectal nuclei, and then to the Edinger-Westphal nuclei in the brainstem (driving the consensual light reflex in the opposite eye), and comes back down via the ciliary ganglion to drive the sphincter muscle. Constrict, then relax.
+We know how the pupil size affects incoming light, but how does the body actually regulate this size to control light entering? Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex** (PLR). It is a simple but critical feedback loop. Light is detected by intrinsically photosensitive retinal ganglion cells (ipRGCs). While they contain melanopsin, the rapid reflex is actually driven by classical rods and cones feeding into them (melanopsin alone is too slow). The signal shoots up the optic nerve. It projects bilaterally to the pretectal nuclei, crossing via the posterior commissure. From there, it hits the Edinger-Westphal nuclei in the brainstem. This drives the consensual light reflex in the opposite eye. Finally, the signal descends via the ciliary ganglion to contract the sphincter muscle. Constrict, then relax.
 
 Because this neural circuit runs deep through the brainstem, it acts as a diagnostic window into the brain. If a patient has suffered a traumatic brain injury, a doctor will shine a light in their eyes; a pupil that remains fixed and dilated can indicate severe pressure on the brainstem. The reflex is also heavily influenced by drugs, which is why opiates cause pinpoint pupils and stimulants cause massive dilation.
 
-The loop is a feedback controller, and like any real controller it is not instant. The neural pathway of this reflex is a fascinating 3D circuit that crosses the brainstem:
+The loop is a feedback controller, and like any real controller it is not instant. The neural pathway of this reflex is a 3D circuit that crosses the brainstem:
 
 <InteractiveViewer>
   <div slot="preview">
@@ -115,7 +119,7 @@ Three things shape how the pupil actually moves:
 - **Asymmetry.** Constriction is fast (a time constant near $0.12\ \text{s}$); dilation is slow (nearer $0.65\ \text{s}$). Your pupil snaps shut but opens back up lazily.
 - **Pupillary unrest.** Even under perfectly steady light the pupil quivers slightly, a low, constant wobble of a few tenths of a millimeter (often loosely called hippus, though true hippus is pathological).
 
-The delay and the asymmetry give the reflex its character. While a true physiological model involves the complex non-linear dynamics of Lawrence Stark's control systems (Stark, 1959), for visual rendering purposes we can approximate it with a few lines of code. Each frame, the pupil eases toward the target diameter it was told to reach $220\ \text{ms}$ ago, using a simple exponential decay that moves faster when closing than when opening:
+The delay and the asymmetry give the reflex its character. While a true physiological model involves the complex non-linear dynamics and third-order system (triple lag) of Lawrence Stark's control models (Stark, 1959), for visual rendering purposes we can approximate it with a few lines of code. Each frame, the pupil eases toward the target diameter it was told to reach $220\ \text{ms}$ ago, using a simple exponential decay that moves faster when closing than when opening:
 
 ```ts
 const diff = targetDiameter - currentDiameter;
@@ -140,14 +144,14 @@ While the light reflex is the strongest driver of the pupil, it is not the only 
 
 | System | Muscle | Action | Common Triggers | Drug Effects |
 | :--- | :--- | :--- | :--- | :--- |
-| **Parasympathetic** ("Rest & Digest") | Sphincter | **Constricts** (Miosis) | Bright light, focusing on near objects, relaxation | Opiates and heroin disinhibit the Edinger-Westphal nucleus via GABAergic interneurons, causing extreme "pinpoint" pupils. |
-| **Sympathetic** ("Fight or Flight") | Dilator | **Dilates** (Mydriasis) | Darkness, stress, arousal, cognitive load, adrenaline | Stimulants (MDMA, cocaine, amphetamines) or psychedelics cause massive, wide-open dilation. |
+| **Parasympathetic** ("Rest & Digest") | Sphincter | **Constricts** (Miosis) | Bright light, focusing on near objects, relaxation | Opiates bind mu-opioid receptors on GABAergic interneurons, causing pinpoint pupils. |
+| **Sympathetic** ("Fight or Flight") | Dilator | **Dilates** (Mydriasis) | Darkness, stress, arousal, cognitive load, adrenaline | Stimulants cause massive dilation. |
 
 Because the dilator muscle is wired directly to the sympathetic nervous system, your pupils expand slightly when you are stressed, aroused, or thinking hard. If you give someone a complex math problem to solve in their head, their pupils will dilate, peaking at the moment of highest cognitive load, and shrink back down the moment they solve it.
 
 UI designers, psychologists, and researchers use eye trackers to measure this invisible "cognitive load". While some have proposed using pupillometry to monitor **workplace fatigue** or **cognitive overload** in high-stakes environments like surgical theaters or air traffic control, the reality is incredibly messy. The pupil light reflex is overwhelmingly stronger than cognitive responses. Separating tiny, task-evoked dilations (often just a fraction of a millimeter) from the massive fluctuations caused by ambient lighting changes, blinks, and screen glare in a real-world environment is exceptionally difficult. In controlled laboratory settings, however, by keeping lighting strictly constant and establishing a rigorous baseline, researchers can still reliably measure these subtle markers of mental effort. Despite these hurdles, advances in machine learning and robust signal processing are opening exciting new avenues, giving researchers optimism that reliable real-world cognitive monitoring may soon be within reach.
 
-The pupil also changes size when you focus on something close to your face. This is called the **near triad**: your eyes converge (turn inward), your lenses accommodate (bulge to focus), and your pupils constrict. Constricting the pupil when looking at something close increases your depth of field, exactly like stopping down a macro lens on a camera.
+The pupil also changes size when you focus on something close to your face. This is called the **near triad**: your eyes converge (turn inward), your lenses accommodate (bulge to focus), and your pupils constrict. The neural pathway for this bypasses the pretectal nucleus, traveling from the visual cortex to the supraoculomotor area. Constricting the pupil when looking at something close increases your depth of field, exactly like stopping down a macro lens on a camera.
 
 ## The final simulator: Putting it together
 

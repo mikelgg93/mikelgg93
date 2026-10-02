@@ -11,7 +11,7 @@ export default function IrisParametric() {
 	const [diameter, setDiameter] = useState(4.0);
 	const [logL, setLogL] = useState(2); // log10 luminance, 100 cd/m^2
 	const [stilesCrawford, setStilesCrawford] = useState(true);
-	const [pigment, setPigment] = useState(1);
+	const [pigment, setPigment] = useState(0);
 
 	const L = 10 ** logL;
 	const area = (Math.PI * diameter * diameter) / 4;
@@ -26,7 +26,7 @@ export default function IrisParametric() {
 		if (!mountRef.current) return;
 		const s = createIrisScene(mountRef.current, {
 			pupilRadius: 4.0 * (0.5 / 12.0),
-			pigmentation: 1,
+			pigmentation: 0,
 			showMuscles: false,
 			stilesCrawford: true,
 		});
