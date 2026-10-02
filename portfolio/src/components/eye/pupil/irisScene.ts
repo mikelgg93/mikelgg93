@@ -66,7 +66,8 @@ float fbm(vec2 uv) {
 }
 
 void main() {
-  vec2 center = vec2(0.5, 0.5);
+  // Nasally and inferiorly shifted pupil center
+  vec2 center = vec2(0.52, 0.48);
   float dist = distance(vUv, center);
   float irisRadius = 0.5;
   if (dist > irisRadius) discard;
