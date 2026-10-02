@@ -24,7 +24,7 @@ import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.
 import NervePathway from '../../components/eye/pupil/NervePathway';
 import NervePathwayCode from '../../components/eye/pupil/NervePathway.tsx?raw';
 
-En la [Parte 1](/es/blog/webgl-eye-01-cornea) moldeamos la córnea, la lente frontal fija del ojo. Pero una cámara necesita más que una lente: necesita una apertura, un orificio ajustable que controla cuánta luz entra. En el ojo ese orificio es la **pupila**, y el anillo de color a su alrededor, el **iris**, es el músculo que la abre y la cierra.
+En la [Parte 1](/es/blog/webgl-eye-01-cornea) moldeamos la córnea, la lente frontal fija del ojo. Pero una cámara necesita más que una lente: necesita una apertura, un orificio ajustable que controla cuánta luz entra. En el ojo ese orificio es la **pupila** (que en realidad es ligeramente excéntrica, estando desplazada nasal e inferiormente), y el anillo de color a su alrededor, el **iris**, es el músculo que la abre y la cierra.
 
 > *Las mujeres del Renacimiento usaban gotas de belladona (Atropa belladonna, "hermosa dama") para dilatar sus pupilas con fines cosméticos, muchas veces sin saber que la planta las estaba envenenando silenciosamente.*
 
@@ -35,9 +35,9 @@ La pupila no es solo un orificio pasivo. Reacciona a la luz en una fracción de 
 El iris es lo que da color a los ojos, pero para un ingeniero óptico es un músculo que cambia la pupila entre unos $2\ \text{mm}$ de ancho (con luz brillante) y $8\ \text{mm}$ de ancho (en la oscuridad). Lo hace con dos músculos opuestos:
 
 1. **El esfínter** es un anillo de músculo alrededor del borde de la pupila. Cuando se contrae hace que la pupila sea más pequeña (**constricción**). Funciona con el sistema nervioso parasimpático de "descanso y digestión".
-2. **El dilatador** es un conjunto de fibras dispuestas como radios, que se extienden hacia afuera desde la pupila. Cuando se contrae abre la pupila (**dilatación**). Funciona con el sistema de "lucha o huida" simpático.
+2. **El dilatador** es un conjunto de células mioepiteliales dispuestas como radios, que se extienden hacia afuera desde la pupila. Cuando se contrae abre la pupila (**dilatación**). Funciona con el sistema de "lucha o huida" simpático.
 
-El frente del iris está dividido en dos anillos por una cresta ondulada llamada **collarete**: una *zona pupilar* interna alrededor de la pupila y una *zona ciliar* externa hacia el blanco del ojo. Está salpicado de hoyos y pliegues llamados **criptas de Fuchs**, y esa textura es lo que hace que cada iris se vea único.
+El frente del iris está dividido en dos anillos por una cresta ondulada llamada **collarete**: una *zona pupilar* interna alrededor de la pupila y una *zona ciliar* externa hacia el blanco del ojo. Está salpicado de hoyos y pliegues llamados **criptas de Fuchs**, **nódulos de Wolff** cerca del margen pupilar, y **surcos de contracción** concéntricos en la zona exterior, todo lo cual le da a cada iris su textura única.
 
 El modelo a continuación construye el iris en 3D bajo una córnea vidriosa. El iris en sí se dibuja en un shader cuya receta son esencialmente dos círculos: descartar todo lo que esté fuera del iris, pintar de negro el agujero en el medio, y rellenar el anillo entre ellos con ruido procedimental para las criptas y las fibras.
 
@@ -64,9 +64,9 @@ Arrastra el control deslizante de diámetro para abrir y cerrar la pupila, encie
 
 ## Calculando la luz
 
-¿Por qué importa tanto el tamaño de la pupila? Porque la cantidad de luz que llega a la retina depende del *área* del agujero. Pequeños cambios en el tamaño de la pupila tienen un gran efecto: pasar de una pupila de $2\ \text{mm}$ a la luz del sol a una pupila de $8\ \text{mm}$ en la oscuridad es un cambio de 4x en el diámetro, pero un cambio de 16x en el área. Sin embargo, el área no es toda la historia. El **efecto Stiles-Crawford** demuestra que la luz que entra por el *borde* de una pupila ancha es menos efectiva que la luz que entra por el centro, por lo que el área pupilar *efectiva* crece más lentamente que el área geométrica.
+¿Por qué importa tanto el tamaño de la pupila? Porque la cantidad de luz que llega a la retina depende del *área* del agujero. Pequeños cambios en el tamaño de la pupila tienen un gran efecto: pasar de una pupila de $2\ \text{mm}$ a la luz del sol a una pupila de $8\ \text{mm}$ en la oscuridad es un cambio de 4x en el diámetro, pero un cambio de 16x en el área. Sin embargo, el área no es toda la historia. El **efecto Stiles-Crawford de primer tipo (SCE-I)** demuestra que la luz que entra por el *borde* de una pupila ancha es menos efectiva que la luz que entra por el centro, por lo que el área pupilar *efectiva* crece más lentamente que el área geométrica.
 
-¿Qué tan grande debería ser la pupila a un brillo dado? Una regla empírica útil proviene de Moon y Spencer (1944): el diámetro de la pupila en reposo binocular de estado estacionario sigue una curva suave del brillo de la escena.
+¿Qué tan grande debería ser la pupila a un brillo dado? Una regla empírica útil derivada a menudo de Moon y Spencer (1944) da un diámetro de pupila en reposo binocular de estado estacionario que sigue una curva suave del brillo de la escena. (Para un modelo más moderno y completo que tenga en cuenta la edad y el tamaño del campo visual, se usaría la fórmula de Watson y Yellott (2012), recordando que estas describen la adaptación en *estado estacionario*, no el reflejo transitorio).
 
 $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) - 0.2\right)$$
 
@@ -92,7 +92,7 @@ En el modelo a continuación, configuras el tamaño de la pupila y el brillo de 
 
 ## El reflejo pupilar
 
-Sabemos cómo el tamaño de la pupila afecta a la luz entrante, pero ¿cómo regula realmente el cuerpo este tamaño para controlar la luz que entra? Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz** (RPL). Es un bucle de retroalimentación simple pero crítico: la luz se detecta en la retina, la señal viaja por el nervio óptico, cruza por el núcleo pretectal y el núcleo de Edinger-Westphal en el tronco encefálico, y vuelve a bajar a través del ganglio ciliar para controlar el músculo esfínter. Se contrae, luego se relaja.
+Sabemos cómo el tamaño de la pupila afecta a la luz entrante, pero ¿cómo regula realmente el cuerpo este tamaño para controlar la luz que entra? Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz** (RPL). Es un bucle de retroalimentación simple pero crítico: la luz es detectada por las células ganglionares de la retina intrínsecamente fotosensibles (ipRGCs) utilizando el fotopigmento melanopsina, la señal viaja por el nervio óptico, se proyecta bilateralmente a los núcleos pretectales y de ahí a ambos núcleos de Edinger-Westphal en el tronco encefálico (lo que causa el reflejo fotomotor consensual en el ojo opuesto), y vuelve a bajar a través del ganglio ciliar para controlar el músculo esfínter. Se contrae, luego se relaja.
 
 Debido a que este circuito neuronal atraviesa profundamente el tronco encefálico, actúa como una ventana diagnóstica hacia el cerebro. Si un paciente ha sufrido una lesión cerebral traumática, un médico iluminará sus ojos con una linterna; una pupila que permanece fija y dilatada puede indicar una presión grave sobre el tronco encefálico. El reflejo también está fuertemente influenciado por las drogas, por lo que los opiáceos causan pupilas puntiformes y los estimulantes causan una dilatación masiva.
 
@@ -111,9 +111,9 @@ Tres cosas dan forma a cómo se mueve realmente la pupila:
 
 - **Un retraso.** La señal tarda unos $220\ \text{ms}$ en hacer el viaje de ida y vuelta antes de que el músculo empiece a moverse.
 - **Asimetría.** La constricción es rápida (una constante de tiempo cercana a $0.12\ \text{s}$); la dilatación es lenta (más cerca de $0.65\ \text{s}$). Tu pupila se cierra de golpe pero se vuelve a abrir perezosamente.
-- **Hippus.** Incluso bajo una luz perfectamente estable, la pupila tiembla ligeramente, un tambaleo bajo y constante de unas pocas décimas de milímetro.
+- **Inquietud pupilar.** Incluso bajo una luz perfectamente estable, la pupila tiembla ligeramente, un tambaleo bajo y constante de unas pocas décimas de milímetro (a menudo llamado libremente hippus, aunque el hippus verdadero es patológico).
 
-El retraso y la asimetría le dan al reflejo su carácter. Aunque un verdadero modelo fisiológico implica una cinética muscular no lineal compleja, para fines de renderizado podemos aproximarlo con unas pocas líneas de código. En cada fotograma, la pupila se acerca al diámetro objetivo que se le ordenó alcanzar hace $220\ \text{ms}$, utilizando un simple decaimiento exponencial que se mueve más rápido al cerrarse que al abrirse:
+El retraso y la asimetría le dan al reflejo su carácter. Aunque un verdadero modelo fisiológico implica la compleja dinámica no lineal de los sistemas de control de Lawrence Stark (Stark, 1959), para fines de renderizado visual podemos aproximarlo con unas pocas líneas de código. En cada fotograma, la pupila se acerca al diámetro objetivo que se le ordenó alcanzar hace $220\ \text{ms}$, utilizando un simple decaimiento exponencial que se mueve más rápido al cerrarse que al abrirse:
 
 ```ts
 const diff = targetDiameter - currentDiameter;
@@ -138,7 +138,7 @@ Aunque el reflejo a la luz es el conductor más fuerte de la pupila, no es el ú
 
 | Sistema | Músculo | Acción | Desencadenantes Comunes | Efectos de Drogas |
 | :--- | :--- | :--- | :--- | :--- |
-| **Parasimpático** ("Descansar y Digerir") | Esfínter | **Contrae** (Miosis) | Luz brillante, enfocar objetos cercanos, relajación | Los opiáceos y la heroína lo sobreestimulan, causando pupilas extremas en "punta de alfiler". |
+| **Parasimpático** ("Descansar y Digerir") | Esfínter | **Contrae** (Miosis) | Luz brillante, enfocar objetos cercanos, relajación | Los opiáceos y la heroína desinhiben el núcleo de Edinger-Westphal a través de interneuronas GABAérgicas, causando pupilas extremas en "punta de alfiler". |
 | **Simpático** ("Lucha o Huida") | Dilatador | **Dilata** (Midriasis) | Oscuridad, estrés, excitación, carga cognitiva, adrenalina | Los estimulantes (MDMA, cocaína, anfetaminas) o psicodélicos causan una dilatación masiva y abierta. |
 
 Debido a que el músculo dilatador está conectado directamente al sistema nervioso simpático, tus pupilas se expanden ligeramente cuando estás estresado, excitado o pensando mucho. Si le das a alguien un problema matemático complejo para que lo resuelva mentalmente, sus pupilas se dilatarán, alcanzando su punto máximo en el momento de mayor carga cognitiva, y se encogerán de nuevo en el momento en que lo resuelvan.

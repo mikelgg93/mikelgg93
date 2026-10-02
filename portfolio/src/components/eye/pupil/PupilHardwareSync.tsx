@@ -84,9 +84,8 @@ export default function PupilHardwareSync() {
 	};
 
 	const cleanupSandbox = () => {
-		if (originalWsRef.current) {
-			window.WebSocket = originalWsRef.current;
-			originalWsRef.current = null;
+		if ((window as any)._neonGazeCallback) {
+			delete (window as any)._neonGazeCallback;
 		}
 		if (scriptRef.current?.parentNode) {
 			scriptRef.current.parentNode.removeChild(scriptRef.current);
@@ -108,6 +107,13 @@ export default function PupilHardwareSync() {
 		setStatus("connecting");
 		setErrorMsg("");
 		try {
+			// Basic sanitization of IP address to prevent arbitrary script injection
+			const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$|^neon\.local$/i;
+			if (!ipRegex.test(deviceIp.trim())) {
+				throw new Error("Security: Please provide a valid local IP address or hostname.");
+			}
+			const safeIp = deviceIp.trim();
+
 			// 1. Create a hidden dummy root for the Neon app to mount to
 			const dummyRoot = document.createElement("div");
 			dummyRoot.id = "neon-dummy-root";
@@ -115,74 +121,23 @@ export default function PupilHardwareSync() {
 			document.body.appendChild(dummyRoot);
 			dummyRootRef.current = dummyRoot;
 
-			// 2. Intercept WebSocket globally to steal the gaze data using ES6 Class extending Original WS
-			originalWsRef.current = window.WebSocket;
-
-			class InterceptedWebSocket extends originalWsRef.current {
-				constructor(url: string, protocols?: string | string[]) {
-					super(url, protocols);
-
-					// Only scan websockets going to our device that aren't the JSON status endpoints
-					if (url.includes(deviceIp) && !url.includes("status")) {
-						setStatus("connected"); // The app successfully started a stream!
-
-						let expectingRtpPacket = false;
-						this.addEventListener("message", (event: MessageEvent) => {
-							if (typeof event.data === "string") return;
-							const buffer = new Uint8Array(event.data);
-
-							// The Axis RTSP server sends the 4-byte interleaved header ($ + channel + length)
-							// as one WebSocket message, and the actual RTP packet as the next message.
-							if (buffer[0] === 0x24 && buffer.length === 4) {
-								expectingRtpPacket = true;
-								return;
-							}
-
-							if (expectingRtpPacket) {
-								expectingRtpPacket = false;
-								const rtpHeaderSize = 12;
-								// The 4-byte interleaved header was in the previous message, so it's not here
-								const payloadOffset = rtpHeaderSize;
-								const payloadSize = buffer.length - payloadOffset;
-
-								// The Real-Time API sends gaze data as a raw C-struct
-								if (payloadSize >= 65 && sceneRef.current) {
-									const dataView = new DataView(buffer.buffer);
-									// pupil_diameter_left is a Float32 at byte offset 9 of the payload.
-									const pupil_left = dataView.getFloat32(
-										payloadOffset + 9,
-										false,
-									);
-									// pupil_diameter_right is at offset 37 (9 + 4 + 12 + 12)
-									const pupil_right = dataView.getFloat32(
-										payloadOffset + 37,
-										false,
-									);
-
-									if (pupil_left > 0 && pupil_left < 15) {
-										// Set 3D model pupil to average of both eyes
-										sceneRef.current.params.pupilRadius =
-											((pupil_left + pupil_right) / 2) * (0.5 / 12.0);
-										const newData = { left: pupil_left, right: pupil_right };
-										setPupilMm(newData);
-										updateGraph(newData);
-									}
-								}
-							}
-						});
-					}
+			// 2. Set up a global callback for the scoped WebSocket interceptor
+			(window as any)._neonGazeCallback = (pupil_left: number, pupil_right: number) => {
+				if (sceneRef.current) {
+					sceneRef.current.params.pupilRadius = ((pupil_left + pupil_right) / 2) * (0.5 / 12.0);
+					const newData = { left: pupil_left, right: pupil_right };
+					setPupilMm(newData);
+					updateGraph(newData);
 				}
-			}
-
-			// Replace it in window so the injected script uses it
-			(window as any).WebSocket = InterceptedWebSocket;
+			};
+			setStatus("connected");
 
 			// 3. Fetch the device's webapp dynamically
 			const fetchOpts = {
 				headers: { Connection: "close" },
 				cache: "no-store" as RequestCache,
 			};
-			const htmlRes = await fetch(`http://${deviceIp}:8080/`, fetchOpts);
+			const htmlRes = await fetch(`http://${safeIp}:8080/`, fetchOpts);
 			const html = await htmlRes.text();
 			const scriptMatch = html.match(/src="(\/assets\/index-[^"]+\.js)"/);
 			if (!scriptMatch)
@@ -190,7 +145,7 @@ export default function PupilHardwareSync() {
 
 			// 4. Fetch the JS bundle and sandbox its mount point & location
 			const jsRes = await fetch(
-				`http://${deviceIp}:8080${scriptMatch[1]}`,
+				`http://${safeIp}:8080${scriptMatch[1]}`,
 				fetchOpts,
 			);
 			let scriptText = await jsRes.text();
@@ -212,18 +167,51 @@ export default function PupilHardwareSync() {
 			// Force it to connect to the device IP instead of the blog's localhost
 			scriptText = scriptText.replace(
 				/window\.location\.href/g,
-				`("http://${deviceIp}:8080/")`,
+				`("http://${safeIp}:8080/")`,
 			);
 			scriptText = scriptText.replace(
 				/window\.location\.hostname/g,
-				`("${deviceIp}")`,
+				`("${safeIp}")`,
 			);
 			scriptText = scriptText.replace(
 				/window\.location\.host/g,
-				`("${deviceIp}:8080")`,
+				`("${safeIp}:8080")`,
 			);
 
-			// 5. Execute the sandboxed JS
+			// 5. Inject locally scoped WebSocket interceptor directly into the bundle
+			scriptText = scriptText.replace(
+				/new\s+(?:window\.)?WebSocket\b/g,
+				`new (class extends WebSocket {
+					constructor(url, protocols) {
+						super(url, protocols);
+						if (url.includes("${safeIp}") && !url.includes("status")) {
+							let expectingRtpPacket = false;
+							this.addEventListener("message", (event) => {
+								if (typeof event.data === "string") return;
+								const buffer = new Uint8Array(event.data);
+								if (buffer[0] === 0x24 && buffer.length === 4) {
+									expectingRtpPacket = true;
+									return;
+								}
+								if (expectingRtpPacket) {
+									expectingRtpPacket = false;
+									const payloadOffset = 12;
+									const payloadSize = buffer.length - payloadOffset;
+									if (payloadSize >= 65 && window._neonGazeCallback) {
+										const dataView = new DataView(buffer.buffer);
+										const pupil_left = dataView.getFloat32(payloadOffset + 9, false);
+										const pupil_right = dataView.getFloat32(payloadOffset + 37, false);
+										if (pupil_left > 0 && pupil_left < 15) {
+											window._neonGazeCallback(pupil_left, pupil_right);
+										}
+									}
+								}
+							});
+						}
+					}
+				})`
+			);
+
 			const script = document.createElement("script");
 			script.type = "module";
 			script.textContent = scriptText;
