@@ -26,11 +26,9 @@ import NervePathwayCode from '../../components/eye/pupil/NervePathway.tsx?raw';
 
 In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil**, and the colored ring around it, the **iris**, is the muscle that opens and closes it.
 
-> *"Your pupil is blue, and when you laugh, / its soft clarity reminds me / of the tremulous glow of the morning / reflected in the sea."*
-> 
-> - Gustavo Adolfo Bécquer, *Rhyme XIII*
+> *Renaissance women used drops of deadly nightshade (Atropa belladonna, "beautiful lady") to widen their pupils for cosmetic effect, often not knowing the plant was quietly poisoning them.*
 
-The pupil is not just a passive hole. It reacts to light in a fraction of a second, it trades sharpness against brightness, and it never sits perfectly still. People have been fascinated by it for a long time: Renaissance women used drops of deadly nightshade (*belladonna*, "beautiful lady") to widen their pupils, not knowing the plant was quietly poisoning them. In this part we model the iris, work out how pupil size sets the light reaching the retina, and simulate the reflex that drives it.
+The pupil is not just a passive hole. It reacts to light in a fraction of a second, it trades sharpness against brightness, and it never sits perfectly still. In this part we model the iris, work out how pupil size sets the light reaching the retina, and simulate the reflex that drives it.
 
 ## Programming the Iris: A living aperture
 
@@ -210,9 +208,9 @@ Since we are talking about pupils, why just simulate them when you can drive the
 
 Normally, connecting to these glasses requires downloading third-party Python or C++ libraries because the device streams data using RTSP (Real-Time Streaming Protocol) packed in binary RTP packets, which browsers don't natively understand.
 
-But we love a good hack. Since the Neon device allows cross-origin requests, we can dynamically fetch and inject the device's own web app into a hidden DOM element to handle the complex RTSP handshake. We then monkey-patch the browser's `WebSocket` API to intercept the incoming video stream. 
+But we love a good hack. Since the Neon device allows cross-origin requests, we can dynamically fetch and inject the device's own web app into a hidden DOM element to handle the complex RTSP handshake. We then monkey-patch the browser's `WebSocket` API to intercept the incoming video stream.
 
-By analyzing the official Python API, we know the raw binary RTP packets pack the gaze data as a C-struct (not MsgPack!). The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload. 
+By analyzing the official Python API, we know the raw binary RTP packets pack the gaze data as a C-struct (not MsgPack!). The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload.
 
 Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click **Connect**. The browser will intercept the binary stream, parse the structs on the fly, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
 
