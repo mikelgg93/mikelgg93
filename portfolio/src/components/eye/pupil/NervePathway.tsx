@@ -157,6 +157,9 @@ export default function NervePathway() {
 		);
 
 		// Interneurons: Pretectal to Edinger-Westphal
+		const pcL = new THREE.Vector3(-0.2, 0.2, -0.1);
+		const pcR = new THREE.Vector3(0.2, 0.2, -0.1);
+
 		createTract(
 			[pretectalL, new THREE.Vector3(-0.6, 0.15, -0.2), ewL],
 			colInter,
@@ -164,7 +167,7 @@ export default function NervePathway() {
 			-0.3,
 		);
 		createTract(
-			[pretectalL, new THREE.Vector3(0, 0.2, -0.1), ewR],
+			[pretectalL, pcL, pcR, ewR],
 			colInter,
 			0.04,
 			-0.3,
@@ -176,7 +179,7 @@ export default function NervePathway() {
 			-0.3,
 		);
 		createTract(
-			[pretectalR, new THREE.Vector3(0, 0.2, -0.1), ewL],
+			[pretectalR, pcR, pcL, ewL],
 			colInter,
 			0.04,
 			-0.3,
