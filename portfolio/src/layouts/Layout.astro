@@ -138,15 +138,15 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
     </script>
     <ClientRouter />
   </head>
-  <body
-    class="min-h-[100dvh] bg-background font-sans text-foreground antialiased selection:bg-accent selection:text-accent-foreground flex flex-col"
-  >
-    <RouteLoader />
-    <ShortcutsModal client:load />
-    <Header />
-    <main class="flex-1">
-      <slot />
-    </main>
-    <Footer />
+  <body class="bg-background font-sans text-foreground antialiased selection:bg-accent selection:text-accent-foreground">
+    <div class="min-h-[100dvh] flex flex-col relative">
+      <RouteLoader />
+      <ShortcutsModal client:load />
+      <Header />
+      <main class="flex-1">
+        <slot />
+      </main>
+      <Footer />
+    </div>
   </body>
 </html>

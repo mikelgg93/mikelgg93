@@ -25,12 +25,18 @@ export default function BlogFeatures() {
     window.addEventListener("resize", handleResize);
 
     const updateScroll = () => {
-      const currentScroll = window.scrollY;
-      const scrollHeight =
-        document.documentElement.scrollHeight - window.innerHeight;
+      // Use documentElement.clientHeight which is more stable than window.innerHeight on iOS Safari
+      const currentScroll = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = Math.max(
+        0,
+        document.documentElement.scrollHeight - document.documentElement.clientHeight
+      );
 
       if (scrollHeight > 0) {
-        const progress = (currentScroll / scrollHeight) * 100;
+        // Clamp between 0 and 100 to handle iOS Safari rubber-band overscrolling
+        const rawProgress = (currentScroll / scrollHeight) * 100;
+        const progress = Math.min(100, Math.max(0, rawProgress));
+        
         setScrollProgress(progress);
         setIsReading(progress > 2 && progress < 99);
 
@@ -54,7 +60,7 @@ export default function BlogFeatures() {
   return (
     <>
       <svg
-        className="fixed inset-0 w-full h-full pointer-events-none z-[9998]"
+        className="fixed top-0 left-0 w-full h-[100dvh] pointer-events-none z-[9998]"
         preserveAspectRatio="none"
       >
         <rect

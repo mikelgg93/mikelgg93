@@ -204,30 +204,10 @@
 
 @layer components {
   .markdown-alert {
-    @apply my-6 rounded-lg border-l-4 p-4 text-sm bg-muted/30 border-primary/50 text-foreground/90 shadow-sm backdrop-blur-sm;
+    @apply my-8 rounded-xl border border-border/40 p-5 md:p-6 text-[15px] leading-relaxed bg-card/20 text-card-foreground shadow-[0_8px_30px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl relative overflow-hidden transition-all duration-300 hover:border-border/60 hover:bg-card/30;
   }
 
   .markdown-alert-title {
-    @apply font-bold mb-2 flex items-center gap-2 text-primary font-sans uppercase tracking-widest text-xs;
-  }
-
-  .markdown-alert-note {
-    @apply border-primary/50;
-  }
-
-  .markdown-alert-tip {
-    @apply border-emerald-700/50 dark:border-emerald-500/50;
-  }
-
-  .markdown-alert-warning {
-    @apply border-amber-700/50 dark:border-amber-500/50;
-  }
-
-  .markdown-alert-caution {
-    @apply border-destructive/50;
-  }
-
-  .markdown-alert-important {
-    @apply border-purple-700/50 dark:border-purple-500/50;
+    display: none;
   }
 }
