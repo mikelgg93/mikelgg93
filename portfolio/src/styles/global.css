@@ -205,23 +205,23 @@
 @layer components {
   .markdown-alert {
     @apply my-8 rounded-2xl p-5 md:p-6 text-[15px] leading-relaxed relative overflow-hidden transition-all duration-500;
-    @apply bg-gradient-to-br from-white/40 to-white/10 dark:from-white/10 dark:to-white/5;
+    @apply bg-black/5 dark:bg-black/40;
     @apply backdrop-blur-[32px] backdrop-saturate-[1.5];
-    @apply border border-white/40 dark:border-white/10;
+    @apply border border-black/10 dark:border-white/10;
     @apply text-card-foreground;
   }
   
   .markdown-alert:hover {
-    @apply from-white/50 to-white/20 dark:from-white/15 dark:to-white/10;
-    @apply border-white/60 dark:border-white/20;
+    @apply bg-black/10 dark:bg-black/50;
+    @apply border-black/20 dark:border-white/20;
   }
 
   .markdown-alert-title {
-    display: none;
+    display: none !important;
   }
   
   .markdown-alert p:first-of-type:has(> strong:only-child),
   .markdown-alert p:first-of-type:has(> em:only-child) {
-    @apply block mb-3 text-xl tracking-wide font-display italic text-primary border-b border-border/40 pb-2;
+    @apply block mb-3 text-xl font-serif text-primary border-b border-border/40 pb-2;
   }
 }
