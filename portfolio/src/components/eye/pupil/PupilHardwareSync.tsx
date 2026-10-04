@@ -64,8 +64,9 @@ export default function PupilHardwareSync() {
 		ctx.beginPath();
 		ctx.strokeStyle = "#3b82f6"; // blue-500
 		for (let i = 0; i < history.length; i++) {
-			const x = (i / (history.length - 1)) * w;
-			const y = h - ((history[i].right - 1) / 8) * h;
+			const x = history.length > 1 ? (i / (history.length - 1)) * w : 0;
+			const rawY = h - ((history[i].right - 1) / 8) * h;
+			const y = Math.min(Math.max(rawY, 0), h);
 			if (i === 0) ctx.moveTo(x, y);
 			else ctx.lineTo(x, y);
 		}
@@ -75,8 +76,9 @@ export default function PupilHardwareSync() {
 		ctx.beginPath();
 		ctx.strokeStyle = "#10b981"; // emerald-500
 		for (let i = 0; i < history.length; i++) {
-			const x = (i / (history.length - 1)) * w;
-			const y = h - ((history[i].left - 1) / 8) * h;
+			const x = history.length > 1 ? (i / (history.length - 1)) * w : 0;
+			const rawY = h - ((history[i].left - 1) / 8) * h;
+			const y = Math.min(Math.max(rawY, 0), h);
 			if (i === 0) ctx.moveTo(x, y);
 			else ctx.lineTo(x, y);
 		}
@@ -95,19 +97,19 @@ export default function PupilHardwareSync() {
 			dummyRootRef.current.parentNode.removeChild(dummyRootRef.current);
 			dummyRootRef.current = null;
 		}
-		setStatus("disconnected");
 	};
 
 	const toggleConnection = async () => {
 		if (status === "connected" || status === "connecting") {
 			cleanupSandbox();
+			setStatus("disconnected");
 			return;
 		}
 
 		setStatus("connecting");
 		setErrorMsg("");
 		try {
-			// Basic sanitization of IP address to prevent arbitrary script injection
+			// Restrict the input to a simple local IPv4/hostname format before embedding it in the generated code
 			const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$|^neon\.local$/i;
 			if (!ipRegex.test(deviceIp.trim())) {
 				throw new Error("Security: Please provide a valid local IP address or hostname.");
@@ -223,6 +225,7 @@ export default function PupilHardwareSync() {
 				e.message || "Failed to fetch. Device asleep or cross-origin blocked.",
 			);
 			cleanupSandbox();
+			setStatus("disconnected");
 		}
 	};
 
@@ -237,7 +240,7 @@ export default function PupilHardwareSync() {
 					<div className="flex items-center gap-2">
 						<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
 						<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-							Hardware Sync
+							Live Neon pupil data
 						</span>
 					</div>
 					<div className="flex items-center gap-2">
