@@ -60,7 +60,7 @@ export default function BlogFeatures() {
   return (
     <>
       <svg
-        className="fixed top-0 left-0 w-full h-[100dvh] pointer-events-none z-[9998]"
+        className="fixed inset-0 w-full h-full pointer-events-none z-[9998]"
         preserveAspectRatio="none"
       >
         <rect
