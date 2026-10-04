@@ -5,24 +5,10 @@ export default function BlogFeatures() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isReading, setIsReading] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
-  const [pathLength, setPathLength] = useState(0);
-  const rectRef = useRef<SVGRectElement>(null);
 
   useEffect(() => {
     const words = document.body.innerText.split(/\s+/).length;
     const totalReadingTime = Math.ceil(words / 200); // 200 WPM
-
-    if (rectRef.current) {
-      setPathLength(rectRef.current.getTotalLength());
-    }
-
-    const handleResize = () => {
-      if (rectRef.current) {
-        setPathLength(rectRef.current.getTotalLength());
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
 
     const updateScroll = () => {
       // Use documentElement.clientHeight which is more stable than window.innerHeight on iOS Safari
@@ -48,23 +34,21 @@ export default function BlogFeatures() {
       }
     };
 
-    window.addEventListener("scroll", updateScroll);
+    window.addEventListener("scroll", updateScroll, { passive: true });
     updateScroll();
 
     return () => {
       window.removeEventListener("scroll", updateScroll);
-      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
   return (
     <>
       <svg
-        className="fixed inset-0 w-full h-full pointer-events-none z-[9998]"
+        className="fixed top-0 left-0 w-full h-[100dvh] pointer-events-none z-[9998]"
         preserveAspectRatio="none"
       >
         <rect
-          ref={rectRef}
           x="2"
           y="2"
           width="calc(100% - 4px)"
@@ -74,8 +58,9 @@ export default function BlogFeatures() {
           fill="none"
           stroke="var(--color-tertiary)"
           strokeWidth="4"
-          strokeDasharray={pathLength}
-          strokeDashoffset={pathLength - (scrollProgress / 100) * pathLength}
+          pathLength="100"
+          strokeDasharray="100"
+          strokeDashoffset={100 - scrollProgress}
           strokeLinecap="round"
           className="transition-all duration-75 ease-out opacity-80"
         />

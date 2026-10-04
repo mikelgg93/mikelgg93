@@ -63,7 +63,7 @@ export default function PupilReflex() {
 		let currentDiameter = 4.5;
 		let lastHud = 0;
 
-		const watson = (L: number, offset: number) => {
+		const pupilFromLuminance = (L: number, offset: number) => {
 			const d =
 				4.9 - 3.0 * Math.tanh(0.4 * Math.log10(Math.max(0.0001, L)) + 0.4);
 			return Math.min(8, Math.max(2, d + offset));
@@ -75,7 +75,7 @@ export default function PupilReflex() {
 			const isFlashing = now < p.flashUntilTime;
 			const L = isFlashing ? 10000 : p.luminance;
 
-			const targetSteadyD = watson(L, p.baselineOffset);
+			const targetSteadyD = pupilFromLuminance(L, p.baselineOffset);
 			queue.push({ time: now, targetDiameter: targetSteadyD });
 			const targetTime = now - 0.22;
 			while (queue.length && queue[0].time < targetTime - 0.5) queue.shift();

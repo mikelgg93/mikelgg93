@@ -205,23 +205,23 @@
 @layer components {
   .markdown-alert {
     @apply my-8 rounded-2xl p-5 md:p-6 text-[15px] leading-relaxed relative overflow-hidden transition-all duration-500;
-    @apply bg-black/5 dark:bg-black/40;
+    @apply bg-card/30 dark:bg-card/20;
     @apply backdrop-blur-[32px] backdrop-saturate-[1.5];
-    @apply border border-black/10 dark:border-white/10;
+    @apply border border-border/40;
     @apply text-card-foreground;
   }
   
   .markdown-alert:hover {
-    @apply bg-black/10 dark:bg-black/50;
-    @apply border-black/20 dark:border-white/20;
+    @apply bg-card/40 dark:bg-card/30;
+    @apply border-border/60;
   }
 
   .markdown-alert-title {
     display: none !important;
   }
   
-  .markdown-alert p:first-of-type:has(> strong:only-child),
-  .markdown-alert p:first-of-type:has(> em:only-child) {
-    @apply block mb-3 text-xl font-serif text-primary border-b border-border/40 pb-2;
+  .markdown-alert-title + p:has(> strong:only-child),
+  .markdown-alert-title + p:has(> em:only-child) {
+    @apply block mt-0 mb-2 text-[17px] leading-snug font-serif italic text-primary border-b border-border/40 pb-1.5;
   }
 }

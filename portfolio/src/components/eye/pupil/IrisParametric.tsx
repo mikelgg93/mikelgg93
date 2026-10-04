@@ -91,7 +91,7 @@ export default function IrisParametric() {
 				</div>
 				<div className="col-span-2 md:col-span-1 bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Edge efficiency (Ae/A)
+						SCE efficiency (Ae/A)
 					</div>
 					<div className="text-lg font-extrabold text-emerald-500">
 						{(scEff * 100).toFixed(0)}

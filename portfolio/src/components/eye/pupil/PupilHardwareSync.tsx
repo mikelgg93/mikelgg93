@@ -7,7 +7,7 @@ export default function PupilHardwareSync() {
 	const sceneRef = useRef<IrisScene | null>(null);
 	const [deviceIp, setDeviceIp] = useState("192.168.18.39");
 	const [status, setStatus] = useState<
-		"disconnected" | "connecting" | "connected"
+		"disconnected" | "connecting" | "streaming"
 	>("disconnected");
 	const [errorMsg, setErrorMsg] = useState("");
 	const [pupilMm, setPupilMm] = useState<{ left: number; right: number }>({
@@ -100,7 +100,7 @@ export default function PupilHardwareSync() {
 	};
 
 	const toggleConnection = async () => {
-		if (status === "connected" || status === "connecting") {
+		if (status === "streaming" || status === "connecting") {
 			cleanupSandbox();
 			setStatus("disconnected");
 			return;
@@ -124,15 +124,22 @@ export default function PupilHardwareSync() {
 			dummyRootRef.current = dummyRoot;
 
 			// 2. Set up a global callback for the scoped WebSocket interceptor
+			// Each eye arrives as a number or NaN (invalid / missing sample).
+			let receivedFirstSample = false;
 			(window as any)._neonGazeCallback = (pupil_left: number, pupil_right: number) => {
-				if (sceneRef.current) {
-					sceneRef.current.params.pupilRadius = ((pupil_left + pupil_right) / 2) * (0.5 / 12.0);
-					const newData = { left: pupil_left, right: pupil_right };
-					setPupilMm(newData);
-					updateGraph(newData);
+				if (!receivedFirstSample) {
+					receivedFirstSample = true;
+					setStatus("streaming");
 				}
+				const left = Number.isNaN(pupil_left) ? pupil_right : pupil_left;
+				const right = Number.isNaN(pupil_right) ? pupil_left : pupil_right;
+				if (sceneRef.current) {
+					sceneRef.current.params.pupilRadius = ((left + right) / 2) * (0.5 / 12.0);
+				}
+				const newData = { left, right };
+				setPupilMm(newData);
+				updateGraph(newData);
 			};
-			setStatus("connected");
 
 			// 3. Fetch the device's webapp dynamically
 			const fetchOpts = {
@@ -197,13 +204,26 @@ export default function PupilHardwareSync() {
 								}
 								if (expectingRtpPacket) {
 									expectingRtpPacket = false;
-									const payloadOffset = 12;
+									// RTP header: 12 fixed bytes + 4 per CSRC (CC, low nibble of byte 0)
+									// + optional header extension (X bit) of 4 + 4*length bytes.
+									if (buffer.length < 12) return;
+									const csrcCount = buffer[0] & 0x0f;
+									const hasExtension = (buffer[0] & 0x10) !== 0;
+									let payloadOffset = 12 + csrcCount * 4;
+									if (hasExtension && buffer.length >= payloadOffset + 4) {
+										const extWords = (buffer[payloadOffset + 2] << 8) | buffer[payloadOffset + 3];
+										payloadOffset += 4 + extWords * 4;
+									}
 									const payloadSize = buffer.length - payloadOffset;
+									// Eye-state gaze payload (65 bytes): pupil_diameter_left @ 9, pupil_diameter_right @ 37, big-endian float32
 									if (payloadSize >= 65 && window._neonGazeCallback) {
-										const dataView = new DataView(buffer.buffer);
-										const pupil_left = dataView.getFloat32(payloadOffset + 9, false);
-										const pupil_right = dataView.getFloat32(payloadOffset + 37, false);
-										if (pupil_left > 0 && pupil_left < 15) {
+										const dataView = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+										const valid = (v) => Number.isFinite(v) && v > 0 && v < 15;
+										const rawLeft = dataView.getFloat32(payloadOffset + 9, false);
+										const rawRight = dataView.getFloat32(payloadOffset + 37, false);
+										const pupil_left = valid(rawLeft) ? rawLeft : NaN;
+										const pupil_right = valid(rawRight) ? rawRight : NaN;
+										if (!Number.isNaN(pupil_left) || !Number.isNaN(pupil_right)) {
 											window._neonGazeCallback(pupil_left, pupil_right);
 										}
 									}
@@ -245,7 +265,7 @@ export default function PupilHardwareSync() {
 					</div>
 					<div className="flex items-center gap-2">
 						<div
-							className={`w-2 h-2 rounded-full ${status === "connected" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
+							className={`w-2 h-2 rounded-full ${status === "streaming" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
 						/>
 						{isSettingsOpen ? (
 							<ChevronUp className="w-3 h-3 text-muted-foreground" />
@@ -267,9 +287,9 @@ export default function PupilHardwareSync() {
 						<button
 							type="button"
 							onClick={toggleConnection}
-							className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors w-full ${status === "connected" ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+							className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors w-full ${status === "streaming" ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
 						>
-							{status === "connected"
+							{status === "streaming"
 								? "Disconnect"
 								: status === "connecting"
 									? "Connecting..."
