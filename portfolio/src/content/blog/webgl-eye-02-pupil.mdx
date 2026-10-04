@@ -64,12 +64,13 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
 
 ## Calculating light
 
-Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect of the first kind (SCE-I)** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows more slowly than the geometric area. This happens because the retina is not a flat, uniform sensor array; its cones act like tiny fiber optics pointed toward the pupil center. The Stiles-Crawford effect is primarily associated with cone-mediated vision, so its influence is much less relevant under fully scotopic, rod-dominated conditions.
+Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect of the first kind (SCE-I)** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows more slowly than the geometric area. This happens because the retina is not a flat, uniform sensor array; its cones act like tiny fiber optics pointed toward the pupil center. The Stiles-Crawford effect (Stiles & Crawford, 1933) is primarily associated with cone-mediated vision, so its influence is much less relevant under fully scotopic, rod-dominated conditions.
 
 Beyond just letting light in, the pupil acts as the eye's aperture for sharpness. The optical quality of the eye is governed by its Point Spread Function (PSF) and Modulation Transfer Function (MTF), both of which are tightly coupled to pupil diameter. If the pupil is too small, diffraction blurs the image; if it is too large, peripheral optical aberrations from the cornea and lens ruin the focus. The resting pupil size of around 3 to 4 mm naturally optimizes visual sharpness by finding the perfect balance between diffraction and aberrations.
 
 > [!NOTE] 
 > **Does iris color affect how much light enters?** 
+>
 > Yes. Iris pigmentation affects intraocular light scatter. Dark brown irises are packed with light-absorbing melanin. Lighter irises (like blue, green, or hazel) have less melanin, which can allow more light to scatter through iris tissue. This can contribute to increased glare and stray light, which is why people with light-colored eyes are generally more sensitive to bright sunlight.
 
 How big should the pupil be at a given brightness? A useful rule of thumb often derived from Moon and Spencer (1944) gives a resting, binocular steady-state pupil diameter following a smooth curve of scene brightness. (For this visualisation we use a simplified luminance-only approximation inspired by established pupil-size models. Watson & Yellott's (2012) unified model additionally accounts for factors such as age, field size and binocular viewing. Remember that these describe *steady-state* adaptation, not the transient reflex).
@@ -85,7 +86,7 @@ function pupilDiameter(L) {                 // L = scene luminance (cd/m²)
 }
 ```
 
-In the model below you set the pupil size and the scene brightness by hand and read off the light reaching the retina: the geometric pupil area, the photopic retinal illuminance in trolands, and how much the Stiles-Crawford falloff trims it once the pupil is wide.
+In the model below you set the pupil size and the scene brightness by hand and read off the light reaching the retina: the geometric pupil area, the photopic retinal illuminance in trolands (Troland, 1917), and how much the Stiles-Crawford falloff trims it once the pupil is wide.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -147,7 +148,7 @@ While the light reflex is the strongest driver of the pupil, it is not the only 
 | **Parasympathetic** ("Rest & Digest") | Sphincter | **Constricts** (Miosis) | Bright light, focusing on near objects, relaxation | Opiates bind mu-opioid receptors on GABAergic interneurons, causing pinpoint pupils. |
 | **Sympathetic** ("Fight or Flight") | Dilator | **Dilates** (Mydriasis) | Darkness, stress, arousal, cognitive load, adrenaline | Stimulants cause massive dilation. |
 
-Because the dilator muscle is wired directly to the sympathetic nervous system, your pupils expand slightly when you are stressed, aroused, or thinking hard. If you give someone a complex math problem to solve in their head, their pupils will dilate, peaking at the moment of highest cognitive load, and shrink back down the moment they solve it.
+Because the dilator muscle is wired directly to the sympathetic nervous system, your pupils expand slightly when you are stressed, aroused, or thinking hard. If you give someone a complex math problem to solve in their head, their pupils will dilate, peaking at the moment of highest cognitive load, and shrink back down the moment they solve it (Beatty, 1982).
 
 UI designers, psychologists, and researchers use eye trackers to measure this invisible "cognitive load". While some have proposed using pupillometry to monitor **workplace fatigue** or **cognitive overload** in high-stakes environments like surgical theaters or air traffic control, the reality is incredibly messy. The pupil light reflex is overwhelmingly stronger than cognitive responses. Separating tiny, task-evoked dilations (often just a fraction of a millimeter) from the massive fluctuations caused by ambient lighting changes, blinks, and screen glare in a real-world environment is exceptionally difficult. In controlled laboratory settings, however, by keeping lighting strictly constant and establishing a rigorous baseline, researchers can still reliably measure these subtle markers of mental effort. Despite these hurdles, advances in machine learning and robust signal processing are opening exciting new avenues, giving researchers optimism that reliable real-world cognitive monitoring may soon be within reach.
 
@@ -169,16 +170,13 @@ Here is everything together. Slide the scene brightness and watch the reflex fir
 With the cornea shaped and the pupil now opening and closing on its own, our eye controls both how light is focused and how much of it gets in.
 
 
-## Live Neon pupil data
-
-> [!WARNING]
-> This experimental browser integration depends on browser networking policies and reverse-engineers the current Companion web application implementation by intercepting its internal WebSocket traffic. It is *not* using the official API (which is recommended for production) and may stop working after browser or Companion updates.
+## Real-Time Pupil Size with Neon
 
 Since we are talking about pupils, why just simulate them when you can drive the 3D model with your actual eyes? If you have access to a pair of [Pupil Labs Neon](https://pupil-labs.com/products/neon) eye-tracking glasses, you can hook them up directly to this blog post!
 
 Since the Neon Companion app bundles the monitor app, we can fetch it and embed it into a hidden DOM element. By quietly reading the gaze payload from its data stream, we have everything we need without complex integrations.
 
-By analyzing the official API, we know the raw packets pack the gaze data as a C-struct. The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload, so we can simply read them and plot them. Note that the 200 Hz graph is an assumption/target rather than guaranteed browser delivery, and the real-time framerate depends on the Companion device and environment.
+By analyzing the payload, we know the raw packets pack the gaze data as a C-struct. The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload, so we can simply read them and plot them. Note that the 200 Hz graph is an assumption/target rather than guaranteed browser delivery, and the real-time framerate depends on the Companion device and environment.
 
 Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click Connect. The browser will intercept the binary stream, parse the structs on the fly, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
 

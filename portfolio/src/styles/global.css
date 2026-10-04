@@ -210,4 +210,9 @@
   .markdown-alert-title {
     display: none;
   }
+  
+  .markdown-alert p:first-of-type:has(> strong:only-child),
+  .markdown-alert p:first-of-type:has(> em:only-child) {
+    @apply block mb-3 text-lg font-serif italic text-primary border-b border-border/40 pb-2;
+  }
 }
