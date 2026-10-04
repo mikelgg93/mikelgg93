@@ -36,6 +36,13 @@ const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
     class={`prose dark:prose-invert prose-h1:font-serif prose-h2:font-serif prose-h3:font-serif prose-h4:font-serif mx-auto max-w-3xl px-4 sm:px-6 relative z-20 ${frontmatter.image ? "-mt-24 pb-24" : "py-24"}`}
   >
     <BlogToc />
+    
+    <div class="md:hidden flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 px-4 py-3 rounded-xl mb-8 text-sm font-medium text-center">
+      {Astro.url.pathname.includes('/es/') 
+        ? "Para una mejor experiencia, recomendamos ver estos artículos interactivos en una computadora de escritorio."
+        : "For the best experience, we recommend viewing these interactive articles on a desktop computer."}
+    </div>
+
     <div class="mb-4">
       <PretextText
         client:load
