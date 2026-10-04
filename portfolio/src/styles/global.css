@@ -209,13 +209,11 @@
     @apply backdrop-blur-[32px] backdrop-saturate-[1.5];
     @apply border border-white/40 dark:border-white/10;
     @apply text-card-foreground;
-    @apply shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_8px_32px_0_rgba(0,0,0,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_32px_0_rgba(0,0,0,0.3)];
   }
   
   .markdown-alert:hover {
     @apply from-white/50 to-white/20 dark:from-white/15 dark:to-white/10;
     @apply border-white/60 dark:border-white/20;
-    @apply shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_12px_40px_0_rgba(0,0,0,0.12)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_12px_40px_0_rgba(0,0,0,0.4)];
   }
 
   .markdown-alert-title {
@@ -224,6 +222,6 @@
   
   .markdown-alert p:first-of-type:has(> strong:only-child),
   .markdown-alert p:first-of-type:has(> em:only-child) {
-    @apply block mb-3 text-lg font-serif italic text-primary border-b border-border/40 pb-2;
+    @apply block mb-3 text-xl tracking-wide font-display italic text-primary border-b border-border/40 pb-2;
   }
 }
