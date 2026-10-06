@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { disposeThree } from "../disposeThree";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { observeThreeResize } from "../threeResize";
+import { conicAperture, conicSag } from "./conic";
 
 function CorneaMasterInner() {
 	const mountRef = useRef<HTMLDivElement>(null);
@@ -17,8 +19,8 @@ function CorneaMasterInner() {
 	const geoRef = useRef<{
 		mesh: THREE.Mesh;
 		postMesh: THREE.Mesh;
-		wire: THREE.Mesh;
-		postWire: THREE.Mesh;
+		wire: THREE.LineSegments;
+		postWire: THREE.LineSegments;
 		rays: THREE.Group;
 	} | null>(null);
 
@@ -167,12 +169,11 @@ function CorneaMasterInner() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			orbit.dispose();
+			disposeThree(scene);
+			geoRef.current = null;
+			sceneRef.current = null;
 			renderer.dispose();
-			geometry.dispose();
-			meshMat.dispose();
-			postMat.dispose();
-			wireMat.dispose();
-			postWireMat.dispose();
 		};
 	}, []);
 
@@ -182,7 +183,7 @@ function CorneaMasterInner() {
 	useEffect(() => {
 		if (!geoRef.current) return;
 
-		const { mesh, postMesh, rays } = geoRef.current;
+		const { mesh, postMesh, wire, postWire, rays } = geoRef.current;
 
 		const scale = 1.0;
 		const Rx = k1 * scale;
@@ -190,7 +191,7 @@ function CorneaMasterInner() {
 		const cx = 1 / Rx;
 		const cy = 1 / Ry;
 		const k = asphericity;
-		const maxR = 5.0;
+		const maxR = conicAperture(5, Rx, Ry, k);
 
 		const radialSegments = 64;
 		const angularSegments = 64;
@@ -207,20 +208,7 @@ function CorneaMasterInner() {
 				const x = r * Math.cos(theta);
 				const y = r * Math.sin(theta);
 
-				let z = 0;
-				if (r > 0) {
-					const denom =
-						1 + Math.sqrt(1 - (1 + k) * (cx * cx * x * x + cy * cy * y * y));
-					if (
-						!isNaN(denom) &&
-						denom !== 0 &&
-						1 - (1 + k) * (cx * cx * x * x + cy * cy * y * y) >= 0
-					) {
-						z = (cx * x * x + cy * y * y) / denom;
-					} else {
-						z = vertices[vertices.length - 3] || 0;
-					}
-				}
+				const z = conicSag(x, y, Rx, Ry, k);
 
 				vertices.push(x, y, z);
 			}
@@ -249,24 +237,24 @@ function CorneaMasterInner() {
 		postMesh.geometry = geometry;
 
 		// Update wireframes
-		mesh.children[0].geometry = new THREE.WireframeGeometry(geometry);
-		postMesh.children[0].geometry = new THREE.WireframeGeometry(geometry);
+		wire.geometry.dispose();
+		postWire.geometry.dispose();
+		wire.geometry = new THREE.WireframeGeometry(geometry);
+		postWire.geometry = new THREE.WireframeGeometry(geometry);
 
 		// Update CCT offset
 		postMesh.position.x = thickness;
 
 		oldGeo.dispose();
 
-		while (rays.children.length > 0) {
-			rays.remove(rays.children[0]);
-		}
+		disposeThree(rays);
+		rays.clear();
 
 		// Draw Major and Minor Axes on the Cornea
 		// Local X-axis meridian (World Z after Math.PI/2 rotation)
 		const ptsX = [];
 		for (let r = -maxR; r <= maxR; r += 0.1) {
-			const denom = 1 + Math.sqrt(1 - (1 + k) * cx * cx * r * r);
-			const z = denom > 0 && !isNaN(denom) ? (cx * r * r) / denom : 0;
+			const z = conicSag(r, 0, Rx, Ry, k);
 			ptsX.push(new THREE.Vector3(z, 0, -r)); // World coordinates
 		}
 		const lineXGeo = new THREE.BufferGeometry().setFromPoints(ptsX);
@@ -280,8 +268,7 @@ function CorneaMasterInner() {
 		// Local Y-axis meridian (World Y after Math.PI/2 rotation)
 		const ptsY = [];
 		for (let r = -maxR; r <= maxR; r += 0.1) {
-			const denom = 1 + Math.sqrt(1 - (1 + k) * cy * cy * r * r);
-			const z = denom > 0 && !isNaN(denom) ? (cy * r * r) / denom : 0;
+			const z = conicSag(0, r, Rx, Ry, k);
 			ptsY.push(new THREE.Vector3(z, r, 0)); // World coordinates
 		}
 		const lineYGeo = new THREE.BufferGeometry().setFromPoints(ptsY);
@@ -292,9 +279,9 @@ function CorneaMasterInner() {
 		}); // Red
 		rays.add(new THREE.Line(lineYGeo, lineYMat));
 
-		// Ray tracing - Sturm's Conoid (Two orthogonal planes)
+		// Schematic rays: heuristic focal distances, not a Snell-law ray trace.
 		const numRays = 7;
-		const spread = 8.0;
+		const spread = Math.min(8, 2 * maxR);
 
 		// 1. Vertical fan (Red rays, Y-axis)
 		for (let i = 0; i < numRays; i++) {
@@ -391,10 +378,10 @@ function CorneaMasterInner() {
 		}
 	}, [k1, k2, asphericity, thickness]);
 
-	// Calculate directional blur for simulated vision
+	// Illustrative blur: visual parameters, not a retinal PSF or acuity prediction.
 	const idealK = 7.8;
 	const idealQ = -0.26;
-	const idealThickness = 0.55; // 550 microns is normal CCT
+	const idealThickness = 0.55; // reference thickness for this visualisation
 
 	const errorK1 = Math.abs(k1 - idealK);
 	const errorK2 = Math.abs(k2 - idealK);
@@ -403,8 +390,7 @@ function CorneaMasterInner() {
 
 	// Astigmatism causes directional blur (K1 = X-axis, K2 = Y-axis).
 	// Aberration causes a soft glow.
-	// Thickness deviations cause a slight myopic/hyperopic spherical shift (uniform blur).
-	// Multiplied by 60 to make the microscopic effect visually apparent in the UI.
+	// Thickness changes add uniform blur for visibility; this is not an optical calculation.
 	const blurX = errorK1 * 2.5 + aberrationError * 5.0 + thicknessError * 60.0;
 	const blurY = errorK2 * 2.5 + aberrationError * 5.0 + thicknessError * 60.0;
 
@@ -481,10 +467,10 @@ function CorneaMasterInner() {
 				className="absolute inset-0 cursor-grab active:cursor-grabbing"
 			/>
 
-			{/* Simulated Vision Overlay */}
+			{/* Illustrative blur Overlay */}
 			<div className="absolute bottom-4 left-4 z-20 flex flex-col items-center bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg pointer-events-none">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/50 pb-1 w-full text-center mb-2">
-					Simulated Vision
+					Illustrative blur
 				</span>
 				<div className="bg-white p-2 rounded flex items-center justify-center w-16 h-16 relative overflow-hidden">
 					<svg width="0" height="0" className="absolute">
@@ -540,14 +526,21 @@ function CorneaMasterInner() {
 				{sidebarOpen ? "Hide" : "Controls"}
 			</button>
 
-			{/* Control Panel */}
+			{/* Control Panel: radii are independently adjustable, so neither is always flatter. */}
 			<div
 				className={`absolute top-12 right-4 w-[220px] p-3 border border-border/10 hover:border-border/30 bg-background/30 hover:bg-background/80 backdrop-blur-md rounded-xl shadow-sm hover:shadow-lg flex flex-col gap-3 text-xs z-10 transition-all duration-300 origin-top-right ${sidebarOpen ? "scale-100 opacity-100 pointer-events-auto" : "scale-95 opacity-0 pointer-events-none"}`}
 			>
+				<p className="text-[10px] text-muted-foreground">
+					D: keratometric power (index 1.3375).
+					{conicAperture(5, k1, k2, asphericity) < 5 &&
+						` Surface radius limited to ${conicAperture(5, k1, k2, asphericity).toFixed(2)} mm for this conic.`}
+				</p>
 				<div>
 					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>K1 (Flat)</span>
-						<span className="text-muted-foreground">{k1.toFixed(1)} mm</span>
+						<span>Radius X</span>
+						<span className="text-muted-foreground">
+							{k1.toFixed(1)} mm / {(337.5 / k1).toFixed(1)} D
+						</span>
 					</label>
 					<input
 						type="range"
@@ -561,8 +554,10 @@ function CorneaMasterInner() {
 				</div>
 				<div>
 					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>K2 (Steep)</span>
-						<span className="text-muted-foreground">{k2.toFixed(1)} mm</span>
+						<span>Radius Y</span>
+						<span className="text-muted-foreground">
+							{k2.toFixed(1)} mm / {(337.5 / k2).toFixed(1)} D
+						</span>
 					</label>
 					<input
 						type="range"

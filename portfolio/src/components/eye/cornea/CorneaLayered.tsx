@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { disposeThree } from "../disposeThree";
 import { observeThreeResize } from "../threeResize";
 
-// Real thickness (µm) is the single source of truth. Slab heights below are
-// drawn to true relative scale, so the stroma really does dwarf the rest.
+// Illustrative layer thicknesses (µm), totaling 540 µm. The collapsed slabs
+// preserve relative thickness, with a visibility floor for the thinnest layer.
 const LAYERS = [
 	{
 		id: "epi",
@@ -20,7 +21,7 @@ const LAYERS = [
 		um: 10,
 		color: 0x34d399,
 		detail: "solid",
-		desc: "Tough, acellular collagen anchor. Does not regenerate once cut.",
+		desc: "Acellular collagen layer beneath the epithelium; does not regenerate like the epithelium.",
 	},
 	{
 		id: "stroma",
@@ -28,7 +29,7 @@ const LAYERS = [
 		um: 452,
 		color: 0x94a3b8,
 		detail: "lamellae",
-		desc: "90% of thickness. Hundreds of collagen sheets, each rotated against the next.",
+		desc: "Most of the thickness. Interwoven collagen lamellae; orientations are schematic here.",
 	},
 	{
 		id: "dua",
@@ -254,7 +255,7 @@ export default function CorneaLayered() {
 				const explodedY = (2.5 - index) * gap;
 				group.position.y = baseY * (1 - explodeT) + explodedY * explodeT;
 				group.scale.y = 1 - explodeT + (DISPLAY_H / trueH) * explodeT;
-				const isActive = activeRef.current === LAYERS[index].id;
+				const isActive = activeRef.current === LAYERS[index]!.id;
 				const mat = slab.material as THREE.MeshStandardMaterial;
 				const dim = activeRef.current && !isActive;
 				mat.opacity = solid ? (dim ? 0.25 : 1.0) : dim ? 0.12 : 0.35;
@@ -293,6 +294,8 @@ export default function CorneaLayered() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			controls.dispose();
+			disposeThree(scene);
 			renderer.dispose();
 		};
 	}, []);
@@ -301,7 +304,7 @@ export default function CorneaLayered() {
 		<div className="relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
 			<div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1 bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[260px]">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
-					Corneal Layers (to scale)
+					Corneal layers (model)
 				</span>
 				<div className="flex flex-col gap-1 w-full text-xs">
 					{LAYERS.map((l) => (

@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { disposeThree } from "../disposeThree";
 import { observeThreeResize } from "../threeResize";
 
-// One shared shape drives both the 3D topography and the 2D ring reflection,
-// so the rings crowd together exactly where the 3D surface steepens.
+// A shared curvature proxy drives the colors and ring spacing.
+// This is a visual approximation, not a geometrical reflection simulation.
 // Mild astigmatism (steeper along Y) plus an inferior cone.
 const CY = 1 / 6.6; // steep meridian curvature (1/mm)
 const CX = 1 / 7.8; // flat meridian curvature (1/mm)
@@ -15,8 +16,8 @@ const CONE_R = 2.2;
 // Local corneal power (relative units) at a point, blending the astigmatic
 // base with the cone. Higher = steeper.
 function localPower(x: number, y: number) {
-	const r2 = x * x + y * y || 1;
-	const base = (CX * (x * x)) / r2 + (CY * (y * y)) / r2;
+	const r2 = x * x + y * y;
+	const base = r2 === 0 ? (CX + CY) / 2 : (CX * x * x + CY * y * y) / r2;
 	const dx = x - CONE_X;
 	const dy = y - CONE_Y;
 	const dist = Math.sqrt(dx * dx + dy * dy);
@@ -52,7 +53,7 @@ function drawPlacido(canvas: HTMLCanvasElement) {
 
 	for (let ring = 1; ring <= 9; ring++) {
 		const baseR = (ring / 9) * (S / 2 - 6);
-		const rhoMm = (ring / 9) * 4.5; // mm on the cornea this ring reflects from
+		const rhoMm = (ring / 9) * 4.5; // model sampling radius (mm)
 		ctx.beginPath();
 		for (let a = 0; a <= Math.PI * 2 + 0.05; a += 0.05) {
 			const x = rhoMm * Math.cos(a);
@@ -214,10 +215,9 @@ export default function CorneaPlacido() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			orbit.dispose();
+			disposeThree(scene);
 			renderer.dispose();
-			geometry.dispose();
-			corneaMat.dispose();
-			wireMat.dispose();
 		};
 	}, []);
 
@@ -235,15 +235,14 @@ export default function CorneaPlacido() {
 					Steeper = redder
 				</div>
 				<div className="text-[10px] text-muted-foreground max-w-[200px] mt-1">
-					The rings on the right reflect off this same surface. They crowd
-					together where the cornea steepens (red), just like a real
-					topographer.
+					The rings approximate curvature changes. Red marks steeper regions in
+					this demo’s color key; no reflected rays are traced.
 				</div>
 			</div>
 
 			<div className="absolute top-4 right-4 z-20 flex flex-col items-center bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg pointer-events-none">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/50 pb-1 w-full text-center mb-2">
-					Placido Reflex
+					Placido approximation
 				</span>
 				<div className="relative bg-black rounded-full overflow-hidden border border-border/50 shadow-inner w-[130px] h-[130px]">
 					<canvas

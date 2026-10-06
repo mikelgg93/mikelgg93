@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { disposeThree } from "../disposeThree";
 import { observeThreeResize } from "../threeResize";
+import { conicAperture, conicSag } from "./conic";
 
 export default function CorneaAstigmatism() {
 	const mountRef = useRef<HTMLDivElement>(null);
@@ -40,7 +42,7 @@ export default function CorneaAstigmatism() {
 		const cx = 1 / Rx;
 		const cy = 1 / Ry;
 		const k = -0.26;
-		const maxR = 5.0;
+		const maxR = conicAperture(5, Rx, Ry, k);
 		const radialSegments = 64;
 		const angularSegments = 96;
 
@@ -59,17 +61,10 @@ export default function CorneaAstigmatism() {
 				const x = r * Math.cos(theta);
 				const y = r * Math.sin(theta);
 
-				let z = 0;
-				if (r > 0) {
-					const root = 1 - (1 + k) * (cx * cx * x * x + cy * cy * y * y);
-					z =
-						root >= 0
-							? (cx * x * x + cy * y * y) / (1 + Math.sqrt(root))
-							: vertices[vertices.length - 3] || 0;
-				}
+				const z = conicSag(x, y, Rx, Ry, k);
 				vertices.push(x, y, z);
 
-				// True meridional curvature at this azimuth (Euler): blue = flat, red = steep.
+				// Apex normal curvature by azimuth (Euler), used as a visual color key.
 				const localC = cx * Math.cos(theta) ** 2 + cy * Math.sin(theta) ** 2;
 				const t = (localC - minC) / (maxC - minC);
 				color.setHSL(0.66 * (1 - t), 0.95, 0.5);
@@ -161,9 +156,9 @@ export default function CorneaAstigmatism() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			controls.dispose();
+			disposeThree(scene);
 			renderer.dispose();
-			geometry.dispose();
-			material.dispose();
 		};
 	}, []);
 

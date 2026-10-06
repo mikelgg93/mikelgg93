@@ -33,7 +33,7 @@ export default function PupilStep2() {
 		const queue: { time: number; targetD: number }[] = [];
 		let currentD = 6.0;
 
-		const calcWatson = (L: number) => {
+		const pupilFromLuminance = (L: number) => {
 			const logL = Math.log10(Math.max(0.0001, L));
 			return Math.min(8, Math.max(2, 4.9 - 3.0 * Math.tanh(0.4 * logL + 0.4)));
 		};
@@ -41,29 +41,30 @@ export default function PupilStep2() {
 		s.setOnFrame((dt) => {
 			const now = performance.now() / 1000;
 			const p = paramsRef.current;
-			const targetD = calcWatson(p.targetLuminance);
+			const targetD = pupilFromLuminance(p.targetLuminance);
 
 			const delay = p.latencyActive ? 0.22 : 0.0;
 			queue.push({ time: now, targetD });
-			while (queue.length && queue[0].time < now - 1.0) queue.shift();
-			let delayedTargetD = targetD;
+			while (queue.length && queue[0]!.time < now - 1.0) queue.shift();
+			let delayedTargetD = currentD;
 			const targetTime = now - delay;
 			for (let i = queue.length - 1; i >= 0; i--) {
-				if (queue[i].time <= targetTime) {
-					delayedTargetD = queue[i].targetD;
+				if (queue[i]!.time <= targetTime) {
+					delayedTargetD = queue[i]!.targetD;
 					break;
 				}
 			}
 
 			const diff = delayedTargetD - currentD;
 			if (Math.abs(diff) > 0.001) {
+				// Simulation time constants (seconds), not physiological constants.
 				const tau = diff < 0 ? 0.12 : 0.65;
-				currentD += (diff / tau) * dt;
+				currentD += diff * (1 - Math.exp(-dt / tau));
 			}
 			s.params.pupilRadius = currentD * (0.5 / 12.0);
 
 			history.push({ targetD, actualD: currentD, time: now });
-			while (history.length > 300) history.shift();
+			while (history.length && history[0]!.time < now - 4) history.shift();
 
 			const canvas = canvasRef.current;
 			const ctx = canvas?.getContext("2d");
@@ -78,7 +79,7 @@ export default function PupilStep2() {
 					ctx.stroke();
 				}
 				if (history.length > 1) {
-					const t0 = history[0].time;
+					const t0 = now - 4;
 					const win = 4.0;
 					const plot = (
 						key: "targetD" | "actualD",

@@ -1,31 +1,35 @@
+import { Html, OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Html } from "@react-three/drei";
+
+import { disposeThree } from "../disposeThree";
 
 function PathwayScene() {
 	const { scene } = useThree();
 	const uniformsListRef = useRef<any[]>([]);
 
 	useEffect(() => {
+		const group = new THREE.Group();
+		scene.add(group);
 		const createNode = (pos: THREE.Vector3, color: number, size = 0.15) => {
 			const geo = new THREE.SphereGeometry(size, 32, 32);
 			const mat = new THREE.MeshBasicMaterial({ color });
 			const mesh = new THREE.Mesh(geo, mat);
 			mesh.position.copy(pos);
-			
+
 			const glowGeo = new THREE.SphereGeometry(size * 1.5, 32, 32);
 			const glowMat = new THREE.MeshBasicMaterial({
 				color,
 				transparent: true,
 				opacity: 0.25,
 				blending: THREE.AdditiveBlending,
-				depthWrite: false
+				depthWrite: false,
 			});
 			const glowMesh = new THREE.Mesh(glowGeo, glowMat);
 			mesh.add(glowMesh);
-			
-			scene.add(mesh);
+
+			group.add(mesh);
 			return mesh;
 		};
 
@@ -67,7 +71,7 @@ function PathwayScene() {
 				`,
 			});
 			const mesh = new THREE.Mesh(geo, mat);
-			scene.add(mesh);
+			group.add(mesh);
 			return mesh;
 		};
 
@@ -98,26 +102,90 @@ function PathwayScene() {
 		createNode(ganglionL, colNode);
 		createNode(ganglionR, colNode);
 
-		createTract([eyeL, new THREE.Vector3(-0.5, 0, 2.5), chiasm, new THREE.Vector3(0.4, 0, 1), pretectalR], colSensory, 0.04, 0.0);
-		createTract([eyeL, new THREE.Vector3(-1.5, 0, 3), new THREE.Vector3(-0.8, 0, 1.5), pretectalL], colSensory, 0.04, 0.0);
-		createTract([eyeR, new THREE.Vector3(0.5, 0, 2.5), chiasm, new THREE.Vector3(-0.4, 0, 1), pretectalL], colSensory, 0.04, 0.0);
-		createTract([eyeR, new THREE.Vector3(1.5, 0, 3), new THREE.Vector3(0.8, 0, 1.5), pretectalR], colSensory, 0.04, 0.0);
+		createTract(
+			[
+				eyeL,
+				new THREE.Vector3(-0.5, 0, 2.5),
+				chiasm,
+				new THREE.Vector3(0.4, 0, 1),
+				pretectalR,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
+		createTract(
+			[
+				eyeL,
+				new THREE.Vector3(-1.5, 0, 3),
+				new THREE.Vector3(-0.8, 0, 1.5),
+				pretectalL,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
+		createTract(
+			[
+				eyeR,
+				new THREE.Vector3(0.5, 0, 2.5),
+				chiasm,
+				new THREE.Vector3(-0.4, 0, 1),
+				pretectalL,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
+		createTract(
+			[
+				eyeR,
+				new THREE.Vector3(1.5, 0, 3),
+				new THREE.Vector3(0.8, 0, 1.5),
+				pretectalR,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
 
 		const pcL = new THREE.Vector3(-0.2, 0.2, -0.1);
 		const pcR = new THREE.Vector3(0.2, 0.2, -0.1);
 
-		createTract([pretectalL, new THREE.Vector3(-0.6, 0.15, -0.2), ewL], colInter, 0.04, -0.3);
+		createTract(
+			[pretectalL, new THREE.Vector3(-0.6, 0.15, -0.2), ewL],
+			colInter,
+			0.04,
+			-0.3,
+		);
 		createTract([pretectalL, pcL, pcR, ewR], colInter, 0.04, -0.3);
-		createTract([pretectalR, new THREE.Vector3(0.6, 0.15, -0.2), ewR], colInter, 0.04, -0.3);
+		createTract(
+			[pretectalR, new THREE.Vector3(0.6, 0.15, -0.2), ewR],
+			colInter,
+			0.04,
+			-0.3,
+		);
 		createTract([pretectalR, pcR, pcL, ewL], colInter, 0.04, -0.3);
 
-		createTract([ewL, new THREE.Vector3(-1.0, 0, 1.5), ganglionL], colMotor, 0.04, -0.6);
-		createTract([ewR, new THREE.Vector3(1.0, 0, 1.5), ganglionR], colMotor, 0.04, -0.6);
+		createTract(
+			[ewL, new THREE.Vector3(-1.0, 0, 1.5), ganglionL],
+			colMotor,
+			0.04,
+			-0.6,
+		);
+		createTract(
+			[ewR, new THREE.Vector3(1.0, 0, 1.5), ganglionR],
+			colMotor,
+			0.04,
+			-0.6,
+		);
 
 		createTract([ganglionL, eyeL], colMotor, 0.04, -0.8);
 		createTract([ganglionR, eyeR], colMotor, 0.04, -0.8);
 
 		return () => {
+			scene.remove(group);
+			disposeThree(group);
 			uniformsListRef.current = [];
 		};
 	}, [scene]);
@@ -179,15 +247,19 @@ export default function NervePathway() {
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-emerald-500"></div>
 					<span className="text-xs text-slate-300 font-medium">
-						Motor (CN III to Iris)
+						Motor (CN III → ganglion → short ciliary nerves)
 					</span>
 				</div>
 			</div>
-			
+
 			<div className="w-full h-full cursor-grab active:cursor-grabbing">
 				<Canvas camera={{ position: [0, 8, 10], fov: 35 }}>
 					<PathwayScene />
-					<OrbitControls enableDamping dampingFactor={0.05} target={[0, 0, 1.5]} />
+					<OrbitControls
+						enableDamping
+						dampingFactor={0.05}
+						target={[0, 0, 1.5]}
+					/>
 				</Canvas>
 			</div>
 		</div>

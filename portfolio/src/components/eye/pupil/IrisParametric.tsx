@@ -15,6 +15,7 @@ export default function IrisParametric() {
 
 	const L = 10 ** logL;
 	const area = (Math.PI * diameter * diameter) / 4;
+	// Simplified centered SCE weighting exp(-rho*r²), with rho in mm⁻².
 	const rho = 0.085;
 	const effArea =
 		(Math.PI / rho) * (1 - Math.exp((-rho * diameter * diameter) / 4));
@@ -80,7 +81,9 @@ export default function IrisParametric() {
 				</div>
 				<div className="bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Retinal illuminance
+						{stilesCrawford
+							? "SCE-weighted illuminance"
+							: "Retinal illuminance"}
 					</div>
 					<div className="text-lg font-extrabold text-amber-500">
 						{fmt(stilesCrawford ? effTrolands : trolands)}{" "}
@@ -91,7 +94,7 @@ export default function IrisParametric() {
 				</div>
 				<div className="col-span-2 md:col-span-1 bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						SCE efficiency (Ae/A)
+						SCE-weighted area / area
 					</div>
 					<div className="text-lg font-extrabold text-emerald-500">
 						{(scEff * 100).toFixed(0)}
@@ -145,7 +148,7 @@ export default function IrisParametric() {
 					</button>
 					<select
 						value={pigment}
-						onChange={(e) => setPigment(parseInt(e.target.value))}
+						onChange={(e) => setPigment(parseInt(e.target.value, 10))}
 						className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
 					>
 						<option value={0}>Brown</option>

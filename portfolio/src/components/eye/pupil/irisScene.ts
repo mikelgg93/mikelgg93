@@ -232,8 +232,10 @@ export function createIrisScene(
 	mount.appendChild(renderer.domElement);
 
 	const pmrem = new THREE.PMREMGenerator(renderer);
-	const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-	scene.environment = envTex;
+	const environment = new RoomEnvironment();
+	const environmentTarget = pmrem.fromScene(environment, 0.04);
+	environment.dispose();
+	scene.environment = environmentTarget.texture;
 
 	const orbit = new OrbitControls(camera, renderer.domElement);
 	orbit.enableDamping = true;
@@ -302,11 +304,11 @@ export function createIrisScene(
 
 		if (onFrame) onFrame(dt, elapsed);
 
-		irisMat.uniforms.uTime.value = elapsed;
-		irisMat.uniforms.uPupilRadius.value = params.pupilRadius;
-		irisMat.uniforms.uPigmentation.value = params.pigmentation;
-		irisMat.uniforms.uShowMuscles.value = params.showMuscles;
-		irisMat.uniforms.uStilesCrawford.value = params.stilesCrawford;
+		irisMat.uniforms.uTime!.value = elapsed;
+		irisMat.uniforms.uPupilRadius!.value = params.pupilRadius;
+		irisMat.uniforms.uPigmentation!.value = params.pigmentation;
+		irisMat.uniforms.uShowMuscles!.value = params.showMuscles;
+		irisMat.uniforms.uStilesCrawford!.value = params.stilesCrawford;
 
 		orbit.update();
 		renderer.render(scene, camera);
@@ -350,13 +352,14 @@ export function createIrisScene(
 		dispose: () => {
 			cancelAnimationFrame(raf);
 			resizeObserver.disconnect();
+			orbit.dispose();
 			if (renderer.domElement.parentNode)
 				renderer.domElement.parentNode.removeChild(renderer.domElement);
 			irisGeo.dispose();
 			irisMat.dispose();
 			corneaGeo.dispose();
 			corneaMat.dispose();
-			envTex.dispose();
+			environmentTarget.dispose();
 			pmrem.dispose();
 			renderer.dispose();
 		},

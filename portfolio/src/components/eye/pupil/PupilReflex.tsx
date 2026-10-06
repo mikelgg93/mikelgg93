@@ -21,7 +21,7 @@ export default function PupilReflex() {
 
 	const [hud, setHud] = useState({
 		luminance: 100.0,
-		watsonDiameter: 4.5,
+		steadyDiameter: 4.5,
 		actualDiameter: 4.5,
 		trolands: 1590,
 		effectiveTrolands: 1420,
@@ -43,10 +43,12 @@ export default function PupilReflex() {
 		paramsRef.current.pigmentation = pigmentation;
 	}, [luminance, baselineOffset, stilesCrawford, pigmentation]);
 
+	const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const handleFlash = () => {
 		paramsRef.current.flashUntilTime = performance.now() / 1000 + 0.6;
 		setIsFlashActive(true);
-		setTimeout(() => setIsFlashActive(false), 600);
+		if (flashTimerRef.current !== null) clearTimeout(flashTimerRef.current);
+		flashTimerRef.current = setTimeout(() => setIsFlashActive(false), 600);
 	};
 
 	useEffect(() => {
@@ -78,11 +80,11 @@ export default function PupilReflex() {
 			const targetSteadyD = pupilFromLuminance(L, p.baselineOffset);
 			queue.push({ time: now, targetDiameter: targetSteadyD });
 			const targetTime = now - 0.22;
-			while (queue.length && queue[0].time < targetTime - 0.5) queue.shift();
-			let delayedTargetD = targetSteadyD;
+			while (queue.length && queue[0]!.time < targetTime - 0.5) queue.shift();
+			let delayedTargetD = currentDiameter;
 			for (let i = queue.length - 1; i >= 0; i--) {
-				if (queue[i].time <= targetTime) {
-					delayedTargetD = queue[i].targetDiameter;
+				if (queue[i]!.time <= targetTime) {
+					delayedTargetD = queue[i]!.targetDiameter;
 					break;
 				}
 			}
@@ -92,29 +94,23 @@ export default function PupilReflex() {
 			if (isFlashing) kineticState = "Flash (fast close)";
 			if (Math.abs(diff) > 0.01) {
 				if (diff < 0) {
-					currentDiameter += (diff / 0.12) * dt;
+					currentDiameter += diff * (1 - Math.exp(-dt / 0.12));
 					if (!isFlashing) kineticState = "Constricting";
 				} else {
-					currentDiameter += (diff / 0.65) * dt;
+					currentDiameter += diff * (1 - Math.exp(-dt / 0.65));
 					kineticState = "Dilating";
 				}
 			}
 
-			let overshoot = 0;
-			if (isFlashing)
-				overshoot =
-					-0.35 * Math.sin(Math.min(Math.PI, (p.flashUntilTime - now) * 5.0));
 			const hippus =
 				0.12 * Math.sin(2 * Math.PI * 0.18 * elapsed) +
 				0.07 * Math.sin(2 * Math.PI * 0.35 * elapsed + 1.1) +
 				0.04 * Math.cos(2 * Math.PI * 0.48 * elapsed);
-			const actualD = Math.min(
-				8,
-				Math.max(1.8, currentDiameter + overshoot + hippus),
-			);
+			const actualD = Math.min(8, Math.max(1.8, currentDiameter + hippus));
 
 			const area = (Math.PI * actualD * actualD) / 4;
 			const trolands = L * area;
+			// Centered Gaussian SCE weighting exp(-rho*r²); illustrative coefficient in mm⁻².
 			const rho = 0.085;
 			const effArea =
 				(Math.PI / rho) * (1 - Math.exp((-rho * actualD * actualD) / 4));
@@ -129,7 +125,7 @@ export default function PupilReflex() {
 				lastHud = now;
 				setHud({
 					luminance: L,
-					watsonDiameter: targetSteadyD,
+					steadyDiameter: targetSteadyD,
 					actualDiameter: actualD,
 					trolands,
 					effectiveTrolands: effTrolands,
@@ -156,6 +152,7 @@ export default function PupilReflex() {
 		});
 
 		return () => {
+			if (flashTimerRef.current !== null) clearTimeout(flashTimerRef.current);
 			s.dispose();
 			sceneRef.current = null;
 		};
@@ -183,7 +180,7 @@ export default function PupilReflex() {
 						<span className="text-xs text-muted-foreground">mm</span>
 					</div>
 					<div className="text-[10px] text-muted-foreground mt-0.5">
-						Target: {hud.watsonDiameter.toFixed(2)} mm
+						Target: {hud.steadyDiameter.toFixed(2)} mm
 					</div>
 				</div>
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
@@ -223,7 +220,7 @@ export default function PupilReflex() {
 						{hud.kineticState}
 					</div>
 					<div className="text-[10px] text-muted-foreground mt-0.5">
-						Delay 220 ms
+						Model delay 220 ms
 					</div>
 				</div>
 			</div>

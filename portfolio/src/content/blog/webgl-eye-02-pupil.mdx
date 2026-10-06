@@ -66,27 +66,27 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
 
 Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect of the first kind (SCE-I)** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows more slowly than the geometric area. This happens because the retina is not a flat, uniform sensor array; its cones act like tiny fiber optics pointed toward the pupil center. The Stiles-Crawford effect (Stiles & Crawford, 1933) is primarily associated with cone-mediated vision, so its influence is much less relevant under fully scotopic, rod-dominated conditions.
 
-Beyond just letting light in, the pupil acts as the eye's aperture for sharpness. The optical quality of the eye is governed by its Point Spread Function (PSF) and Modulation Transfer Function (MTF), both of which are tightly coupled to pupil diameter. If the pupil is too small, diffraction blurs the image; if it is too large, peripheral optical aberrations from the cornea and lens ruin the focus. The resting pupil size of around 3 to 4 mm naturally optimizes visual sharpness by finding the perfect balance between diffraction and aberrations.
+Beyond just letting light in, the pupil acts as the eye's aperture for sharpness. The optical quality of the eye is governed by its Point Spread Function (PSF) and Modulation Transfer Function (MTF), both of which are tightly coupled to pupil diameter. If the pupil is too small, diffraction blurs the image; if it is too large, peripheral optical aberrations from the cornea and lens ruin the focus. Pupil diameters around 3 to 4 mm often offer a useful balance between diffraction and aberrations, but the optimum depends on the eye and the visual task; resting size is not fixed.
 
 > [!NOTE] 
 > **Does iris color affect how much light enters?** 
 >
-> Yes. Iris pigmentation affects intraocular light scatter. Dark brown irises are packed with light-absorbing melanin. Lighter irises (like blue, green, or hazel) have less melanin, which can allow more light to scatter through iris tissue. This can contribute to increased glare and straylight in people with lighter irises.
+> Yes. Iris pigmentation affects intraocular light scatter. Dark brown irises are packed with light-absorbing melanin. Lighter irises (like blue, green, or hazel) have less melanin, which can allow more light to scatter through iris tissue. This can contribute to straylight and glare, but iris color alone does not predict an individual's glare sensitivity (van den Berg et al., 1991).
 
-How big should the pupil be at a given brightness? A useful rule of thumb often derived from Moon and Spencer (1944) gives a resting, binocular steady-state pupil diameter following a smooth curve of scene brightness. (For this visualisation we use a simplified luminance-only approximation inspired by established pupil-size models. Watson & Yellott's (2012) unified model additionally accounts for factors such as age, field size and binocular viewing. Remember that these describe *steady-state* adaptation, not the transient reflex).
+How big should the pupil be at a given brightness? A useful rule of thumb gives a steady-state pupil diameter following a smooth curve of scene brightness, in the spirit of Moon and Spencer (1944). (For this visualisation we use a simplified luminance-only approximation inspired by established pupil-size models. Watson & Yellott's (2012) unified model additionally accounts for factors such as age, field size and binocular viewing. Remember that these describe *steady-state* adaptation, not the transient reflex).
 
 $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) + 0.4\right)$$
 
-This gives a diameter in millimeters across the full range from starlight to bright sun. In code it is a one-liner:
+This gives an illustrative diameter in millimeters across dim to bright scenes, rather than an individual prediction. In code it is a one-liner:
 
 ```ts
-function pupilDiameter(L) {                 // L = scene luminance (cd/m²)
-  const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) + 0.4);
+function pupilFromLuminance(L) {                 // L = scene luminance (cd/m²)
+  const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(Math.max(0.0001, L)) + 0.4);
   return Math.min(8, Math.max(2, d));       // clamp to 2-8 mm
 }
 ```
 
-In the model below you set the pupil size and the scene brightness by hand and read off the light reaching the retina: the geometric pupil area, the photopic retinal illuminance in trolands (Troland, 1917), and how much the Stiles-Crawford falloff trims it once the pupil is wide.
+In the model below you set the pupil size and the scene brightness by hand and read off the light reaching the retina: the geometric pupil area, the photopic retinal illuminance in trolands (Troland, 1917), and the **SCE-weighted effective area**. We use a simplified, centered Gaussian efficiency profile, $\eta(r) = e^{-\rho r^2}$ with $\rho = 0.085\ \text{mm}^{-2}$ as a model parameter. Weighting changes the estimated visual effectiveness of the light, not the physical pupil size; the unweighted troland value remains luminance times geometric pupil area.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -99,7 +99,7 @@ In the model below you set the pupil size and the scene brightness by hand and r
 
 ## The light reflex
 
-We know how the pupil size affects incoming light, but how does the body actually regulate this size to control light entering? Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex** (PLR). It is a simple but critical feedback loop. Light information driving the pupillary light reflex comes from rods, cones, and melanopsin-expressing ipRGCs. Rods and cones provide rapid responses, while melanopsin provides a slower, sustained contribution to pupil control. The signal shoots up the optic nerve. It projects bilaterally to the pretectal nuclei, crossing via the posterior commissure. From there, it hits the Edinger-Westphal nuclei in the brainstem. This drives the consensual light reflex in the opposite eye. Finally, the Edinger-Westphal output travels with cranial nerve III to the ciliary ganglion, then postganglionic fibres travel through the short ciliary nerves to the sphincter pupillae. Constrict, then relax.
+We know how the pupil size affects incoming light, but how does the body actually regulate this size to control light entering? Shine a light in someone's eye and their pupil shrinks. That is the **pupillary light reflex** (PLR). It is a simple but critical feedback loop. Light information driving the pupillary light reflex comes from rods, cones, and melanopsin-expressing ipRGCs. Rods and cones provide rapid responses, while melanopsin provides a slower, sustained contribution to pupil control. The signal shoots up the optic nerve. Retinal signals reach the pretectal nuclei through the optic nerves and tracts, with partial crossing at the optic chiasm. Pretectal neurons project to both Edinger-Westphal nuclei, with crossed connections through the posterior commissure. This drives the consensual light reflex in the opposite eye. Finally, the Edinger-Westphal output travels with cranial nerve III to the ciliary ganglion, then postganglionic fibres travel through the short ciliary nerves to the sphincter pupillae. Constrict, then relax.
 
 Because this neural circuit runs deep through the brainstem, it acts as a diagnostic window into the brain. If a patient has suffered a traumatic brain injury, a doctor will shine a light in their eyes; a pupil that remains fixed and dilated can indicate severe pressure on the brainstem. The reflex is also heavily influenced by drugs, which is why opiates cause pinpoint pupils and some stimulants can produce pupil dilation.
 
@@ -117,18 +117,18 @@ The loop is a feedback controller, and like any real controller it is not instan
 Three things shape how the pupil actually moves:
 
 - **A delay.** We approximate the neural latency of the pupillary light reflex as $220\ \text{ms}$ before the pupil begins responding. This latency varies with stimulus conditions, luminance, adaptation state, and age.
-- **Asymmetry.** Constriction is fast (a time constant near $0.12\ \text{s}$); dilation is slow (nearer $0.65\ \text{s}$). Your pupil snaps shut but opens back up lazily.
-- **Pupillary unrest.** Even under perfectly steady light the pupil quivers slightly. This small spontaneous fluctuation in pupil size is often called hippus.
+- **Asymmetry.** Constriction is generally faster than redilation. For this visualisation we choose time constants of $0.12\ \text{s}$ and $0.65\ \text{s}$ respectively; these are simulation parameters, not universal physiological constants.
+- **Pupillary unrest.** Even under perfectly steady light the pupil quivers slightly. This small spontaneous fluctuation in pupil size is often called hippus and can occur physiologically.
 
 The delay and the asymmetry give the reflex its character. For the visualisation, we approximate the more complex PLR dynamics (like Stark's triple lag (Stark, 1959)) with asymmetric first-order responses. Each frame, the pupil eases toward the target diameter it was told to reach $220\ \text{ms}$ ago, using a simple first-order response that moves faster when closing than when opening:
 
 ```ts
 const diff = targetDiameter - currentDiameter;
 const tau = diff < 0 ? 0.12 : 0.65;   // fast to constrict, slow to dilate
-currentDiameter += (diff / tau) * dt; // ease toward the target this frame
+currentDiameter += diff * (1 - Math.exp(-dt / tau)); // stable first-order update
 ```
 
-The model below pairs the pupil with an oscilloscope. The dashed line is the target the reflex is chasing; the solid line is where the pupil actually is. Switch the light from dark to bright and watch the lag and the asymmetry play out. Turn the latency off to see how twitchy the pupil would be without its built-in delay.
+The model below pairs the pupil with an oscilloscope. The dashed line is the target the reflex is chasing; the solid line is where the pupil actually is. Switch the light from dark to bright and watch the lag and the asymmetry play out. Turn the latency off to compare the same model response without the delay.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -145,12 +145,12 @@ While the light reflex is the strongest driver of the pupil, it is not the only 
 
 | System | Muscle | Action | Common Triggers | Drug Effects |
 | :--- | :--- | :--- | :--- | :--- |
-| **Parasympathetic** ("Rest & Digest") | Sphincter | **Constricts** (Miosis) | Bright light, focusing on near objects, relaxation | Opiates bind mu-opioid receptors on GABAergic interneurons, causing pinpoint pupils. |
+| **Parasympathetic** ("Rest & Digest") | Sphincter | **Constricts** (Miosis) | Bright light, focusing on near objects, relaxation | Opioids commonly cause miosis through central autonomic pathways. |
 | **Sympathetic** ("Fight or Flight") | Dilator | **Dilates** (Mydriasis) | Darkness, stress, arousal, cognitive load, adrenaline | Some stimulants can produce pupil dilation. |
 
-Because the dilator muscle is wired directly to the sympathetic nervous system, your pupils expand slightly when you are stressed, aroused, or thinking hard. During demanding cognitive tasks, pupils often dilate, with the size and timing of the response depending on task demands, arousal and the surrounding visual conditions (Beatty, 1982).
+Pupils often dilate during demanding cognitive tasks. Both sympathetic activity and reduced parasympathetic drive can contribute, with response size and timing depending on arousal, visual conditions, baseline pupil size and task structure (Beatty, 1982).
 
-UI designers, psychologists, and researchers use eye trackers to measure this invisible "cognitive load". While some have proposed using pupillometry to monitor **workplace fatigue** or **cognitive overload** in high-stakes environments like surgical theaters or air traffic control, the reality is incredibly messy. The pupil light reflex is overwhelmingly stronger than cognitive responses. Separating tiny, task-evoked dilations (often just a fraction of a millimeter) from the massive fluctuations caused by ambient lighting changes, blinks, and screen glare in a real-world environment is exceptionally difficult. In controlled laboratory settings, however, by keeping lighting strictly constant and establishing a rigorous baseline, researchers can still reliably measure these subtle markers of mental effort. Despite these hurdles, advances in machine learning and robust signal processing are opening exciting new avenues, giving researchers optimism that reliable real-world cognitive monitoring may soon be within reach.
+UI designers, psychologists, and researchers use eye trackers to study pupil responses associated with cognitive demand. While some have proposed using pupillometry to monitor **workplace fatigue** or **cognitive overload** in high-stakes environments like surgical theaters or air traffic control, the reality is incredibly messy. The pupil light reflex is overwhelmingly stronger than cognitive responses. Separating tiny, task-evoked dilations (often just a fraction of a millimeter) from the massive fluctuations caused by ambient lighting changes, blinks, and screen glare in a real-world environment is exceptionally difficult. In controlled laboratory settings, however, by keeping lighting strictly constant and establishing a rigorous baseline, researchers can still reliably measure these subtle markers of mental effort. Despite these hurdles, advances in machine learning and robust signal processing are opening exciting new avenues, giving researchers optimism that reliable real-world cognitive monitoring may soon be within reach.
 
 The pupil also changes size when you focus on something close to your face. This is called the **near triad**: your eyes converge (turn inward), your lenses accommodate (bulge to focus), and your pupils constrict. The neural pathway for this bypasses the pretectal nucleus, traveling from the visual cortex to the supraoculomotor area. Constricting the pupil when looking at something close increases your depth of field, exactly like stopping down a macro lens on a camera.
 
@@ -174,16 +174,14 @@ With the cornea shaped and the pupil now opening and closing on its own, our eye
 
 Since we are talking about pupils, why just simulate them when you can drive the 3D model with your actual eyes? If you have access to a pair of [Pupil Labs Neon](https://pupil-labs.com/products/neon) eye-tracking glasses, you can hook them up directly to this blog post!
 
-Since the Neon Companion app bundles the monitor app, we can fetch it and embed it into a hidden DOM element. By quietly reading the gaze payload from its data stream, we have everything we need without complex integrations.
+Since the Neon Companion app bundles the Monitor app, we can fetch it and embed it in a hidden iframe whose lifetime we control. By quietly reading the gaze payload from its data stream, we have everything we need without complex integrations.
 
-By analyzing the payload, we know the raw packets pack the gaze data as a C-struct. The left and right pupil diameters are Big-Endian Float32s sitting exactly at byte offsets 9 and 37 of the payload, so we can simply read them and plot them. Note that the 200 Hz graph is an assumption/target rather than guaranteed browser delivery, and the real-time framerate depends on the Companion device and environment.
+In the [documented Neon eye-state gaze payload](https://pupil-labs.github.io/pl-realtime-api/dev/guides/under-the-hood/#decoding-gaze-data), the left and right pupil diameters are big-endian Float32s at byte offsets 9 and 37. We locate the payload after the RTP header, validate both eyes, and plot the available measurements. The graph keeps the last 1000 samples; missing-eye values appear as gaps. The measurement stream can operate at 200 Hz, depending on the Companion device and conditions, while rendering follows the browser's animation frames.
 
-Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, and click Connect. The browser will intercept the binary stream, parse the structs on the fly, and instantly snap the 3D iris model to match your actual physical pupil diameter in real-time.
+Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, enable **Compute Eye State** in Companion, enter its address, and click Connect. The browser will intercept the binary stream, parse the structs on the fly, and drive the 3D iris from the mean of the valid pupil measurements, using one eye when the other is unavailable.
 
-> [!WARNING]
-> **Experimental browser integration**
->
-> This demo connects directly to the Neon Companion device on your local network and requires the browser to permit local-network access. It works by loading the Companion's own Monitor web app and intercepting its internal WebSocket traffic, so it is *not* the official Real-Time API (recommended for production) and may stop working after browser or Companion updates. Treat it as an experimental WebGL demonstration.
+> [!NOTE]
+> This experimental browser/WebGL integration connects to Neon on your local network through the Companion Monitor app. Browser networking and security policies can affect access, and Monitor updates may require adjustments to the demo.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -203,3 +201,6 @@ Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker
 5. **Stark, L. (1959)**. *Stability, oscillations, and noise in the human pupil servomechanism*. Proceedings of the IRE, 47(11), 1925-1939. [DOI: 10.1109/JRPROC.1959.287136](https://doi.org/10.1109/JRPROC.1959.287136). The seminal work on the non-linear dynamics and feedback control models of the pupillary light reflex.
 6. **Beatty, J. (1982)**. *Task-evoked pupillary responses, processing load, and the structure of information processing*. Psychological Bulletin, 91(2), 276-292. [DOI: 10.1037/0033-2909.91.2.276](https://doi.org/10.1037/0033-2909.91.2.276). A rigorous review of pupillometry for measuring cognitive workload and stress.
 7. **Troland, L. T. (1917)**. *On the measurement of visual stimulation intensities*. Journal of Experimental Psychology, 2(1), 1-33. [DOI: 10.1037/h0071652](https://doi.org/10.1037/h0071652)
+8. **McDougal & Gamlin (2015)**. [*Autonomic control of the eye*](https://pmc.ncbi.nlm.nih.gov/articles/PMC4919817/).
+9. **van den Berg et al. (1991)**. [*Dependence of intraocular straylight on pigmentation and light transmission through the ocular wall*](https://pubmed.ncbi.nlm.nih.gov/1891824/).
+10. **Pupil Labs**. [*Under the Hood: decoding gaze data*](https://pupil-labs.github.io/pl-realtime-api/dev/guides/under-the-hood/#decoding-gaze-data); [*Neon data streams*](https://docs.pupil-labs.com/neon/data-collection/data-streams/).

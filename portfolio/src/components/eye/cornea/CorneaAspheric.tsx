@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { disposeThree } from "../disposeThree";
 import { observeThreeResize } from "../threeResize";
+import { conicAperture, conicSag } from "./conic";
 
 const R = 7.8;
 const MAX_R = 5.2; // wide aperture so the edge flattening is easy to see
@@ -13,28 +15,26 @@ const PRESETS = [
 		label: "Normal human",
 		q: -0.26,
 		hex: 0x22d3ee,
-		note: "Prolate: steep center, flatter edges. Cancels most spherical aberration.",
+		note: "Prolate: steep center, flatter edges. Reduces spherical aberration relative to a sphere.",
 	},
 	{
 		id: "sphere",
-		label: "Perfect sphere",
+		label: "Spherical cornea",
 		q: 0.0,
 		hex: 0xa1a1aa,
-		note: "Constant curvature. Edge rays overbend, so night lights bloom into halos.",
+		note: "Constant curvature. Edge rays focus closer than central rays: positive spherical aberration.",
 	},
 	{
 		id: "lasik",
-		label: "Post-LASIK",
+		label: "Oblate example",
 		q: 0.6,
 		hex: 0xf43f5e,
-		note: "Oblate: flatter center, steeper edges. Amplifies glare after surgery.",
+		note: "Post-myopic-LASIK example (Q = +0.6). Postoperative Q varies.",
 	},
 ];
 
 function sag(r: number, q: number) {
-	const c = 1 / R;
-	const root = 1 - (1 + q) * c * c * r * r;
-	return root >= 0 ? (c * r * r) / (1 + Math.sqrt(root)) : NaN;
+	return conicSag(r, 0, R, R, q);
 }
 
 function buildGeometry(q: number, hex: number) {
@@ -47,9 +47,8 @@ function buildGeometry(q: number, hex: number) {
 	const apex = new THREE.Color(0x34d399);
 
 	for (let i = 0; i <= radialSegments; i++) {
-		const r = (i / radialSegments) * MAX_R;
-		let z = sag(r, q);
-		if (Number.isNaN(z)) z = vertices[vertices.length - 1] ?? 0;
+		const r = (i / radialSegments) * conicAperture(MAX_R, R, R, q);
+		const z = sag(r, q);
 		const col = apex.clone().lerp(base, r / MAX_R);
 		for (let j = 0; j <= angularSegments; j++) {
 			const theta = (j / angularSegments) * Math.PI * 2;
@@ -93,7 +92,7 @@ function sphereProfile(planeYZ: boolean) {
 
 export default function CorneaAspheric() {
 	const mountRef = useRef<HTMLDivElement>(null);
-	const [preset, setPreset] = useState(PRESETS[0]);
+	const [preset, setPreset] = useState(PRESETS[0]!);
 	const updateRef = useRef<((q: number, hex: number) => void) | null>(null);
 
 	useEffect(() => {
@@ -139,13 +138,13 @@ export default function CorneaAspheric() {
 			opacity: 0.12,
 		});
 
-		let geo = buildGeometry(preset.q, preset.hex);
+		const geo = buildGeometry(preset.q, preset.hex);
 		const mesh = new THREE.Mesh(geo, material);
 		const wire = new THREE.Mesh(geo, wireMaterial);
 		mesh.add(wire);
 		scene.add(mesh);
 
-		// Fixed dashed reference: where a perfect sphere (Q = 0) would sit.
+		// Fixed dashed reference: where a sphere (Q = 0) would sit.
 		const refMat = new THREE.LineDashedMaterial({
 			color: 0xffffff,
 			transparent: true,
@@ -163,9 +162,7 @@ export default function CorneaAspheric() {
 			const newGeo = buildGeometry(q, hex);
 			mesh.geometry.dispose();
 			mesh.geometry = newGeo;
-			wire.geometry.dispose();
-			wire.geometry = new THREE.WireframeGeometry(newGeo);
-			geo = newGeo;
+			wire.geometry = newGeo; // mesh wireframe shares the surface geometry
 		};
 
 		let animationFrameId: number;
@@ -203,11 +200,9 @@ export default function CorneaAspheric() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			controls.dispose();
+			disposeThree(scene);
 			renderer.dispose();
-			geo.dispose();
-			material.dispose();
-			wireMaterial.dispose();
-			refMat.dispose();
 			updateRef.current = null;
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -237,7 +232,7 @@ export default function CorneaAspheric() {
 				</div>
 				<div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border/40 w-full">
 					<span className="w-4 border-t border-dashed border-white/70 inline-block"></span>{" "}
-					perfect sphere reference
+					sphere reference
 				</div>
 			</div>
 

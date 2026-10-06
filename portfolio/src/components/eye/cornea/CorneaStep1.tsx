@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { disposeThree } from "../disposeThree";
 import { observeThreeResize } from "../threeResize";
 
 export default function CorneaStep1() {
@@ -132,9 +133,9 @@ export default function CorneaStep1() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			controls.dispose();
+			disposeThree(scene);
 			renderer.dispose();
-			geometry.dispose();
-			material.dispose();
 		};
 	}, []);
 
