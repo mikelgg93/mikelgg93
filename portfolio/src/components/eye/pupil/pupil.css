@@ -1,0 +1,60 @@
+/* Keep the eye unobstructed on phones; desktop retains the existing overlays. */
+@media (max-width: 767px) {
+	.pupil-demo {
+		display: flex;
+		flex-direction: column;
+		height: auto;
+		min-width: 0;
+	}
+
+	.pupil-demo > .pupil-metrics,
+	.pupil-demo > .pupil-controls {
+		position: relative;
+		inset: auto;
+		width: calc(100% - 1.5rem);
+		max-width: none;
+		margin: 0.75rem;
+		transform: none;
+	}
+
+	.pupil-demo > .pupil-metrics { order: 1; }
+	.pupil-demo > .pupil-controls { order: 3; }
+
+	.pupil-demo > .pupil-scene {
+		position: relative;
+		inset: auto;
+		order: 2;
+		flex: none;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 1;
+		max-height: 360px;
+	}
+
+	.pupil-demo > .pupil-stream-graph {
+		position: relative;
+		inset: auto;
+		order: 3;
+		flex: none;
+	}
+
+	.pupil-demo button,
+	.pupil-demo select,
+	.pupil-demo input[type="text"] { min-height: 44px; }
+	.pupil-demo select,
+	.pupil-demo input[type="text"] { font-size: 16px; max-width: 100%; }
+	.pupil-demo input[type="range"] {
+		min-width: 0;
+		flex-shrink: 1;
+		/* Add a touch target without turning the visual track into a thick bar. */
+		border-block: 12px solid transparent;
+		box-sizing: content-box;
+		background-clip: padding-box;
+	}
+
+	.pupil-demo canvas,
+	.pupil-demo .pupil-canvas {
+		/* Override OrbitControls/R3F' inline touch-action so vertical swipes scroll. */
+		touch-action: pan-y !important;
+	}
+}

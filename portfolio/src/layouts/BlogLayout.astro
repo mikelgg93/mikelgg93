@@ -8,6 +8,15 @@ import "katex/dist/katex.min.css";
 
 const { frontmatter, prevUrl = null, nextUrl = null, id } = Astro.props;
 const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
+const isSpanish = Astro.url.pathname.startsWith("/es/");
+const isPupilArticle = Astro.url.pathname.includes("webgl-eye-02-pupil");
+const mobileHint = isPupilArticle
+  ? (isSpanish
+    ? "Desliza lateralmente sobre los modelos para girarlos. Los controles están debajo."
+    : "Swipe sideways on the models to rotate them. Use the controls below.")
+  : (isSpanish
+    ? "Para una mejor experiencia, se recomienda ver estos artículos interactivos en una computadora de escritorio."
+    : "For the best experience, it is recommended to view these interactive articles on a desktop computer.");
 ---
 
 <Layout title={frontmatter.title} description={frontmatter.description} image={ogImage}>
@@ -15,9 +24,7 @@ const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
 
   <div class="md:hidden relative h-0 z-40">
     <div class="absolute top-[60px] inset-x-0 bg-amber-500/10 backdrop-blur-md border-y border-amber-500/20 text-amber-600 dark:text-amber-400 px-4 py-2.5 text-xs font-medium text-center">
-      {Astro.url.pathname.includes('/es/') 
-        ? "Para una mejor experiencia, se recomienda ver estos artículos interactivos en una computadora de escritorio."
-        : "For the best experience, it is recommended to view these interactive articles on a desktop computer."}
+      {mobileHint}
     </div>
   </div>
 
@@ -150,3 +157,33 @@ const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
       });
   }
 </script>
+
+<style>
+  :global(.reading-line) { display: none; }
+  @media (max-width: 767px), (hover: none) and (pointer: coarse) {
+    :global(.reading-perimeter) { display: none; }
+    :global(.reading-line) { display: block; }
+  }
+  article { min-width: 0; overflow-wrap: break-word; }
+  article :global(.katex-display) {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: 0.25rem;
+  }
+  article :global(.table-scroll) {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  article :global(.table-scroll table) { min-width: 640px; margin-block: 0; }
+  article :global(.table-scroll-hint) { display: none; }
+  @media (max-width: 767px) {
+    article :global(.table-scroll-hint) {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
+    }
+  }
+</style>

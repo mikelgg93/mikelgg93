@@ -1,3 +1,4 @@
+import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
 
@@ -161,19 +162,19 @@ export default function PupilReflex() {
 	const fmt = (n: number) => (n >= 1000 ? n.toExponential(1) : n.toFixed(1));
 
 	return (
-		<div className="relative w-full h-[580px] bg-transparent overflow-hidden rounded-lg group">
+		<div className="pupil-demo relative w-full h-[580px] bg-transparent overflow-hidden rounded-lg group">
 			<div
 				ref={mountRef}
-				className="absolute inset-0 cursor-grab active:cursor-grabbing z-0"
+				className="pupil-scene absolute inset-0 cursor-grab active:cursor-grabbing z-0"
 			/>
 
 			{/* Metrics HUD */}
-			<div className="absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 pointer-events-none">
+			<div className="pupil-metrics absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 pointer-events-none">
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						Pupil diameter
 					</div>
-					<div className="flex items-baseline gap-1.5 mt-0.5">
+					<div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
 						<span className="text-xl font-extrabold text-primary">
 							{hud.actualDiameter.toFixed(2)}
 						</span>
@@ -187,7 +188,7 @@ export default function PupilReflex() {
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						Retinal light
 					</div>
-					<div className="flex items-baseline gap-1.5 mt-0.5">
+					<div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
 						<span className="text-xl font-extrabold text-amber-500">
 							{(stilesCrawford ? hud.effectiveTrolands : hud.trolands).toFixed(
 								0,
@@ -205,7 +206,7 @@ export default function PupilReflex() {
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						Scene luminance
 					</div>
-					<div className="flex items-baseline gap-1.5 mt-0.5">
+					<div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
 						<span className="text-xl font-extrabold text-yellow-500">
 							{fmt(hud.luminance)}
 						</span>
@@ -226,10 +227,10 @@ export default function PupilReflex() {
 			</div>
 
 			{/* Controls */}
-			<div className="absolute bottom-4 left-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl flex flex-col gap-3">
+			<div className="pupil-controls absolute bottom-4 left-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl flex flex-col gap-3">
 				<div className="flex flex-col md:flex-row md:items-center gap-4">
 					<div className="flex-1 flex flex-col gap-1">
-						<div className="flex justify-between items-center text-xs font-semibold">
+						<div className="flex flex-wrap gap-1 justify-between items-center text-xs font-semibold">
 							<span className="text-foreground flex items-center gap-1.5">
 								<span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />{" "}
 								Scene luminance (L)
@@ -240,6 +241,7 @@ export default function PupilReflex() {
 						</div>
 						<input
 							type="range"
+							aria-label="Scene luminance"
 							min="-2"
 							max="4"
 							step="0.05"
@@ -278,6 +280,7 @@ export default function PupilReflex() {
 						</div>
 						<input
 							type="range"
+							aria-label="Baseline pupil offset"
 							min="-1"
 							max="1"
 							step="0.1"
@@ -291,12 +294,18 @@ export default function PupilReflex() {
 							Stiles-Crawford
 						</span>
 						<button
+							aria-label="Stiles-Crawford effect"
+							aria-pressed={stilesCrawford}
 							onClick={() => setStilesCrawford(!stilesCrawford)}
-							className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${stilesCrawford ? "bg-emerald-500" : "bg-secondary"}`}
+							className="inline-flex h-5 w-9 items-center justify-center"
 						>
 							<span
-								className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${stilesCrawford ? "translate-x-4.5" : "translate-x-1"}`}
-							/>
+								className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${stilesCrawford ? "bg-emerald-500" : "bg-secondary"}`}
+							>
+								<span
+									className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${stilesCrawford ? "translate-x-4.5" : "translate-x-1"}`}
+								/>
+							</span>
 						</button>
 					</div>
 					<div className="flex items-center justify-between bg-background/50 p-2 rounded-xl border border-border">
@@ -304,6 +313,7 @@ export default function PupilReflex() {
 							Iris pigment
 						</span>
 						<select
+							aria-label="Iris pigment"
 							value={pigmentation}
 							onChange={(e) =>
 								setPigmentation(e.target.value as PigmentationType)

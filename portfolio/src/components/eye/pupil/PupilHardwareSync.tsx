@@ -1,3 +1,4 @@
+import "./pupil.css";
 import { ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -288,9 +289,9 @@ export default function PupilHardwareSync() {
 	};
 
 	return (
-		<div className="relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
+		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
 			{/* Collapsible Settings Overlay */}
-			<div className="absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 shadow-xl pointer-events-auto transition-all">
+			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 shadow-xl pointer-events-auto transition-all">
 				<div
 					className="flex items-center justify-between cursor-pointer select-none"
 					onClick={() => setIsSettingsOpen(!isSettingsOpen)}
@@ -320,6 +321,9 @@ export default function PupilHardwareSync() {
 					<div className="flex flex-col gap-2 mt-3">
 						<input
 							type="text"
+							aria-label="Neon device address"
+							autoCapitalize="none"
+							spellCheck={false}
 							value={deviceIp}
 							onChange={(e) => setDeviceIp(e.target.value)}
 							disabled={status === "connecting" || status === "streaming"}
@@ -347,11 +351,11 @@ export default function PupilHardwareSync() {
 
 			<div
 				ref={mountRef}
-				className="w-full h-full cursor-grab active:cursor-grabbing"
+				className="pupil-scene w-full h-full cursor-grab active:cursor-grabbing"
 			/>
 
 			{/* Main View Real-time Graph (Bottom) */}
-			<div className="absolute bottom-0 left-0 w-full h-28 bg-gradient-to-t from-background/90 to-transparent pointer-events-none flex items-end">
+			<div className="pupil-stream-graph absolute bottom-0 left-0 w-full h-28 bg-gradient-to-t from-background/90 to-transparent pointer-events-none flex items-end">
 				<canvas
 					ref={canvasRef}
 					width={1000}

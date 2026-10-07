@@ -73,7 +73,7 @@ export default function BlogFeatures() {
 		>
 			<svg
 				aria-hidden="true"
-				className="absolute inset-0 w-full h-full"
+				className="reading-perimeter absolute inset-0 h-full w-full"
 				preserveAspectRatio="none"
 			>
 				<rect
@@ -93,6 +93,16 @@ export default function BlogFeatures() {
 					className="transition-all duration-75 ease-out opacity-80"
 				/>
 			</svg>
+
+			<div
+				aria-hidden="true"
+				className="reading-line absolute inset-y-0 right-0 w-[3px]"
+			>
+				<div
+					className="h-full w-full origin-top rounded-full bg-tertiary opacity-80 transition-transform duration-75 ease-out motion-reduce:transition-none"
+					style={{ transform: `scaleY(${scrollProgress / 100})` }}
+				/>
+			</div>
 
 			<div
 				className={`absolute bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] right-[max(1.5rem,env(safe-area-inset-right,0px))] md:bottom-[max(2rem,env(safe-area-inset-bottom,0px))] md:right-[max(2rem,env(safe-area-inset-right,0px))] bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-500 transform ${

@@ -1,3 +1,4 @@
+import "./pupil.css";
 import { Html, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
@@ -201,27 +202,32 @@ function PathwayScene() {
 		<>
 			<Html position={[-2, 0.4, 4]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Retina
+					<span className="md:hidden">1</span>
+					<span className="hidden md:inline">Retina</span>
 				</div>
 			</Html>
 			<Html position={[0, 0.4, 2]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Optic Chiasm
+					<span className="md:hidden">2</span>
+					<span className="hidden md:inline">Optic Chiasm</span>
 				</div>
 			</Html>
 			<Html position={[-0.8, 0.3, 0]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Pretectal Nucleus
+					<span className="md:hidden">3</span>
+					<span className="hidden md:inline">Pretectal Nucleus</span>
 				</div>
 			</Html>
 			<Html position={[-0.4, 0.6, -0.4]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Edinger-Westphal Nucleus
+					<span className="md:hidden">4</span>
+					<span className="hidden md:inline">Edinger-Westphal Nucleus</span>
 				</div>
 			</Html>
 			<Html position={[-2.3, -0.3, 3]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Ciliary Ganglion
+					<span className="md:hidden">5</span>
+					<span className="hidden md:inline">Ciliary Ganglion</span>
 				</div>
 			</Html>
 		</>
@@ -230,30 +236,33 @@ function PathwayScene() {
 
 export default function NervePathway() {
 	return (
-		<div className="relative w-full h-[400px] bg-transparent overflow-hidden rounded-lg">
-			<div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+		<div className="pupil-demo relative w-full h-[400px] bg-transparent overflow-hidden rounded-lg">
+			<div className="pupil-metrics absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-blue-500"></div>
-					<span className="text-xs text-slate-300 font-medium">
+					<span className="text-xs text-muted-foreground font-medium">
 						Sensory (Optic Nerve)
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-purple-500"></div>
-					<span className="text-xs text-slate-300 font-medium">
+					<span className="text-xs text-muted-foreground font-medium">
 						Interneurons
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-					<span className="text-xs text-slate-300 font-medium">
+					<span className="text-xs text-muted-foreground font-medium">
 						Motor (CN III → ganglion → short ciliary nerves)
 					</span>
 				</div>
 			</div>
 
-			<div className="w-full h-full cursor-grab active:cursor-grabbing">
-				<Canvas camera={{ position: [0, 8, 10], fov: 35 }}>
+			<div className="pupil-scene w-full h-full cursor-grab active:cursor-grabbing">
+				<Canvas
+					className="pupil-canvas"
+					camera={{ position: [0, 8, 10], fov: 35 }}
+				>
 					<PathwayScene />
 					<OrbitControls
 						enableDamping
@@ -262,6 +271,16 @@ export default function NervePathway() {
 					/>
 				</Canvas>
 			</div>
+			<ol
+				className="pupil-controls grid grid-cols-2 gap-2 list-none p-0 text-xs text-muted-foreground md:hidden"
+				aria-label="Pathway labels"
+			>
+				<li>1. Retina</li>
+				<li>2. Optic Chiasm</li>
+				<li>3. Pretectal Nucleus</li>
+				<li>4. Edinger-Westphal Nucleus</li>
+				<li>5. Ciliary Ganglion</li>
+			</ol>
 		</div>
 	);
 }

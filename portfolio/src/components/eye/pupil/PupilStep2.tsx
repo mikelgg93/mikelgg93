@@ -1,3 +1,4 @@
+import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
 
@@ -136,9 +137,9 @@ export default function PupilStep2() {
 	}, []);
 
 	return (
-		<div className="relative w-full bg-transparent rounded-lg overflow-hidden flex flex-col gap-4 p-4">
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[500px] md:h-[340px]">
-				<div className="relative w-full h-full min-h-[240px] md:min-h-0 rounded-xl overflow-hidden bg-card/40 border border-border">
+		<div className="pupil-demo relative w-full bg-transparent rounded-lg overflow-hidden flex flex-col gap-3 p-2 sm:gap-4 sm:p-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 md:h-[500px]">
+				<div className="relative w-full aspect-square md:aspect-auto md:h-full rounded-xl overflow-hidden bg-card/40 border border-border">
 					<div
 						ref={mountRef}
 						className="absolute inset-0 cursor-grab active:cursor-grabbing"
@@ -148,8 +149,8 @@ export default function PupilStep2() {
 					</div>
 				</div>
 
-				<div className="relative w-full h-full min-h-[240px] md:min-h-0 rounded-xl overflow-hidden bg-card/60 border border-border p-3 flex flex-col justify-between">
-					<div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+				<div className="relative w-full h-[200px] md:h-full rounded-xl overflow-hidden bg-card/60 border border-border p-3 flex flex-col justify-between">
+					<div className="flex flex-wrap gap-2 justify-between items-center text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						<span>Reflex over time</span>
 						<div className="flex items-center gap-3">
 							<span className="text-amber-500">- - target</span>
