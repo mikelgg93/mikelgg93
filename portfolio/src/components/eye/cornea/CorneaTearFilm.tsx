@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { disposeThree } from "../disposeThree";
 import { observeThreeResize } from "../threeResize";
 
 const vertexShader = `
@@ -55,7 +56,7 @@ float snoise(vec2 v) {
 
 void main() {
   vec3 viewDir = normalize(-vPosition);
-  float cosTheta = max(dot(vNormal, viewDir), 0.0);
+  float cosTheta = clamp(dot(normalize(vNormal), viewDir), 0.0, 1.0);
 
   // Base corneal color (slight bluish/white reflection)
   vec3 baseColor = vec3(0.1, 0.15, 0.2);
@@ -65,12 +66,11 @@ void main() {
 
   // Lipid layer thickness variation using noise and time (simulate blinking/spreading)
   float noiseVal = snoise(vUv * 3.0 + vec2(0.0, -uTime * 0.1));
-  float thickness = 90.0 + 40.0 * noiseVal; // Thickness in nanometers
+  float thickness = 70.0 + 30.0 * clamp(noiseVal, -1.0, 1.0); // 40–100 nm
 
-  // Thin film interference approximation
+  // Simplified RGB interference visualisation, not a spectral thin-film calculation.
   // The path difference relies on viewing angle and thickness
   float n_lipid = 1.48; // Refractive index of lipid layer
-  float n_aqueous = 1.336; // Refractive index of aqueous layer
 
   float pathDiff = 2.0 * n_lipid * thickness * cos(asin(sin(acos(cosTheta))/n_lipid));
 
@@ -151,7 +151,7 @@ export default function CorneaTearFilm() {
 
 		const animate = () => {
 			animationFrameId = requestAnimationFrame(animate);
-			material.uniforms.uTime.value = clock.getElapsedTime();
+			material.uniforms.uTime!.value = clock.getElapsedTime();
 
 			// Gentle rotation to show off the interference pattern
 			corneaMesh.rotation.y = Math.sin(clock.getElapsedTime() * 0.5) * 0.2;
@@ -201,9 +201,9 @@ export default function CorneaTearFilm() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			orbit.dispose();
+			disposeThree(scene);
 			renderer.dispose();
-			material.dispose();
-			geometry.dispose();
 		};
 	}, []);
 

@@ -1,3 +1,4 @@
+import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
 
@@ -15,6 +16,7 @@ export default function IrisParametric() {
 
 	const L = 10 ** logL;
 	const area = (Math.PI * diameter * diameter) / 4;
+	// Simplified centered SCE weighting exp(-rho*r²), with rho in mm⁻².
 	const rho = 0.085;
 	const effArea =
 		(Math.PI / rho) * (1 - Math.exp((-rho * diameter * diameter) / 4));
@@ -64,9 +66,9 @@ export default function IrisParametric() {
 		n >= 1000 ? n.toExponential(1) : n.toFixed(n < 10 ? 1 : 0);
 
 	return (
-		<div className="relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group">
+		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group">
 			{/* Metrics HUD */}
-			<div className="absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-3 gap-2 pointer-events-none">
+			<div className="pupil-metrics absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-3 gap-2 pointer-events-none">
 				<div className="bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						Pupil area (A)
@@ -80,7 +82,9 @@ export default function IrisParametric() {
 				</div>
 				<div className="bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Retinal illuminance
+						{stilesCrawford
+							? "SCE-weighted illuminance"
+							: "Retinal illuminance"}
 					</div>
 					<div className="text-lg font-extrabold text-amber-500">
 						{fmt(stilesCrawford ? effTrolands : trolands)}{" "}
@@ -91,7 +95,7 @@ export default function IrisParametric() {
 				</div>
 				<div className="col-span-2 md:col-span-1 bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						SCE efficiency (Ae/A)
+						SCE-weighted area / area
 					</div>
 					<div className="text-lg font-extrabold text-emerald-500">
 						{(scEff * 100).toFixed(0)}
@@ -103,7 +107,7 @@ export default function IrisParametric() {
 			</div>
 
 			{/* Controls */}
-			<div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-col gap-2.5 bg-card/80 backdrop-blur-md border border-border p-3.5 rounded-2xl shadow-xl w-11/12 max-w-lg">
+			<div className="pupil-controls absolute bottom-4 left-1/2 md:-translate-x-1/2 z-20 flex flex-col gap-2.5 bg-card/80 backdrop-blur-md border border-border p-3.5 rounded-2xl shadow-xl w-11/12 max-w-lg">
 				<div className="flex items-center gap-3">
 					<span className="text-xs font-semibold text-foreground min-w-[92px]">
 						Pupil{" "}
@@ -113,6 +117,7 @@ export default function IrisParametric() {
 					</span>
 					<input
 						type="range"
+						aria-label="Pupil diameter"
 						min="2"
 						max="8"
 						step="0.1"
@@ -128,6 +133,7 @@ export default function IrisParametric() {
 					</span>
 					<input
 						type="range"
+						aria-label="Scene luminance"
 						min="-2"
 						max="4"
 						step="0.05"
@@ -136,7 +142,7 @@ export default function IrisParametric() {
 						className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-amber-500"
 					/>
 				</div>
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex flex-wrap items-center justify-between gap-2">
 					<button
 						onClick={() => setStilesCrawford(!stilesCrawford)}
 						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${stilesCrawford ? "bg-emerald-500 text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
@@ -144,8 +150,9 @@ export default function IrisParametric() {
 						Stiles-Crawford {stilesCrawford ? "on" : "off"}
 					</button>
 					<select
+						aria-label="Iris pigment"
 						value={pigment}
-						onChange={(e) => setPigment(parseInt(e.target.value))}
+						onChange={(e) => setPigment(parseInt(e.target.value, 10))}
 						className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
 					>
 						<option value={0}>Brown</option>
@@ -158,7 +165,7 @@ export default function IrisParametric() {
 
 			<div
 				ref={mountRef}
-				className="w-full h-full cursor-grab active:cursor-grabbing"
+				className="pupil-scene w-full h-full cursor-grab active:cursor-grabbing"
 			/>
 		</div>
 	);

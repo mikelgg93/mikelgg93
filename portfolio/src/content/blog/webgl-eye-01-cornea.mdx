@@ -30,7 +30,7 @@ import CorneaKeratoconusCode from '../../components/eye/cornea/CorneaKeratoconus
 import CorneaPlacidoCode from '../../components/eye/cornea/CorneaPlacido.tsx?raw';
 import CorneaRealisticCode from '../../components/eye/cornea/CorneaRealistic.tsx?raw';
 
-Ask a graphics programmer to model an eyeball and the first instinct is usually a glass sphere. It renders fast and looks clean. The problem is that a real eye shaped like a perfect sphere would turn every night-time streetlight into a glowing smear.
+Ask a graphics programmer to model an eyeball and the first instinct is usually a glass sphere. It renders fast and looks clean. The problem is that a spherical cornea would add spherical aberration, spreading the image of a night-time streetlight.
 
 The clear dome at the front of the eye, the **cornea**, is a more interesting shape than a sphere, and it does most of the focusing. Of the eye's roughly 60 diopters of optical power, the cornea supplies about 43. The famous crystalline lens inside handles the rest and does the fine-tuning. But how do we know it is not just a solid dome of biological glass? When Antonie van Leeuwenhoek first looked at corneal tissue through his homemade microscopes in the 1680s, he found it was not glass at all, but a tightly woven fabric of living fibers.
 
@@ -38,7 +38,7 @@ In this series we build the eye one part at a time in WebGL. Each section below 
 
 ## The spherical cap: a first approximation
 
-Before hospital scanners existed, people measured the eye with clever tricks. In 1619 Christoph Scheiner held glass marbles of known size next to a person's eye and matched the reflections until the curvatures agreed. Two centuries of refinement later, we have the number every optometrist still uses: the front of the cornea has a radius of curvature of about $R \approx 7.8\ \text{mm}$.
+Before hospital scanners existed, people measured the eye with clever tricks. In 1619 Christoph Scheiner described estimating corneal curvature by comparing its reflections with those from glass spheres of known curvature. This was an early comparison method, rather than modern quantitative keratometry. Today, a useful typical value is: the front of the cornea has a radius of curvature of about $R \approx 7.8\ \text{mm}$.
 
 The visible cornea is a slightly oval window, roughly $11.7\ \text{mm}$ wide and $10.6\ \text{mm}$ tall, because the white of the eye overlaps it top and bottom. For a first WebGL model we ignore that and slice a clean cap off a sphere.
 
@@ -64,34 +64,35 @@ const geometry = new THREE.SphereGeometry(
   </div>
 </InteractiveViewer>
 
-So why is a sphere a bad lens? Light rays hitting the steep edge of a sphere bend more sharply than rays near the center, so they focus at slightly different points. The result is **spherical aberration**: a bright point of light spreads into a soft halo instead of a crisp dot. To see well at night, the eye had to abandon the sphere.
+So why is a sphere a bad lens? Light rays hitting the steep edge of a sphere bend more sharply than rays near the center, so they focus at slightly different points. The result is **spherical aberration**: a bright point of light spreads into a soft halo instead of a crisp dot. The naturally prolate, aspheric cornea reduces this aberration relative to a spherical surface.
 
 ## The aspheric cornea: flattening the edges (the Q value)
 
-Nature fixes spherical aberration by gently flattening the cornea toward its edges while keeping the center steep. Optical engineers describe this shape mathematically using conic sections (like ellipses or parabolas), governed by a single number: the **conic constant** $Q$. The height of the surface (called the sag, $z$) at a distance $r$ from the center is defined as:
+The cornea typically flattens toward its edges while keeping the center steeper, reducing spherical aberration. Optical engineers describe this shape mathematically using conic sections (like ellipses or parabolas), governed by a single number: the **conic constant** $Q$. The height of the surface (called the sag, $z$) at a distance $r$ from the center is defined as:
 
 $$z(r) = \frac{c\, r^2}{1 + \sqrt{1 - (1+Q)\, c^2 r^2}}$$
 
 Here $c = 1/R$ is the curvature at the very center. The value of $Q$ changes the shape:
 
-- **$Q = 0$ (sphere):** constant curvature everywhere. Strong halos around night lights.
-- **$Q < 0$ (prolate):** steeper center, flatter edges. The healthy human cornea sits near $Q \approx -0.26$.
-- **$Q > 0$ (oblate):** flatter center, steeper edges. Common after laser surgery, and it makes night glare worse.
+- **$Q = 0$ (sphere):** constant curvature everywhere. Adds positive spherical aberration in this refracting-surface model.
+- **$Q < 0$ (prolate):** steeper center, flatter edges. A commonly used typical anterior-corneal value is $Q \approx -0.26$.
+- **$Q > 0$ (oblate):** flatter center, steeper edges. Can occur after myopic laser surgery and increase positive spherical aberration; postoperative Q and visual symptoms vary.
 
-Interestingly, the human cornea does not flatten *all* the way to the value that would cancel spherical aberration completely (about $-0.53$). It leaves a little behind on purpose, because the lens deeper in the eye bends light the opposite way and cancels most of what is left. The two roughly balance out in a young, healthy eye.
+A value near $Q = -0.53$ can remove spherical aberration for an idealised single refracting surface with a corneal refractive index near 1.376. It is not a universal optimum for the whole eye: it depends on the optical model. In many young eyes, positive corneal spherical aberration is partly compensated by negative aberration from the internal optics, especially the crystalline lens. That balance varies with age and accommodation (Artal et al., 2001).
 
 Translating the sag formula into code is almost a direct copy:
 
 ```ts
 const c = 1 / R;                 // curvature at the apex
-for (let r = 0; r <= maxR; r += step) {
+const validR = Q > -1 ? Math.min(maxR, 0.999 * R / Math.sqrt(1 + Q)) : maxR;
+for (let r = 0; r <= validR; r += step) {
   const root = 1 - (1 + Q) * c * c * r * r;
   const z = (c * r * r) / (1 + Math.sqrt(root)); // surface height at radius r
   // ...place a ring of vertices at this height
 }
 ```
 
-Use the buttons below to switch between the healthy human cornea, a perfect sphere, and a post-surgery oblate shape. The color runs from green at the center to the shape's color at the rim, so you can see where each one bends light differently.
+Use the buttons below to switch between a typical human cornea, a spherical cornea, and an oblate / post-myopic-LASIK example. The color runs from green at the center to the shape's color at the rim, so you can see where each one bends light differently.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -104,17 +105,18 @@ Use the buttons below to switch between the healthy human cornea, a perfect sphe
 
 ## Astigmatism: a cornea shaped like a rugby ball
 
-A perfect cornea is equally curved in every direction, like a slice of a basketball. An astigmatic cornea is curved more in one direction than another, like the back of a spoon or a rugby ball. This is **regular astigmatism**, and Thomas Young first measured it on his own eyes in 1801.
+A spherical cornea is equally curved in every direction, like a slice of a basketball. An astigmatic cornea is curved more in one direction than another, like the back of a spoon or a rugby ball. This is **regular astigmatism**. Thomas Young investigated astigmatism in his own eyes in 1801, although he attributed his to the crystalline lens.
 
-We model it by giving the two axes their own curvatures instead of sharing one. This is called a **toric** surface. In code it is the same sag formula as before, but with a separate curvature for $x$ and for $y$:
+We model it by giving the two axes their own curvatures instead of sharing one. We approximate this with a **biconic** surface, a toric-like model with two principal curvatures. In code it is the same sag formula as before, but with a separate curvature for $x$ and for $y$:
 
 ```ts
 // One curvature is no longer enough: cx along X, cy along Y.
+// Choose an aperture within both meridians' conic domains first.
 const root = 1 - (1 + Q) * (cx*cx*x*x + cy*cy*y*y);
 const z = (cx*x*x + cy*y*y) / (1 + Math.sqrt(root));
 ```
 
-The two directions of maximum and minimum curvature are called the **meridians**. In the view below the flat meridian is drawn in blue and the steep one in red. Because the two meridians focus at different distances, an astigmatic eye never forms a single sharp point. Light collapses into two short focal lines with a zone of "least blur" between them, a shape optics calls **Sturm's conoid**.
+The two directions of maximum and minimum curvature are called the **meridians**. In the view below the flat meridian is drawn in blue and the steep one in red. Because the two meridians focus at different distances, uncorrected regular astigmatism prevents a single sharp point focus. Light collapses into two short focal lines with a zone of "least blur" between them, a shape optics calls **Sturm's conoid**.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -127,22 +129,22 @@ The two directions of maximum and minimum curvature are called the **meridians**
 
 ## Inside the cornea: six layers
 
-Up close the cornea is not one clear sheet but six stacked layers, all packed into about half a millimeter (the average central thickness is roughly $540\ \mu\text{m}$):
+Up close the cornea is not one clear sheet but six stacked layers, all packed into about half a millimeter (typical central thickness is approximately $500$–$550\ \mu\text{m}$, with variation between eyes and measurement methods). The thicknesses below are illustrative model values totaling $540\ \mu\text{m}$:
 
-| Layer | Thickness | Refractive index | Role |
-| :--- | :---: | :---: | :--- |
-| **1. Epithelium** | $\approx 50\ \mu\text{m}$ | $1.401$ | Renewing outer cells; gives tears a smooth surface. |
-| **2. Bowman's layer** | $\approx 10\ \mu\text{m}$ | $1.380$ | Tough collagen sheet; protects against scratches. |
-| **3. Stroma** | $\approx 452\ \mu\text{m}$ | $1.376$ | 90% of the thickness; hundreds of ordered collagen sheets. |
-| **4. Dua's layer** | $\approx 15\ \mu\text{m}$ | $1.376$ | Thin but very strong pre-Descemet layer. |
-| **5. Descemet's membrane** | $\approx 8\ \mu\text{m}$ | $1.358$ | Elastic base that the endothelium sits on. |
-| **6. Endothelium** | $\approx 5\ \mu\text{m}$ | $1.335$ | Single sheet of cells that pump water out. |
+| Layer | Thickness | Role |
+| :--- | :---: | :--- |
+| **1. Epithelium** | $\approx 50\ \mu\text{m}$ | Renewing outer cells; gives tears a smooth surface. |
+| **2. Bowman's layer** | $\approx 10\ \mu\text{m}$ | Acellular collagen layer beneath the epithelium; does not regenerate like the epithelium. |
+| **3. Stroma** | $\approx 452\ \mu\text{m}$ | Most of the thickness; hundreds of interwoven collagen lamellae. |
+| **4. Dua's layer** | $\approx 15\ \mu\text{m}$ | Thin but very strong pre-Descemet layer. |
+| **5. Descemet's membrane** | $\approx 8\ \mu\text{m}$ | Elastic base that the endothelium sits on. |
+| **6. Endothelium** | $\approx 5\ \mu\text{m}$ | Single sheet of cells that pump water out. |
 
-**Why is it clear?** The stroma is made of collagen, the same protein as a white, opaque tendon. The trick is spacing: the collagen fibers are packed closer together than half a wavelength of light, so the light they scatter cancels out sideways and only forward-travelling light survives (Benedek, 1971). If the endothelial pumps fail and water floods in, the fibers drift apart, the cancellation breaks, and the cornea turns cloudy white.
+**Why is it clear?** The stroma is made of collagen, the same protein as a white, opaque tendon. The trick is organisation: narrow collagen fibrils have relatively uniform sizes and ordered spacing, so much of their scattered light interferes destructively away from the forward direction (Benedek, 1971; Meek & Knupp, 2015). There is no single half-wavelength spacing cutoff. If the endothelial pumps fail and the stroma swells, this organisation is disrupted and scattering can make the cornea cloudy.
 
 **A recent anatomical debate.** For over a century, textbooks firmly listed five layers. Then, in 2013, researchers proposed a controversial sixth layer (Dua's layer), a thin and unusually tough sheet just in front of Descemet's membrane. While many anatomists still debate whether it is truly a novel layer or just the dense posterior edge of the stroma, its discovery helped explain why a surgical technique that injects an air bubble to separate corneal tissue splits it exactly where it does.
 
-The model below is an **anatomic cross-section drawn to scale**, so you can see just how much of the cornea is stroma. The stroma's collagen sheets are shown as fibers whose direction rotates from one sheet to the next (like plywood, which is where the strength comes from), and the endothelium is drawn as its real hexagonal mosaic. Press the button to pull the layers apart.
+The model below is a **schematic cross-section with approximately proportional layer thicknesses**, so you can see just how much of the cornea is stroma. The stroma's interwoven lamellae are simplified to alternating fiber directions (think plywood), and the mostly hexagonal endothelial mosaic is enlarged for visibility. The exploded view separates and rescales the layers. Press the button to pull the layers apart.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -155,13 +157,13 @@ The model below is an **anatomic cross-section drawn to scale**, so you can see 
 
 ## The tear film and its oil-slick colors
 
-The very first thing light meets is not cells but tears. A film only $3$ to $5\ \mu\text{m}$ thick coats the cornea, and its outermost skin is a layer of oil just $40$ to $100\ \text{nm}$ thick, spread there by glands in the eyelids to slow evaporation.
+The very first thing light meets is not cells but tears. A film only $3$ to $5\ \mu\text{m}$ thick coats the cornea, and its outermost skin is a lipid layer only tens of nanometers thick, supplied by glands in the eyelids. It helps the film spread and remain stable; its contribution to limiting evaporation is more complex than a simple oil barrier (TFOS DEWS II). For this visualisation, we use $40$–$100\ \text{nm}$.
 
-That oil layer is thinner than a wavelength of light, which is exactly the condition for **thin-film interference**, the same effect that paints rainbows on soap bubbles and puddles. Light reflecting off the top of the film and light reflecting off the bottom travel slightly different distances, so some colors reinforce and others cancel. The colors that shine brightest satisfy:
+Its reflected rays have an optical path difference comparable to visible wavelengths, making **thin-film interference** relevant—the same effect that paints rainbows on soap bubbles and puddles. Being thinner than one wavelength is not a strict condition for interference. Light reflecting off the top of the film and light reflecting off the bottom travel slightly different distances, so some colors reinforce and others cancel. For this idealised air–lipid–aqueous film, with one phase reversal on reflection, constructive interference satisfies:
 
 $$2\, n\, d \cos\theta = \left(m - \tfrac{1}{2}\right)\lambda, \quad m = 1, 2, 3, \dots$$
 
-where $n$ is the oil's refractive index, $d$ its thickness, $\theta$ the angle of the light inside the film, $\lambda$ the wavelength, and $m$ is the integer order of interference. Drag the model to catch the faint sheen shifting across the surface.
+where $n$ is the oil's refractive index, $d$ its thickness, $\theta$ the angle of the light inside the film, $\lambda$ the wavelength, and $m$ is the integer order of interference. The RGB shader samples three representative wavelengths and adds a stylised sheen: it is a simplified interference visualisation, not a full spectral thin-film calculation. Drag the model to catch it shifting across the surface.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -176,15 +178,15 @@ where $n$ is the oil's refractive index, $d$ its thickness, $\theta$ the angle o
 
 If the collagen in the stroma weakens, normal eye pressure can push the cornea outward into a cone. This is **keratoconus**, and the bulge usually forms low and slightly off-center rather than at the apex.
 
-Biomechanically, keratoconus involves a dangerous thinning of the tissue. But to approximate it purely visually in our shader, we can do the opposite: start from a healthy sphere and add a small Gaussian bump below the center.
+Biomechanically, keratoconus involves a dangerous thinning of the tissue. But to approximate it purely visually in our shader, we model only the outer shape: start from a spherical cap and add a small Gaussian bump below the center.
 
 ```ts
-let z = Math.sqrt(R*R - rho*rho) - R;   // healthy spherical cornea
+let z = Math.sqrt(R*R - rho*rho) - R;   // spherical starting surface
 const dist = Math.hypot(x, y + 1.5);    // cone centered 1.5 mm below apex
 z += 1.5 * Math.exp(-(dist * dist) / 2); // add a forward bulge
 ```
 
-The effect on vision is worse than plain short-sightedness. The cone is not symmetric, so it does not just shift the focus, it distorts it. A single streetlight smears into a comet-like streak (opticians call this **coma**), and the irregular shape cannot be corrected by ordinary glasses, only by rigid contact lenses or surgery that reshapes or reinforces the tissue. Drag the model to see the cone in profile.
+The effect on vision is worse than plain short-sightedness. The cone is not symmetric, so it does not just shift the focus, it distorts it. A single streetlight smears into a comet-like streak (opticians call this **coma**), and the irregular optics become harder to correct as the condition advances. Glasses can still provide useful correction in mild or early keratoconus. Rigid or scleral lenses can improve irregular optics, cross-linking can stabilise progression, and surgery may be considered depending on severity. Drag the model to see the cone in profile.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -197,7 +199,9 @@ The effect on vision is worse than plain short-sightedness. The cone is not symm
 
 ## Measuring the shape: Placido rings
 
-How does an optician measure these tiny bumps without touching the eye? By watching reflections. In 1880 António Plácido projected a target of concentric black and white rings onto the cornea and looked at the reflection. On a smooth cornea the rings reflect back as clean circles. Where the cornea is steeper, the reflected rings bunch closer together; where it is flatter, they spread apart. A distorted cornea gives distorted rings, like looking through warped glass. Modern computer topographers still work exactly this way.
+How does an optician measure these tiny bumps without touching the eye? By watching reflections. In 1880 António Plácido used a target of concentric black and white rings and observed its corneal reflection. On a smooth cornea the rings reflect back as clean circles. Where the cornea is steeper, the reflected rings bunch closer together; where it is flatter, they spread apart. A distorted cornea gives distorted rings, like looking through warped glass. Placido-based topographers still analyse reflected rings. Modern corneal imaging also uses Scheimpflug imaging, OCT and other techniques.
+
+For this visualisation, the rings are a curvature-based approximation, not a full geometrical reflection simulation. The blue-to-red colors are the demo's encoding of flatter-to-steeper regions, not a universal physical color scale.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -210,7 +214,9 @@ How does an optician measure these tiny bumps without touching the eye? By watch
 
 ## Putting it together
 
-The final model combines everything above: the six layers, a toric shape with its two curvatures shown in clinical diopters ($K = 337.5 / R$ in mm), the aspheric $Q$ flattening, and adjustable thickness. The light rays are a simplified trace through the front surface only. They show *how* astigmatism and asphericity smear a focus, without pretending to be a full optical simulation.
+The final model brings together a biconic front surface, the aspheric $Q$ flattening, and an offset rear surface to illustrate thickness. The two radii are also expressed as **keratometric power**, $K = 337.5 / R$ diopters for $R$ in mm. This uses the conventional keratometric index of 1.3375 to approximate total corneal power from anterior curvature; it is not the refractive index of corneal tissue.
+
+At extreme slider combinations, the displayed aperture narrows to stay within the conic's valid domain. The rays use schematic focal distances to show *how* astigmatism and asphericity spread a focus. The final blur is illustrative, not a quantitative prediction of retinal image quality or visual acuity.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -245,3 +251,9 @@ That gives us a solid front surface for the eye.
 5. **Benedek, G. B. (1971)**. *Theory of transparency of the eye*. Applied Optics, 10(3), 459-473.
 6. **Dua, H. S., Faraj, L. A., Said, D. G., Gray, T., & Lowe, J. (2013)**. *Human Corneal Anatomy Redefined: A Novel Layer (Dua's Layer)*. Ophthalmology, 120(9), 1778-1785.
 7. **Plácido, A. (1880)**. *Novo instrumento para analyse da curvatura da cornea*. Periodico Ophthalmologico, 2(5), 44-49, Lisbon.
+8. **Godefrooij et al. (2018)**. [*Von Helmholtz’s ophthalmometer: historical review and experience with one of the last surviving original devices*](https://doi.org/10.1111/aos.13493).
+9. **Artal et al. (2001)**. [*Compensation of corneal aberrations by the internal optics in the human eye*](https://pubmed.ncbi.nlm.nih.gov/12678609/).
+10. **Calossi, A. (2007)**. [*Corneal asphericity and spherical aberration*](https://pubmed.ncbi.nlm.nih.gov/17523514/).
+11. **Meek & Knupp (2015)**. [*Corneal structure and transparency*](https://pmc.ncbi.nlm.nih.gov/articles/PMC4655862/).
+12. **Willcox et al. (2017)**. [*TFOS DEWS II Tear Film Report*](https://pmc.ncbi.nlm.nih.gov/articles/PMC6035753/).
+13. **American Academy of Ophthalmology**. [*Keratoconus* (EyeWiki)](https://eyewiki.aao.org/Keratoconus); [*Advanced Corneal Imaging in Keratoconus* (2023)](https://pubmed.ncbi.nlm.nih.gov/37855776/).

@@ -1,31 +1,36 @@
+import "./pupil.css";
+import { Html, OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Html } from "@react-three/drei";
+
+import { disposeThree } from "../disposeThree";
 
 function PathwayScene() {
 	const { scene } = useThree();
 	const uniformsListRef = useRef<any[]>([]);
 
 	useEffect(() => {
+		const group = new THREE.Group();
+		scene.add(group);
 		const createNode = (pos: THREE.Vector3, color: number, size = 0.15) => {
 			const geo = new THREE.SphereGeometry(size, 32, 32);
 			const mat = new THREE.MeshBasicMaterial({ color });
 			const mesh = new THREE.Mesh(geo, mat);
 			mesh.position.copy(pos);
-			
+
 			const glowGeo = new THREE.SphereGeometry(size * 1.5, 32, 32);
 			const glowMat = new THREE.MeshBasicMaterial({
 				color,
 				transparent: true,
 				opacity: 0.25,
 				blending: THREE.AdditiveBlending,
-				depthWrite: false
+				depthWrite: false,
 			});
 			const glowMesh = new THREE.Mesh(glowGeo, glowMat);
 			mesh.add(glowMesh);
-			
-			scene.add(mesh);
+
+			group.add(mesh);
 			return mesh;
 		};
 
@@ -67,7 +72,7 @@ function PathwayScene() {
 				`,
 			});
 			const mesh = new THREE.Mesh(geo, mat);
-			scene.add(mesh);
+			group.add(mesh);
 			return mesh;
 		};
 
@@ -98,26 +103,90 @@ function PathwayScene() {
 		createNode(ganglionL, colNode);
 		createNode(ganglionR, colNode);
 
-		createTract([eyeL, new THREE.Vector3(-0.5, 0, 2.5), chiasm, new THREE.Vector3(0.4, 0, 1), pretectalR], colSensory, 0.04, 0.0);
-		createTract([eyeL, new THREE.Vector3(-1.5, 0, 3), new THREE.Vector3(-0.8, 0, 1.5), pretectalL], colSensory, 0.04, 0.0);
-		createTract([eyeR, new THREE.Vector3(0.5, 0, 2.5), chiasm, new THREE.Vector3(-0.4, 0, 1), pretectalL], colSensory, 0.04, 0.0);
-		createTract([eyeR, new THREE.Vector3(1.5, 0, 3), new THREE.Vector3(0.8, 0, 1.5), pretectalR], colSensory, 0.04, 0.0);
+		createTract(
+			[
+				eyeL,
+				new THREE.Vector3(-0.5, 0, 2.5),
+				chiasm,
+				new THREE.Vector3(0.4, 0, 1),
+				pretectalR,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
+		createTract(
+			[
+				eyeL,
+				new THREE.Vector3(-1.5, 0, 3),
+				new THREE.Vector3(-0.8, 0, 1.5),
+				pretectalL,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
+		createTract(
+			[
+				eyeR,
+				new THREE.Vector3(0.5, 0, 2.5),
+				chiasm,
+				new THREE.Vector3(-0.4, 0, 1),
+				pretectalL,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
+		createTract(
+			[
+				eyeR,
+				new THREE.Vector3(1.5, 0, 3),
+				new THREE.Vector3(0.8, 0, 1.5),
+				pretectalR,
+			],
+			colSensory,
+			0.04,
+			0.0,
+		);
 
 		const pcL = new THREE.Vector3(-0.2, 0.2, -0.1);
 		const pcR = new THREE.Vector3(0.2, 0.2, -0.1);
 
-		createTract([pretectalL, new THREE.Vector3(-0.6, 0.15, -0.2), ewL], colInter, 0.04, -0.3);
+		createTract(
+			[pretectalL, new THREE.Vector3(-0.6, 0.15, -0.2), ewL],
+			colInter,
+			0.04,
+			-0.3,
+		);
 		createTract([pretectalL, pcL, pcR, ewR], colInter, 0.04, -0.3);
-		createTract([pretectalR, new THREE.Vector3(0.6, 0.15, -0.2), ewR], colInter, 0.04, -0.3);
+		createTract(
+			[pretectalR, new THREE.Vector3(0.6, 0.15, -0.2), ewR],
+			colInter,
+			0.04,
+			-0.3,
+		);
 		createTract([pretectalR, pcR, pcL, ewL], colInter, 0.04, -0.3);
 
-		createTract([ewL, new THREE.Vector3(-1.0, 0, 1.5), ganglionL], colMotor, 0.04, -0.6);
-		createTract([ewR, new THREE.Vector3(1.0, 0, 1.5), ganglionR], colMotor, 0.04, -0.6);
+		createTract(
+			[ewL, new THREE.Vector3(-1.0, 0, 1.5), ganglionL],
+			colMotor,
+			0.04,
+			-0.6,
+		);
+		createTract(
+			[ewR, new THREE.Vector3(1.0, 0, 1.5), ganglionR],
+			colMotor,
+			0.04,
+			-0.6,
+		);
 
 		createTract([ganglionL, eyeL], colMotor, 0.04, -0.8);
 		createTract([ganglionR, eyeR], colMotor, 0.04, -0.8);
 
 		return () => {
+			scene.remove(group);
+			disposeThree(group);
 			uniformsListRef.current = [];
 		};
 	}, [scene]);
@@ -133,27 +202,32 @@ function PathwayScene() {
 		<>
 			<Html position={[-2, 0.4, 4]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Retina
+					<span className="md:hidden">1</span>
+					<span className="hidden md:inline">Retina</span>
 				</div>
 			</Html>
 			<Html position={[0, 0.4, 2]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Optic Chiasm
+					<span className="md:hidden">2</span>
+					<span className="hidden md:inline">Optic Chiasm</span>
 				</div>
 			</Html>
 			<Html position={[-0.8, 0.3, 0]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Pretectal Nucleus
+					<span className="md:hidden">3</span>
+					<span className="hidden md:inline">Pretectal Nucleus</span>
 				</div>
 			</Html>
 			<Html position={[-0.4, 0.6, -0.4]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Edinger-Westphal Nucleus
+					<span className="md:hidden">4</span>
+					<span className="hidden md:inline">Edinger-Westphal Nucleus</span>
 				</div>
 			</Html>
 			<Html position={[-2.3, -0.3, 3]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
-					Ciliary Ganglion
+					<span className="md:hidden">5</span>
+					<span className="hidden md:inline">Ciliary Ganglion</span>
 				</div>
 			</Html>
 		</>
@@ -162,34 +236,51 @@ function PathwayScene() {
 
 export default function NervePathway() {
 	return (
-		<div className="relative w-full h-[400px] bg-transparent overflow-hidden rounded-lg">
-			<div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+		<div className="pupil-demo relative w-full h-[400px] bg-transparent overflow-hidden rounded-lg">
+			<div className="pupil-metrics absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-blue-500"></div>
-					<span className="text-xs text-slate-300 font-medium">
+					<span className="text-xs text-muted-foreground font-medium">
 						Sensory (Optic Nerve)
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-purple-500"></div>
-					<span className="text-xs text-slate-300 font-medium">
+					<span className="text-xs text-muted-foreground font-medium">
 						Interneurons
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-					<span className="text-xs text-slate-300 font-medium">
-						Motor (CN III to Iris)
+					<span className="text-xs text-muted-foreground font-medium">
+						Motor (CN III → ganglion → short ciliary nerves)
 					</span>
 				</div>
 			</div>
-			
-			<div className="w-full h-full cursor-grab active:cursor-grabbing">
-				<Canvas camera={{ position: [0, 8, 10], fov: 35 }}>
+
+			<div className="pupil-scene w-full h-full cursor-grab active:cursor-grabbing">
+				<Canvas
+					className="pupil-canvas"
+					camera={{ position: [0, 8, 10], fov: 35 }}
+				>
 					<PathwayScene />
-					<OrbitControls enableDamping dampingFactor={0.05} target={[0, 0, 1.5]} />
+					<OrbitControls
+						enableDamping
+						dampingFactor={0.05}
+						target={[0, 0, 1.5]}
+					/>
 				</Canvas>
 			</div>
+			<ol
+				className="pupil-controls grid grid-cols-2 gap-2 list-none p-0 text-xs text-muted-foreground md:hidden"
+				aria-label="Pathway labels"
+			>
+				<li>1. Retina</li>
+				<li>2. Optic Chiasm</li>
+				<li>3. Pretectal Nucleus</li>
+				<li>4. Edinger-Westphal Nucleus</li>
+				<li>5. Ciliary Ganglion</li>
+			</ol>
 		</div>
 	);
 }

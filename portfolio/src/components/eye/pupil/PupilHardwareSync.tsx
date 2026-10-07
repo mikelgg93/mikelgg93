@@ -1,28 +1,32 @@
+import "./pupil.css";
 import { ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
+import {
+	createPupilReceiver,
+	drawPupilGraph,
+	type PupilSample,
+	validPupil,
+} from "./neonPupil";
 
 export default function PupilHardwareSync() {
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
 	const [deviceIp, setDeviceIp] = useState("192.168.18.39");
 	const [status, setStatus] = useState<
-		"disconnected" | "connecting" | "streaming"
+		"disconnected" | "connecting" | "streaming" | "error"
 	>("disconnected");
 	const [errorMsg, setErrorMsg] = useState("");
-	const [pupilMm, setPupilMm] = useState<{ left: number; right: number }>({
-		left: 0,
-		right: 0,
+	const [pupilMm, setPupilMm] = useState<PupilSample>({
+		left: null,
+		right: null,
 	});
 	const [isSettingsOpen, setIsSettingsOpen] = useState(true);
 
-	const scriptRef = useRef<HTMLScriptElement | null>(null);
-	const originalWsRef = useRef<any>(null);
-	const dummyRootRef = useRef<HTMLDivElement | null>(null);
-
-	// Graph state
+	// Disposal deliberately has no React state updates: safe on unmount/cancel.
+	const disposeConnectionRef = useRef<(() => void) | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const historyRef = useRef<{ left: number; right: number }[]>([]);
+	const historyRef = useRef<PupilSample[]>([]);
 
 	useEffect(() => {
 		if (!mountRef.current) return;
@@ -38,116 +42,182 @@ export default function PupilHardwareSync() {
 				sceneRef.current.dispose();
 				sceneRef.current = null;
 			}
-			cleanupSandbox();
+			disposeConnectionRef.current?.();
 		};
-		// biome-ignore lint/correctness/useExhaustiveDependencies: mount only
 	}, []);
-
-	const updateGraph = (val: { left: number; right: number }) => {
-		const history = historyRef.current;
-		history.push(val);
-		// 5 seconds at 200 Hz = 1000 points
-		if (history.length > 1000) history.shift();
-
-		const canvas = canvasRef.current;
-		if (!canvas) return;
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
-
-		const w = canvas.width;
-		const h = canvas.height;
-		ctx.clearRect(0, 0, w, h);
-
-		ctx.lineWidth = 2;
-
-		// Draw Right Eye (Blue)
-		ctx.beginPath();
-		ctx.strokeStyle = "#3b82f6"; // blue-500
-		for (let i = 0; i < history.length; i++) {
-			const x = history.length > 1 ? (i / (history.length - 1)) * w : 0;
-			const rawY = h - ((history[i].right - 1) / 8) * h;
-			const y = Math.min(Math.max(rawY, 0), h);
-			if (i === 0) ctx.moveTo(x, y);
-			else ctx.lineTo(x, y);
-		}
-		ctx.stroke();
-
-		// Draw Left Eye (Emerald)
-		ctx.beginPath();
-		ctx.strokeStyle = "#10b981"; // emerald-500
-		for (let i = 0; i < history.length; i++) {
-			const x = history.length > 1 ? (i / (history.length - 1)) * w : 0;
-			const rawY = h - ((history[i].left - 1) / 8) * h;
-			const y = Math.min(Math.max(rawY, 0), h);
-			if (i === 0) ctx.moveTo(x, y);
-			else ctx.lineTo(x, y);
-		}
-		ctx.stroke();
-	};
-
-	const cleanupSandbox = () => {
-		if ((window as any)._neonGazeCallback) {
-			delete (window as any)._neonGazeCallback;
-		}
-		if (scriptRef.current?.parentNode) {
-			scriptRef.current.parentNode.removeChild(scriptRef.current);
-			scriptRef.current = null;
-		}
-		if (dummyRootRef.current?.parentNode) {
-			dummyRootRef.current.parentNode.removeChild(dummyRootRef.current);
-			dummyRootRef.current = null;
-		}
-	};
 
 	const toggleConnection = async () => {
 		if (status === "streaming" || status === "connecting") {
-			cleanupSandbox();
+			disposeConnectionRef.current?.();
 			setStatus("disconnected");
 			return;
 		}
 
+		disposeConnectionRef.current?.();
 		setStatus("connecting");
 		setErrorMsg("");
-		try {
-			// Restrict the input to a simple local IPv4/hostname format before embedding it in the generated code
-			const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^localhost$|^neon\.local$/i;
-			if (!ipRegex.test(deviceIp.trim())) {
-				throw new Error("Security: Please provide a valid local IP address or hostname.");
+		setPupilMm({ left: null, right: null });
+		historyRef.current = [];
+		const canvas = canvasRef.current;
+		const context = canvas?.getContext("2d");
+		if (canvas && context)
+			drawPupilGraph(context, [], canvas.width, canvas.height);
+
+		const abort = new AbortController();
+		const sockets = new Set<WebSocket>();
+		let frame: HTMLIFrameElement | null = null;
+		let disposed = false;
+		let lastSampleAt = performance.now();
+		let receivedFirstSample = false;
+		let animationFrame: number | null = null;
+		let latest: PupilSample | null = null;
+		let restoreStorage: (() => void) | null = null;
+		const watchdog = window.setInterval(() => {
+			if (
+				performance.now() - lastSampleAt >
+				(receivedFirstSample ? 5000 : 15000)
+			) {
+				fail(
+					receivedFirstSample
+						? "Pupil stream stopped. Reconnect to try again."
+						: "No pupil stream received. Check the device and enable Compute Eye State.",
+				);
 			}
-			const safeIp = deviceIp.trim();
+		}, 1000);
+		const dispose = () => {
+			if (disposed) return;
+			disposed = true;
+			abort.abort();
+			window.clearInterval(watchdog);
+			if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+			for (const socket of sockets) socket.close();
+			sockets.clear();
+			frame?.remove(); // destroys the Monitor document's listeners and timers
+			restoreStorage?.();
+			if (disposeConnectionRef.current === dispose)
+				disposeConnectionRef.current = null;
+		};
+		disposeConnectionRef.current = dispose;
+		const fail = (message: string) => {
+			if (disposed) return;
+			dispose();
+			setErrorMsg(message);
+			setStatus("error");
+		};
+		try {
+			const safeIp = deviceIp.trim().toLowerCase();
+			const ipv4 =
+				/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(safeIp) &&
+				safeIp.split(".").every((part) => Number(part) <= 255);
+			if (!ipv4 && safeIp !== "localhost" && safeIp !== "neon.local") {
+				throw new Error(
+					"Please provide a valid device IPv4 address, localhost or neon.local.",
+				);
+			}
 
-			// 1. Create a hidden dummy root for the Neon app to mount to
-			const dummyRoot = document.createElement("div");
+			// Keep the Companion Monitor bundle and its WebSocket integration.
+			// A hidden iframe gives its DOM, listeners and timers a disposable lifetime.
+			// It is same-origin for callbacks, not a security boundary for the bundle.
+			frame = document.createElement("iframe");
+			frame.title = "Neon Companion Monitor";
+			frame.style.display = "none";
+			document.body.appendChild(frame);
+			const frameDocument = frame.contentDocument!;
+			const frameWindow = frame.contentWindow! as Window & {
+				_neonObserve?: (socket: WebSocket, url: string) => void;
+			};
+			const base = frameDocument.createElement("base");
+			base.href = `http://${safeIp}:8080/`;
+			frameDocument.head.appendChild(base);
+			const dummyRoot = frameDocument.createElement("div");
 			dummyRoot.id = "neon-dummy-root";
-			dummyRoot.style.display = "none";
-			document.body.appendChild(dummyRoot);
-			dummyRootRef.current = dummyRoot;
+			frameDocument.body.appendChild(dummyRoot);
+			frameWindow.addEventListener("error", () =>
+				fail(
+					"Could not load the Companion Monitor. Check browser access to the device.",
+				),
+			);
+			frameWindow.addEventListener("unhandledrejection", () =>
+				fail(
+					"Companion Monitor connection failed. Check browser access to the device.",
+				),
+			);
 
-			// 2. Set up a global callback for the scoped WebSocket interceptor
-			// Each eye arrives as a number or NaN (invalid / missing sample).
-			let receivedFirstSample = false;
-			(window as any)._neonGazeCallback = (pupil_left: number, pupil_right: number) => {
+			const onSample = (sample: PupilSample) => {
+				if (disposed) return;
+				const left = validPupil(sample.left) ? sample.left : null;
+				const right = validPupil(sample.right) ? sample.right : null;
+				if (left === null && right === null) return;
+				lastSampleAt = performance.now();
 				if (!receivedFirstSample) {
 					receivedFirstSample = true;
 					setStatus("streaming");
 				}
-				const left = Number.isNaN(pupil_left) ? pupil_right : pupil_left;
-				const right = Number.isNaN(pupil_right) ? pupil_left : pupil_right;
-				if (sceneRef.current) {
-					sceneRef.current.params.pupilRadius = ((left + right) / 2) * (0.5 / 12.0);
-				}
-				const newData = { left, right };
-				setPupilMm(newData);
-				updateGraph(newData);
+				latest = { left, right }; // preserve missing eyes as gaps, not invented measurements
+				historyRef.current.push(latest);
+				if (historyRef.current.length > 1000) historyRef.current.shift();
+				// Measurements may arrive at 200 Hz; presentation follows browser frames.
+				if (animationFrame === null)
+					animationFrame = requestAnimationFrame(() => {
+						animationFrame = null;
+						if (disposed || !latest) return;
+						const values = [latest.left, latest.right].filter(validPupil);
+						const mean =
+							values.reduce((sum, value) => sum + value, 0) / values.length;
+						if (sceneRef.current)
+							sceneRef.current.params.pupilRadius = mean * (0.5 / 12.0);
+						setPupilMm(latest);
+						const graph = canvasRef.current;
+						const ctx = graph?.getContext("2d");
+						if (graph && ctx)
+							drawPupilGraph(
+								ctx,
+								historyRef.current,
+								graph.width,
+								graph.height,
+							);
+					});
+			};
+			frameWindow._neonObserve = (socket, url) => {
+				sockets.add(socket);
+				socket.addEventListener("close", () => sockets.delete(socket));
+				const parsedUrl = new URL(url);
+				if (
+					parsedUrl.hostname !== safeIp ||
+					parsedUrl.pathname.includes("status")
+				)
+					return;
+				const receive = createPupilReceiver(onSample);
+				// Preserve message order even if the Monitor uses Blob rather than ArrayBuffer.
+				let pending = Promise.resolve();
+				socket.addEventListener("message", (event) => {
+					if (typeof event.data === "string") return;
+					pending = pending
+						.then(async () => {
+							if (disposed) return;
+							const data =
+								typeof event.data?.arrayBuffer === "function"
+									? await event.data.arrayBuffer()
+									: event.data;
+							if (!disposed) receive(new Uint8Array(data));
+						})
+						.catch(() => fail("Could not read the pupil stream."));
+				});
+				socket.addEventListener("error", () =>
+					fail("Neon stream connection failed."),
+				);
 			};
 
 			// 3. Fetch the device's webapp dynamically
 			const fetchOpts = {
-				headers: { Connection: "close" },
+				signal: abort.signal,
 				cache: "no-store" as RequestCache,
 			};
 			const htmlRes = await fetch(`http://${safeIp}:8080/`, fetchOpts);
+			if (!htmlRes.ok)
+				throw new Error(`Companion returned HTTP ${htmlRes.status}`);
 			const html = await htmlRes.text();
+			if (disposed) return;
 			const scriptMatch = html.match(/src="(\/assets\/index-[^"]+\.js)"/);
 			if (!scriptMatch)
 				throw new Error("Could not find index.js in the Neon device response");
@@ -157,15 +227,23 @@ export default function PupilHardwareSync() {
 				`http://${safeIp}:8080${scriptMatch[1]}`,
 				fetchOpts,
 			);
+			if (!jsRes.ok)
+				throw new Error(`Monitor bundle returned HTTP ${jsRes.status}`);
 			let scriptText = await jsRes.text();
+			if (disposed) return;
 
-			// Nuke its ability to take over our #root element
+			// Keep the Monitor mount point scoped to its hidden document
 			scriptText = scriptText.replace(
 				/getElementById\(['"]root['"]\)/g,
 				"getElementById('neon-dummy-root')",
 			);
 
 			// Force the app to always subscribe to the gaze stream regardless of UI toggles/tabs
+			const previousGazeSize = localStorage.getItem("forceGazeSize");
+			restoreStorage = () => {
+				if (previousGazeSize === null) localStorage.removeItem("forceGazeSize");
+				else localStorage.setItem("forceGazeSize", previousGazeSize);
+			};
 			localStorage.setItem("forceGazeSize", "10");
 			scriptText = scriptText.replace(/gazeRadiusPercent/g, "forceGazeSize");
 			scriptText = scriptText.replace(/!document\.hidden/g, "true");
@@ -187,72 +265,33 @@ export default function PupilHardwareSync() {
 				`("${safeIp}:8080")`,
 			);
 
-			// 5. Inject locally scoped WebSocket interceptor directly into the bundle
+			// 5. Scope the interceptor to sockets constructed by the Monitor bundle.
 			scriptText = scriptText.replace(
 				/new\s+(?:window\.)?WebSocket\b/g,
 				`new (class extends WebSocket {
 					constructor(url, protocols) {
 						super(url, protocols);
-						if (url.includes("${safeIp}") && !url.includes("status")) {
-							let expectingRtpPacket = false;
-							this.addEventListener("message", (event) => {
-								if (typeof event.data === "string") return;
-								const buffer = new Uint8Array(event.data);
-								if (buffer[0] === 0x24 && buffer.length === 4) {
-									expectingRtpPacket = true;
-									return;
-								}
-								if (expectingRtpPacket) {
-									expectingRtpPacket = false;
-									// RTP header: 12 fixed bytes + 4 per CSRC (CC, low nibble of byte 0)
-									// + optional header extension (X bit) of 4 + 4*length bytes.
-									if (buffer.length < 12) return;
-									const csrcCount = buffer[0] & 0x0f;
-									const hasExtension = (buffer[0] & 0x10) !== 0;
-									let payloadOffset = 12 + csrcCount * 4;
-									if (hasExtension && buffer.length >= payloadOffset + 4) {
-										const extWords = (buffer[payloadOffset + 2] << 8) | buffer[payloadOffset + 3];
-										payloadOffset += 4 + extWords * 4;
-									}
-									const payloadSize = buffer.length - payloadOffset;
-									// Eye-state gaze payload (65 bytes): pupil_diameter_left @ 9, pupil_diameter_right @ 37, big-endian float32
-									if (payloadSize >= 65 && window._neonGazeCallback) {
-										const dataView = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-										const valid = (v) => Number.isFinite(v) && v > 0 && v < 15;
-										const rawLeft = dataView.getFloat32(payloadOffset + 9, false);
-										const rawRight = dataView.getFloat32(payloadOffset + 37, false);
-										const pupil_left = valid(rawLeft) ? rawLeft : NaN;
-										const pupil_right = valid(rawRight) ? rawRight : NaN;
-										if (!Number.isNaN(pupil_left) || !Number.isNaN(pupil_right)) {
-											window._neonGazeCallback(pupil_left, pupil_right);
-										}
-									}
-								}
-							});
-						}
+						window._neonObserve(this, this.url);
 					}
-				})`
+				})`,
 			);
-
-			const script = document.createElement("script");
+			const script = frameDocument.createElement("script");
 			script.type = "module";
 			script.textContent = scriptText;
-			document.body.appendChild(script);
-			scriptRef.current = script;
-		} catch (e: any) {
-			console.error("Neon Connection Error:", e);
-			setErrorMsg(
-				e.message || "Failed to fetch. Device asleep or cross-origin blocked.",
+			script.onerror = () =>
+				fail("Could not load the Companion Monitor bundle.");
+			frameDocument.body.appendChild(script);
+		} catch (error: unknown) {
+			fail(
+				error instanceof Error ? error.message : "Could not connect to Neon.",
 			);
-			cleanupSandbox();
-			setStatus("disconnected");
 		}
 	};
 
 	return (
-		<div className="relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
+		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
 			{/* Collapsible Settings Overlay */}
-			<div className="absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 shadow-xl pointer-events-auto transition-all">
+			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 shadow-xl pointer-events-auto transition-all">
 				<div
 					className="flex items-center justify-between cursor-pointer select-none"
 					onClick={() => setIsSettingsOpen(!isSettingsOpen)}
@@ -265,6 +304,9 @@ export default function PupilHardwareSync() {
 					</div>
 					<div className="flex items-center gap-2">
 						<div
+							role="status"
+							aria-label={status}
+							title={status}
 							className={`w-2 h-2 rounded-full ${status === "streaming" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
 						/>
 						{isSettingsOpen ? (
@@ -279,9 +321,12 @@ export default function PupilHardwareSync() {
 					<div className="flex flex-col gap-2 mt-3">
 						<input
 							type="text"
+							aria-label="Neon device address"
+							autoCapitalize="none"
+							spellCheck={false}
 							value={deviceIp}
 							onChange={(e) => setDeviceIp(e.target.value)}
-							disabled={status !== "disconnected"}
+							disabled={status === "connecting" || status === "streaming"}
 							className="bg-background/50 border border-input rounded-md px-2 py-1.5 text-[11px] text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-ring"
 						/>
 						<button
@@ -292,7 +337,7 @@ export default function PupilHardwareSync() {
 							{status === "streaming"
 								? "Disconnect"
 								: status === "connecting"
-									? "Connecting..."
+									? "Cancel connection"
 									: "Connect"}
 						</button>
 						{errorMsg && (
@@ -306,11 +351,11 @@ export default function PupilHardwareSync() {
 
 			<div
 				ref={mountRef}
-				className="w-full h-full cursor-grab active:cursor-grabbing"
+				className="pupil-scene w-full h-full cursor-grab active:cursor-grabbing"
 			/>
 
 			{/* Main View Real-time Graph (Bottom) */}
-			<div className="absolute bottom-0 left-0 w-full h-28 bg-gradient-to-t from-background/90 to-transparent pointer-events-none flex items-end">
+			<div className="pupil-stream-graph absolute bottom-0 left-0 w-full h-28 bg-gradient-to-t from-background/90 to-transparent pointer-events-none flex items-end">
 				<canvas
 					ref={canvasRef}
 					width={1000}
@@ -321,10 +366,10 @@ export default function PupilHardwareSync() {
 					1mm
 				</div>
 				<div className="absolute left-2 top-2 text-[10px] text-muted-foreground font-mono">
-					9mm
+					10mm
 				</div>
 				<div className="absolute right-2 top-2 text-[10px] text-emerald-500/70 font-mono font-bold tracking-wider uppercase">
-					LAST 5s
+					LAST 1000 SAMPLES
 				</div>
 
 				<div className="absolute right-4 bottom-2 flex gap-4">
@@ -334,7 +379,7 @@ export default function PupilHardwareSync() {
 						</span>
 						<div className="flex items-baseline gap-1">
 							<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">
-								{pupilMm.left.toFixed(2)}
+								{pupilMm.left?.toFixed(2) ?? "—"}
 							</span>
 							<span className="text-xs font-semibold text-muted-foreground">
 								mm
@@ -347,7 +392,7 @@ export default function PupilHardwareSync() {
 						</span>
 						<div className="flex items-baseline gap-1">
 							<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">
-								{pupilMm.right.toFixed(2)}
+								{pupilMm.right?.toFixed(2) ?? "—"}
 							</span>
 							<span className="text-xs font-semibold text-muted-foreground">
 								mm

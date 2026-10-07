@@ -1,3 +1,4 @@
+import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
 
@@ -33,7 +34,7 @@ export default function PupilStep2() {
 		const queue: { time: number; targetD: number }[] = [];
 		let currentD = 6.0;
 
-		const calcWatson = (L: number) => {
+		const pupilFromLuminance = (L: number) => {
 			const logL = Math.log10(Math.max(0.0001, L));
 			return Math.min(8, Math.max(2, 4.9 - 3.0 * Math.tanh(0.4 * logL + 0.4)));
 		};
@@ -41,29 +42,30 @@ export default function PupilStep2() {
 		s.setOnFrame((dt) => {
 			const now = performance.now() / 1000;
 			const p = paramsRef.current;
-			const targetD = calcWatson(p.targetLuminance);
+			const targetD = pupilFromLuminance(p.targetLuminance);
 
 			const delay = p.latencyActive ? 0.22 : 0.0;
 			queue.push({ time: now, targetD });
-			while (queue.length && queue[0].time < now - 1.0) queue.shift();
-			let delayedTargetD = targetD;
+			while (queue.length && queue[0]!.time < now - 1.0) queue.shift();
+			let delayedTargetD = currentD;
 			const targetTime = now - delay;
 			for (let i = queue.length - 1; i >= 0; i--) {
-				if (queue[i].time <= targetTime) {
-					delayedTargetD = queue[i].targetD;
+				if (queue[i]!.time <= targetTime) {
+					delayedTargetD = queue[i]!.targetD;
 					break;
 				}
 			}
 
 			const diff = delayedTargetD - currentD;
 			if (Math.abs(diff) > 0.001) {
+				// Simulation time constants (seconds), not physiological constants.
 				const tau = diff < 0 ? 0.12 : 0.65;
-				currentD += (diff / tau) * dt;
+				currentD += diff * (1 - Math.exp(-dt / tau));
 			}
 			s.params.pupilRadius = currentD * (0.5 / 12.0);
 
 			history.push({ targetD, actualD: currentD, time: now });
-			while (history.length > 300) history.shift();
+			while (history.length && history[0]!.time < now - 4) history.shift();
 
 			const canvas = canvasRef.current;
 			const ctx = canvas?.getContext("2d");
@@ -78,7 +80,7 @@ export default function PupilStep2() {
 					ctx.stroke();
 				}
 				if (history.length > 1) {
-					const t0 = history[0].time;
+					const t0 = now - 4;
 					const win = 4.0;
 					const plot = (
 						key: "targetD" | "actualD",
@@ -135,9 +137,9 @@ export default function PupilStep2() {
 	}, []);
 
 	return (
-		<div className="relative w-full bg-transparent rounded-lg overflow-hidden flex flex-col gap-4 p-4">
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[500px] md:h-[340px]">
-				<div className="relative w-full h-full min-h-[240px] md:min-h-0 rounded-xl overflow-hidden bg-card/40 border border-border">
+		<div className="pupil-demo relative w-full bg-transparent rounded-lg overflow-hidden flex flex-col gap-3 p-2 sm:gap-4 sm:p-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 md:h-[500px]">
+				<div className="relative w-full aspect-square md:aspect-auto md:h-full rounded-xl overflow-hidden bg-card/40 border border-border">
 					<div
 						ref={mountRef}
 						className="absolute inset-0 cursor-grab active:cursor-grabbing"
@@ -147,8 +149,8 @@ export default function PupilStep2() {
 					</div>
 				</div>
 
-				<div className="relative w-full h-full min-h-[240px] md:min-h-0 rounded-xl overflow-hidden bg-card/60 border border-border p-3 flex flex-col justify-between">
-					<div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+				<div className="relative w-full h-[200px] md:h-full rounded-xl overflow-hidden bg-card/60 border border-border p-3 flex flex-col justify-between">
+					<div className="flex flex-wrap gap-2 justify-between items-center text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						<span>Reflex over time</span>
 						<div className="flex items-center gap-3">
 							<span className="text-amber-500">- - target</span>

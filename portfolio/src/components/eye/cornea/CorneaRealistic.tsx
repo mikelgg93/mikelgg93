@@ -110,8 +110,10 @@ export default function CorneaRealistic() {
 		mountRef.current.appendChild(renderer.domElement);
 
 		const pmrem = new THREE.PMREMGenerator(renderer);
-		const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-		scene.environment = envTex;
+		const environment = new RoomEnvironment();
+		const environmentTarget = pmrem.fromScene(environment, 0.04);
+		environment.dispose();
+		scene.environment = environmentTarget.texture;
 
 		const controls = new OrbitControls(camera, renderer.domElement);
 		controls.enableDamping = true;
@@ -220,13 +222,14 @@ export default function CorneaRealistic() {
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
+			controls.dispose();
 			geo.dispose();
 			mat.dispose();
 			filmMap.dispose();
 			worldTex.dispose();
 			world.geometry.dispose();
 			(world.material as THREE.Material).dispose();
-			envTex.dispose();
+			environmentTarget.dispose();
 			pmrem.dispose();
 			renderer.dispose();
 		};

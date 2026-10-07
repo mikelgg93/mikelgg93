@@ -66,27 +66,27 @@ Arrastra el control deslizante de diámetro para abrir y cerrar la pupila, encie
 
 ¿Por qué importa tanto el tamaño de la pupila? Porque la cantidad de luz que llega a la retina depende del *área* del agujero. Pequeños cambios en el tamaño de la pupila tienen un gran efecto: pasar de una pupila de $2\ \text{mm}$ a la luz del sol a una pupila de $8\ \text{mm}$ en la oscuridad es un cambio de 4x en el diámetro, pero un cambio de 16x en el área. Sin embargo, el área no es toda la historia. El **efecto Stiles-Crawford de primer tipo (SCE-I)** demuestra que la luz que entra por el *borde* de una pupila ancha es menos efectiva que la luz que entra por el centro, por lo que el área pupilar *efectiva* crece más lentamente que el área geométrica. Esto ocurre porque la retina no es un sensor plano y uniforme; sus conos actúan como diminutas fibras ópticas orientadas hacia el centro de la pupila. El efecto Stiles-Crawford (Stiles y Crawford, 1933) está asociado principalmente a la visión mediada por los conos, por lo que su influencia es mucho menos relevante en condiciones plenamente escotópicas y dominadas por los bastones.
 
-Más allá de simplemente dejar entrar la luz, la pupila actúa como la apertura del ojo para la nitidez. La calidad óptica del ojo se rige por su Función de Dispersión de Punto (PSF, por sus siglas en inglés) y su Función de Transferencia de Modulación (MTF), las cuales dependen estrechamente del diámetro pupilar. Si la pupila es demasiado pequeña, la difracción desenfoca la imagen; si es demasiado grande, las aberraciones ópticas periféricas de la córnea y el cristalino arruinan el enfoque. El tamaño de reposo de la pupila de alrededor de 3 a 4 mm optimiza naturalmente la nitidez visual al encontrar el equilibrio perfecto entre la difracción y las aberraciones.
+Más allá de simplemente dejar entrar la luz, la pupila actúa como la apertura del ojo para la nitidez. La calidad óptica del ojo se rige por su Función de Dispersión de Punto (PSF, por sus siglas en inglés) y su Función de Transferencia de Modulación (MTF), las cuales dependen estrechamente del diámetro pupilar. Si la pupila es demasiado pequeña, la difracción desenfoca la imagen; si es demasiado grande, las aberraciones ópticas periféricas de la córnea y el cristalino arruinan el enfoque. Los diámetros de unos 3 a 4 mm suelen ofrecer un equilibrio útil entre difracción y aberraciones, pero el óptimo depende del ojo y de la tarea visual; el tamaño de reposo no es fijo.
 
 > [!NOTE]
 > **¿Afecta el color del iris a la cantidad de luz que entra?**
 >
-> Sí. La pigmentación del iris afecta a la dispersión intraocular de la luz. Los iris de color marrón oscuro están repletos de melanina que absorbe la luz. Los iris más claros (como los azules, verdes o avellana) tienen menos melanina, lo que puede permitir que se disperse más luz a través del tejido del iris. Esto puede contribuir a un mayor deslumbramiento y luz dispersa en personas con iris más claros.
+> Sí. La pigmentación del iris afecta a la dispersión intraocular de la luz. Los iris de color marrón oscuro están repletos de melanina que absorbe la luz. Los iris más claros (como los azules, verdes o avellana) tienen menos melanina, lo que puede permitir que se disperse más luz a través del tejido del iris. Esto puede contribuir a la luz dispersa y al deslumbramiento, pero el color del iris por sí solo no predice la sensibilidad individual al deslumbramiento (van den Berg et al., 1991).
 
-¿Qué tan grande debería ser la pupila a un brillo dado? Una regla empírica útil derivada a menudo de Moon y Spencer (1944) da un diámetro de pupila en reposo binocular de estado estacionario que sigue una curva suave del brillo de la escena. (Para esta visualización utilizamos una aproximación simplificada basada solo en la luminancia e inspirada en modelos establecidos del tamaño de la pupila. El modelo unificado de Watson y Yellott (2012) tiene en cuenta adicionalmente factores como la edad, el tamaño del campo visual y la visión binocular. Recuerda que estas describen la adaptación en *estado estacionario*, no el reflejo transitorio).
+¿Qué tan grande debería ser la pupila a un brillo dado? Una regla empírica útil da un diámetro pupilar de estado estacionario que sigue una curva suave del brillo de la escena, en la línea de Moon y Spencer (1944). (Para esta visualización utilizamos una aproximación simplificada basada solo en la luminancia e inspirada en modelos establecidos del tamaño de la pupila. El modelo unificado de Watson y Yellott (2012) tiene en cuenta adicionalmente factores como la edad, el tamaño del campo visual y la visión binocular. Recuerda que estas describen la adaptación en *estado estacionario*, no el reflejo transitorio).
 
 $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) + 0.4\right)$$
 
-Esto da un diámetro en milímetros en todo el rango desde la luz de las estrellas hasta el sol brillante. En código es una sola línea:
+Esto da un diámetro ilustrativo en milímetros para escenas oscuras y brillantes, no una predicción individual. En código es una sola línea:
 
 ```ts
-function pupilDiameter(L) {                 // L = luminancia de la escena (cd/m²)
-  const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(L) + 0.4);
+function pupilFromLuminance(L) {                 // L = luminancia de la escena (cd/m²)
+  const d = 4.9 - 3.0 * Math.tanh(0.4 * Math.log10(Math.max(0.0001, L)) + 0.4);
   return Math.min(8, Math.max(2, d));       // limitar a 2-8 mm
 }
 ```
 
-En el modelo a continuación, configuras el tamaño de la pupila y el brillo de la escena a mano y lees la luz que llega a la retina: el área geométrica de la pupila, la iluminancia retiniana fotópica en trolands (Troland, 1917), y cuánto la recorta la caída de Stiles-Crawford una vez que la pupila es ancha.
+En el modelo a continuación, configuras el tamaño de la pupila y el brillo de la escena a mano y lees la luz que llega a la retina: el área geométrica de la pupila, la iluminancia retiniana fotópica en trolands (Troland, 1917), y el **área efectiva ponderada por SCE**. Usamos un perfil gaussiano centrado simplificado, $\eta(r) = e^{-\rho r^2}$, con $\rho = 0.085\ \text{mm}^{-2}$ como parámetro del modelo. La ponderación cambia la eficacia visual estimada de la luz, no el tamaño físico de la pupila; el valor sin ponderar en trolands sigue siendo luminancia por área geométrica.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -99,7 +99,7 @@ En el modelo a continuación, configuras el tamaño de la pupila y el brillo de 
 
 ## El reflejo pupilar
 
-Sabemos cómo el tamaño de la pupila afecta a la luz entrante, pero ¿cómo regula realmente el cuerpo este tamaño para controlar la luz que entra? Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz** (RPL). Es un bucle de retroalimentación simple pero crítico. La información luminosa que impulsa el reflejo pupilar proviene de los bastones, los conos y las ipRGCs que expresan melanopsina. Los bastones y los conos proporcionan respuestas rápidas, mientras que la melanopsina aporta una contribución más lenta y sostenida al control de la pupila. La señal sube por el nervio óptico. Se proyecta bilateralmente a los núcleos pretectales, cruzando por la comisura posterior. Desde allí, alcanza los núcleos de Edinger-Westphal en el tronco encefálico. Esto provoca el reflejo consensual en el ojo opuesto. Finalmente, la salida del núcleo de Edinger-Westphal viaja con el nervio craneal III hasta el ganglio ciliar, y las fibras posganglionares recorren los nervios ciliares cortos hasta el esfínter de la pupila. Se contrae, luego se relaja.
+Sabemos cómo el tamaño de la pupila afecta a la luz entrante, pero ¿cómo regula realmente el cuerpo este tamaño para controlar la luz que entra? Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz** (RPL). Es un bucle de retroalimentación simple pero crítico. La información luminosa que impulsa el reflejo pupilar proviene de los bastones, los conos y las ipRGCs que expresan melanopsina. Los bastones y los conos proporcionan respuestas rápidas, mientras que la melanopsina aporta una contribución más lenta y sostenida al control de la pupila. La señal sube por el nervio óptico. Las señales retinianas llegan a los núcleos pretectales por los nervios y tractos ópticos, con un cruce parcial en el quiasma óptico. Las neuronas pretectales se proyectan a ambos núcleos de Edinger-Westphal, con conexiones cruzadas por la comisura posterior. Esto provoca el reflejo consensual en el ojo opuesto. Finalmente, la salida del núcleo de Edinger-Westphal viaja con el nervio craneal III hasta el ganglio ciliar, y las fibras posganglionares recorren los nervios ciliares cortos hasta el esfínter de la pupila. Se contrae, luego se relaja.
 
 Debido a que este circuito neuronal atraviesa profundamente el tronco encefálico, actúa como una ventana diagnóstica hacia el cerebro (Loewenfeld, 1993). Si un paciente ha sufrido una lesión cerebral traumática, un médico iluminará sus ojos con una linterna; una pupila que permanece fija y dilatada puede indicar una presión grave sobre el tronco encefálico. El reflejo también está fuertemente influenciado por las drogas, por lo que los opiáceos causan pupilas puntiformes y algunos estimulantes pueden producir dilatación pupilar.
 
@@ -117,18 +117,18 @@ El bucle es un controlador de retroalimentación, y como cualquier controlador r
 Tres cosas dan forma a cómo se mueve realmente la pupila:
 
 - **Un retraso.** Aproximamos la latencia neural del reflejo pupilar a la luz en $220\ \text{ms}$ antes de que la pupila empiece a responder. Esta latencia varía según las condiciones del estímulo, la luminancia, el estado de adaptación y la edad.
-- **Asimetría.** La constricción es rápida (una constante de tiempo cercana a $0.12\ \text{s}$); la dilatación es lenta (más cerca de $0.65\ \text{s}$). Tu pupila se cierra de golpe pero se vuelve a abrir perezosamente.
-- **Inquietud pupilar.** Incluso bajo una luz perfectamente estable, la pupila tiembla ligeramente. Esta pequeña fluctuación espontánea del tamaño pupilar suele denominarse hippus.
+- **Asimetría.** La constricción suele ser más rápida que la redilatación. Para esta visualización elegimos constantes de tiempo de $0.12\ \text{s}$ y $0.65\ \text{s}$ respectivamente; son parámetros de simulación, no constantes fisiológicas universales.
+- **Inquietud pupilar.** Incluso bajo una luz perfectamente estable, la pupila tiembla ligeramente. Esta pequeña fluctuación espontánea del tamaño pupilar suele denominarse hippus y puede ser fisiológica.
 
 El retraso y la asimetría le dan al reflejo su carácter. Para la visualización, aproximamos la dinámica más compleja del reflejo pupilar (como el triple retardo de Stark (Stark, 1959)) con respuestas asimétricas de primer orden. En cada fotograma, la pupila se acerca al diámetro objetivo que se le ordenó alcanzar hace $220\ \text{ms}$, utilizando una simple respuesta de primer orden que se mueve más rápido al cerrarse que al abrirse:
 
 ```ts
 const diff = targetDiameter - currentDiameter;
 const tau = diff < 0 ? 0.12 : 0.65;   // rápido para contraer, lento para dilatar
-currentDiameter += (diff / tau) * dt; // suavizar hacia el objetivo este frame
+currentDiameter += diff * (1 - Math.exp(-dt / tau)); // actualización estable de primer orden
 ```
 
-El modelo a continuación empareja la pupila con un osciloscopio. La línea punteada es el objetivo que persigue el reflejo; la línea sólida es donde está realmente la pupila. Cambia la luz de oscura a brillante y observa cómo se desarrollan el retraso y la asimetría. Apaga la latencia para ver cuán espasmódica sería la pupila sin su retraso incorporado.
+El modelo a continuación empareja la pupila con un osciloscopio. La línea punteada es el objetivo que persigue el reflejo; la línea sólida es donde está realmente la pupila. Cambia la luz de oscura a brillante y observa cómo se desarrollan el retraso y la asimetría. Desactiva la latencia para comparar la misma respuesta del modelo sin el retraso.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -143,14 +143,20 @@ El modelo a continuación empareja la pupila con un osciloscopio. La línea punt
 
 Aunque el reflejo a la luz es el conductor más fuerte de la pupila, no es el único. El tamaño de la pupila es un tira y afloja continuo entre dos sistemas nerviosos opuestos:
 
+<p className="table-scroll-hint">Desliza la tabla lateralmente para comparar todas las columnas.</p>
+
+<div className="table-scroll" role="region" aria-label="Control autónomo de la pupila" tabIndex={0}>
+
 | Sistema | Músculo | Acción | Desencadenantes Comunes | Efectos de Drogas |
 | :--- | :--- | :--- | :--- | :--- |
-| **Parasimpático** ("Descansar y Digerir") | Esfínter | **Contrae** (Miosis) | Luz brillante, enfocar objetos cercanos, relajación | Opiáceos se unen a receptores mu-opioides en interneuronas GABAérgicas, causando pupilas puntiformes. |
+| **Parasimpático** ("Descansar y Digerir") | Esfínter | **Contrae** (Miosis) | Luz brillante, enfocar objetos cercanos, relajación | Los opioides suelen causar miosis mediante vías autonómicas centrales. |
 | **Simpático** ("Lucha o Huida") | Dilatador | **Dilata** (Midriasis) | Oscuridad, estrés, excitación, carga cognitiva, adrenalina | Algunos estimulantes pueden producir dilatación pupilar. |
 
-Debido a que el músculo dilatador está conectado directamente al sistema nervioso simpático, tus pupilas se expanden ligeramente cuando estás estresado, excitado o pensando mucho. Durante tareas cognitivas exigentes, las pupilas suelen dilatarse, y el tamaño y el momento de la respuesta dependen de las exigencias de la tarea, del nivel de activación y de las condiciones visuales del entorno (Beatty, 1982).
+</div>
 
-Los diseñadores de interfaces de usuario, psicólogos e investigadores usan rastreadores oculares para medir esta "carga cognitiva" invisible. Aunque algunos han propuesto utilizar la pupilometría para monitorizar la **fatiga en el lugar de trabajo** o la **sobrecarga cognitiva** en entornos de alto riesgo como quirófanos o control de tráfico aéreo, la realidad es increíblemente compleja. El reflejo pupilar a la luz es abrumadoramente más fuerte que las respuestas cognitivas. Separar las diminutas dilataciones provocadas por la tarea (a menudo de solo una fracción de milímetro) de las fluctuaciones masivas causadas por los cambios en la iluminación ambiental, los parpadeos y el brillo de las pantallas en un entorno del mundo real es excepcionalmente difícil. Sin embargo, en entornos de laboratorio controlados, manteniendo la iluminación estrictamente constante y estableciendo una línea base rigurosa, los investigadores aún pueden medir de manera confiable estos sutiles marcadores de esfuerzo mental. A pesar de estos obstáculos, los avances en el aprendizaje automático y el procesamiento robusto de señales están abriendo nuevas y emocionantes vías, dando a los investigadores la esperanza de que la monitorización cognitiva confiable en el mundo real pronto esté al alcance.
+Las pupilas suelen dilatarse durante tareas cognitivas exigentes. Pueden contribuir tanto la actividad simpática como la reducción del impulso parasimpático; el tamaño y el momento de la respuesta dependen del nivel de activación, las condiciones visuales, el tamaño pupilar basal y la estructura de la tarea (Beatty, 1982).
+
+Los diseñadores de interfaces de usuario, psicólogos e investigadores usan rastreadores oculares para estudiar respuestas pupilares asociadas a la demanda cognitiva. Aunque algunos han propuesto utilizar la pupilometría para monitorizar la **fatiga en el lugar de trabajo** o la **sobrecarga cognitiva** en entornos de alto riesgo como quirófanos o control de tráfico aéreo, la realidad es increíblemente compleja. El reflejo pupilar a la luz es abrumadoramente más fuerte que las respuestas cognitivas. Separar las diminutas dilataciones provocadas por la tarea (a menudo de solo una fracción de milímetro) de las fluctuaciones masivas causadas por los cambios en la iluminación ambiental, los parpadeos y el brillo de las pantallas en un entorno del mundo real es excepcionalmente difícil. Sin embargo, en entornos de laboratorio controlados, manteniendo la iluminación estrictamente constante y estableciendo una línea base rigurosa, los investigadores aún pueden medir de manera confiable estos sutiles marcadores de esfuerzo mental. A pesar de estos obstáculos, los avances en el aprendizaje automático y el procesamiento robusto de señales están abriendo nuevas y emocionantes vías, dando a los investigadores la esperanza de que la monitorización cognitiva confiable en el mundo real pronto esté al alcance.
 
 La pupila también cambia de tamaño cuando te enfocas en algo cerca de tu cara. A esto se le llama la **tríada de cerca**: tus ojos convergen (giran hacia adentro), tus lentes se acomodan (se abultan para enfocar), y tus pupilas se contraen. La vía neuronal para esto evita el núcleo pretectal, viajando desde la corteza visual hasta el área supraoculomotora. Contraer la pupila al mirar algo de cerca aumenta tu profundidad de campo, exactamente igual que cerrar el diafragma en una lente macro en una cámara.
 
@@ -173,16 +179,14 @@ Con la córnea moldeada y la pupila ahora abriéndose y cerrándose por sí sola
 
 Ya que estamos hablando de pupilas, ¿por qué solo simularlas cuando puedes conducir el modelo 3D con tus ojos reales? Si tienes acceso a un par de gafas de seguimiento ocular [Pupil Labs Neon](https://pupil-labs.com/products/neon), ¡puedes conectarlas directamente a esta publicación del blog!
 
-Dado que la aplicación Neon Companion incluye la aplicación de monitor, podemos obtenerla e incrustarla en un elemento oculto del DOM. Al leer silenciosamente el payload de la mirada desde su flujo de datos, tenemos todo lo que necesitamos sin integraciones complejas.
+Dado que la aplicación Neon Companion incluye la aplicación de monitor, podemos obtenerla e incrustarla en un iframe oculto cuyo ciclo de vida controlamos. Al leer silenciosamente el payload de la mirada desde su flujo de datos, tenemos todo lo que necesitamos sin integraciones complejas.
 
-Al analizar el payload, sabemos que los paquetes crudos empaquetan los datos de la mirada como un C-struct. Los diámetros de la pupila izquierda y derecha son Float32 Big-Endian ubicados exactamente en los desplazamientos de bytes 9 y 37 del payload, por lo que simplemente podemos leerlos y trazarlos. Ten en cuenta que el gráfico de 200 Hz es una suposición/objetivo en lugar de una entrega garantizada del navegador, y que la tasa de fotogramas en tiempo real depende del dispositivo Companion y del entorno.
+En el [payload documentado de mirada con estado ocular de Neon](https://pupil-labs.github.io/pl-realtime-api/dev/guides/under-the-hood/#decoding-gaze-data), los diámetros pupilares izquierdo y derecho son Float32 big-endian en los bytes 9 y 37. Localizamos el payload tras la cabecera RTP, validamos ambos ojos y representamos las medidas disponibles. El gráfico conserva las últimas 1000 muestras; los valores ausentes aparecen como huecos. El flujo de medidas puede funcionar a 200 Hz según el Companion y las condiciones, mientras que el renderizado sigue los fotogramas de animación del navegador.
 
-Asegúrate de que tu computadora o iPad esté en la misma red Wi-Fi que tu rastreador ocular, y haz clic en Connect. El navegador interceptará la transmisión binaria, analizará las estructuras sobre la marcha y ajustará instantáneamente el modelo de iris 3D para que coincida con el diámetro físico real de tu pupila en tiempo real.
+Asegúrate de que tu computadora o iPad esté en la misma red Wi-Fi que tu rastreador ocular, activa **Compute Eye State** en Companion, introduce su dirección y haz clic en Connect. El navegador interceptará la transmisión binaria, analizará las estructuras sobre la marcha y controlará el iris 3D con la media de las medidas pupilares válidas, usando un ojo si el otro no está disponible.
 
 > [!WARNING]
-> **Integración experimental en el navegador**
->
-> Esta demo se conecta directamente al dispositivo Neon Companion en tu red local y requiere que el navegador permita el acceso a la red local. Funciona cargando la propia aplicación web Monitor del Companion e interceptando su tráfico WebSocket interno, por lo que *no* es la Real-Time API oficial (recomendada para producción) y puede dejar de funcionar tras actualizaciones del navegador o del Companion. Considérala una demostración experimental en WebGL.
+> Esta demo experimental de navegador/WebGL descarga y modifica el bundle de Monitor del Companion en la red local. El formato de los paquetes pupilares está documentado, pero la interceptación del bundle es deliberadamente frágil: las actualizaciones de Monitor o las políticas de red y seguridad del navegador pueden romperla. Para integraciones de producción, utiliza la [API Real-Time y el cliente oficiales de Pupil Labs](https://pupil-labs.github.io/pl-realtime-api/).
 
 <InteractiveViewer>
   <div slot="preview">
@@ -202,3 +206,6 @@ Asegúrate de que tu computadora o iPad esté en la misma red Wi-Fi que tu rastr
 5. **Stark, L. (1959)**. *Stability, oscillations, and noise in the human pupil servomechanism*. Proceedings of the IRE, 47(11), 1925-1939. [DOI: 10.1109/JRPROC.1959.287136](https://doi.org/10.1109/JRPROC.1959.287136). El trabajo pionero sobre la dinámica no lineal y los modelos de control de retroalimentación del reflejo fotomotor pupilar.
 6. **Beatty, J. (1982)**. *Task-evoked pupillary responses, processing load, and the structure of information processing*. Psychological Bulletin, 91(2), 276-292. [DOI: 10.1037/0033-2909.91.2.276](https://doi.org/10.1037/0033-2909.91.2.276). Una revisión rigurosa de la pupilometría para medir la carga de trabajo cognitivo y el estrés.
 7. **Troland, L. T. (1917)**. *On the measurement of visual stimulation intensities*. Journal of Experimental Psychology, 2(1), 1-33. [DOI: 10.1037/h0071652](https://doi.org/10.1037/h0071652)
+8. **McDougal & Gamlin (2015)**. [*Autonomic control of the eye*](https://pmc.ncbi.nlm.nih.gov/articles/PMC4919817/).
+9. **van den Berg et al. (1991)**. [*Dependence of intraocular straylight on pigmentation and light transmission through the ocular wall*](https://pubmed.ncbi.nlm.nih.gov/1891824/).
+10. **Pupil Labs**. [*Under the Hood: decoding gaze data*](https://pupil-labs.github.io/pl-realtime-api/dev/guides/under-the-hood/#decoding-gaze-data); [*Neon data streams*](https://docs.pupil-labs.com/neon/data-collection/data-streams/).
