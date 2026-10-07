@@ -1,64 +1,38 @@
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { disposeThree } from "../disposeThree";
-import { observeThreeResize } from "../threeResize";
+import {
+	ciliaryPoint,
+	deformCiliary,
+	MUSCLE_REGIONS,
+	muscleGeometry,
+} from "./ciliaryGeometry";
 import { lensShape, MAX_ACCOMMODATION } from "./lensModel";
+import { createLensGeometry, createLensScene } from "./lensScene";
 
 export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es";
 	const mount = useRef<HTMLDivElement>(null);
 	const [accommodation, setAccommodation] = useState(0);
 	const [cutaway, setCutaway] = useState(false);
+	const [fibreMap, setFibreMap] = useState(true);
 	const [error, setError] = useState(false);
-	const parameters = useRef({ accommodation, cutaway });
+	const params = useRef({ accommodation, cutaway, fibreMap });
 	useEffect(() => {
-		parameters.current = { accommodation, cutaway };
-	}, [accommodation, cutaway]);
-
+		params.current = { accommodation, cutaway, fibreMap };
+	}, [accommodation, cutaway, fibreMap]);
 	useEffect(() => {
-		const container = mount.current;
-		if (!container) return;
-		let renderer: THREE.WebGLRenderer;
+		if (!mount.current) return;
+		let view: ReturnType<typeof createLensScene>;
 		try {
-			renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+			view = createLensScene(mount.current, 30);
 		} catch {
 			setError(true);
 			return;
 		}
-		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-		renderer.setSize(container.clientWidth, container.clientHeight);
-		renderer.localClippingEnabled = true;
-		container.appendChild(renderer.domElement);
-		const scene = new THREE.Scene();
-		const camera = new THREE.PerspectiveCamera(
-			35,
-			container.clientWidth / Math.max(1, container.clientHeight),
-			0.1,
-			100,
-		);
-		camera.position.set(11, 9, 22);
-		const controls = new OrbitControls(camera, renderer.domElement);
-		controls.enableDamping = true;
-		controls.enablePan = false;
-		controls.minDistance = 20;
-		controls.maxDistance = 38;
-		scene.add(new THREE.HemisphereLight(0xcdf4ff, 0x102323, 2.3));
-		const light = new THREE.DirectionalLight(0xffffff, 3);
-		light.position.set(-5, 7, 12);
-		scene.add(light);
-
-		// A schematic biconvex ellipsoid. The posterior half is more curved.
-		// Geometry is allocated once; accommodation changes scales and buffers.
-		const lensGroup = new THREE.Group();
-		const shapeGeometry = new THREE.SphereGeometry(1, 64, 32);
-		const positions = shapeGeometry.getAttribute("position");
-		for (let i = 0; i < positions.count; i++) {
-			const z = positions.getZ(i);
-			positions.setZ(i, z * (z > 0 ? 0.85 : 1.15));
-		}
-		shapeGeometry.computeVertexNormals();
+		view.camera.position.set(16, 12, 22);
+		const lens = new THREE.Group();
+		const shapeGeometry = createLensGeometry();
 		const shellMaterial = new THREE.MeshPhongMaterial({
 			color: 0x77dfe0,
 			specular: 0xffffff,
@@ -68,172 +42,200 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			depthWrite: false,
 			side: THREE.DoubleSide,
 		});
-		const shell = new THREE.Mesh(shapeGeometry, shellMaterial);
+		lens.add(new THREE.Mesh(shapeGeometry, shellMaterial));
 		const coreMaterial = new THREE.MeshPhongMaterial({
-			color: 0xf3c987,
-			shininess: 65,
+			color: 0xa9daca,
 			transparent: true,
-			opacity: 0.8,
+			opacity: 0.22,
+			depthWrite: false,
 		});
 		const core = new THREE.Mesh(shapeGeometry, coreMaterial);
 		core.scale.set(0.7, 0.7, 0.66);
-		lensGroup.add(shell, core);
-
-		const outlineMaterial = new THREE.LineBasicMaterial({
+		lens.add(core);
+		view.scene.add(lens);
+		const outline = new THREE.LineBasicMaterial({
 			color: 0x9cffff,
 			transparent: true,
-			opacity: 0.55,
+			opacity: 0.45,
 		});
-		for (let meridian = 0; meridian < 6; meridian++) {
-			const angle = (meridian / 6) * Math.PI;
-			const points = Array.from({ length: 129 }, (_, i) => {
-				const t = (i / 128) * Math.PI * 2;
-				const z = Math.sin(t);
+		for (let meridian = 0; meridian < 4; meridian++) {
+			const angle = (meridian / 4) * Math.PI;
+			const points = Array.from({ length: 97 }, (_, i) => {
+				const t = (i / 96) * Math.PI * 2,
+					z = Math.sin(t);
 				return new THREE.Vector3(
 					Math.cos(t) * Math.cos(angle),
 					Math.cos(t) * Math.sin(angle),
 					z * (z > 0 ? 0.85 : 1.15),
 				);
 			});
-			lensGroup.add(
+			lens.add(
 				new THREE.Line(
 					new THREE.BufferGeometry().setFromPoints(points),
-					outlineMaterial,
+					outline,
 				),
 			);
 		}
-		scene.add(lensGroup);
-
-		const ring = new THREE.Mesh(
-			new THREE.TorusGeometry(1, 0.035, 16, 128),
-			new THREE.MeshPhongMaterial({ color: 0xe18b7a, shininess: 35 }),
-		);
-		scene.add(ring);
-		const zonules = new THREE.Group();
+		const muscles = MUSCLE_REGIONS.map((region) => {
+			const geometry = muscleGeometry(region.profile);
+			const material = new THREE.MeshPhongMaterial({
+				color: region.color,
+				side: THREE.DoubleSide,
+				shininess: 22,
+			});
+			view.scene.add(new THREE.Mesh(geometry, material));
+			return {
+				geometry,
+				material,
+				rest: new Float32Array(geometry.getAttribute("position").array),
+				color: new THREE.Color(region.color),
+			};
+		});
+		// Surface tracks show the orientations of interwoven muscle bundles.
+		const fibreMaterial = new THREE.LineBasicMaterial({
+			color: 0xffd7bf,
+			transparent: true,
+			opacity: 0.65,
+		});
+		const tracks: { geometry: THREE.BufferGeometry; rest: Float32Array }[] = [];
+		for (let i = 0; i < 40; i++) {
+			const angle = (i / 40) * Math.PI * 2;
+			for (const type of [0, 1, 2]) {
+				const points = Array.from({ length: 17 }, (_, j) => {
+					const t = j / 16;
+					if (type === 0) return ciliaryPoint(7.12, angle, -2.65 + 3.7 * t, 0);
+					if (type === 1)
+						return ciliaryPoint(
+							6.65 - 0.63 * t,
+							angle + 0.05 * t,
+							1.13 - 0.18 * t,
+							0,
+						);
+					return ciliaryPoint(5.82, angle + 0.14 * t, 0.65, 0);
+				});
+				const geometry = new THREE.BufferGeometry().setFromPoints(points);
+				view.scene.add(new THREE.Line(geometry, fibreMaterial));
+				tracks.push({
+					geometry,
+					rest: new Float32Array(geometry.getAttribute("position").array),
+				});
+			}
+		}
+		// Processes are epithelial/vascular folds, not extra muscle spokes.
+		const foldGeometry = new THREE.SphereGeometry(1, 16, 12);
+		const foldMaterial = new THREE.MeshPhongMaterial({
+			color: 0x8b5843,
+			shininess: 18,
+		});
+		const folds = Array.from({ length: 40 }, (_, i) => {
+			const mesh = new THREE.Mesh(foldGeometry, foldMaterial);
+			const angle = (i / 40) * Math.PI * 2;
+			mesh.scale.set(0.55, 0.115, 0.34);
+			mesh.rotation.z = angle;
+			view.scene.add(mesh);
+			return { mesh, angle };
+		});
 		const zonuleMaterial = new THREE.LineBasicMaterial({
 			color: 0xf9d889,
 			transparent: true,
-			opacity: 0.7,
+			opacity: 0.75,
 		});
-		// Two representative sets of attachments, not the full zonular network.
-		for (let i = 0; i < 64; i++) {
+		const zonules = Array.from({ length: 120 }, () => {
 			const geometry = new THREE.BufferGeometry();
 			geometry.setAttribute(
 				"position",
-				new THREE.BufferAttribute(new Float32Array(17 * 3), 3),
+				new THREE.BufferAttribute(new Float32Array(25 * 3), 3),
 			);
-			zonules.add(new THREE.Line(geometry, zonuleMaterial));
-		}
-		scene.add(zonules);
-		const clipping = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
-		const resize = observeThreeResize(container, renderer, camera);
-		const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-		const debug = container
-			.closest(".interactive-viewer")
-			?.querySelector(".debug-output");
-		let shownAccommodation = parameters.current.accommodation;
-		let lastTime = performance.now();
-		let frame = 0;
-		let lastDebug = 0;
-		let lastCutaway = false;
-		let visible = true;
-		const visibility = new IntersectionObserver(([entry]) => {
-			visible = entry?.isIntersecting ?? false;
+			view.scene.add(new THREE.Line(geometry, zonuleMaterial));
+			return geometry;
 		});
-		visibility.observe(container);
-
-		function animate(now: number) {
-			frame = requestAnimationFrame(animate);
-			const dt = Math.min((now - lastTime) / 1000, 0.1);
-			lastTime = now;
-			if (!visible || document.hidden) return;
-			const target = parameters.current;
-			// 0.25 s is an animation choice, not an accommodation time constant.
-			shownAccommodation +=
-				(target.accommodation - shownAccommodation) *
-				(reducedMotion.matches ? 1 : 1 - Math.exp(-dt / 0.25));
-			const shape = lensShape(shownAccommodation);
-			lensGroup.scale.set(
-				shape.lensRadius,
-				shape.lensRadius,
-				shape.thickness / 2,
-			);
-			ring.scale.set(shape.ringRadius, shape.ringRadius, 7);
-			if (target.cutaway !== lastCutaway) {
-				for (const material of [shellMaterial, coreMaterial, outlineMaterial]) {
-					material.clippingPlanes = target.cutaway ? clipping : [];
-					material.needsUpdate = true;
-				}
-				lastCutaway = target.cutaway;
-			}
-			zonules.children.forEach((child, i) => {
-				const line = child as THREE.Line;
-				const attribute = line.geometry.getAttribute("position");
-				const angle = ((i % 32) / 32) * Math.PI * 2;
-				const side = i < 32 ? 1 : -1;
-				const attachmentZ =
-					(shape.thickness / 2) *
-					(side > 0 ? 0.85 : 1.15) *
-					Math.sqrt(1 - 0.98 ** 2);
-				for (let j = 0; j <= 16; j++) {
-					const t = j / 16;
-					const radius = THREE.MathUtils.lerp(
-						shape.lensRadius * 0.98,
-						shape.ringRadius,
-						t,
+		const allMaterials = [
+			shellMaterial,
+			coreMaterial,
+			outline,
+			...muscles.map((m) => m.material),
+			fibreMaterial,
+			foldMaterial,
+			zonuleMaterial,
+		];
+		const clipping = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
+		const neutralMuscle = new THREE.Color(0xa16c65);
+		let shown = params.current.accommodation,
+			previous = -1,
+			lastCutaway = false;
+		view.start((dt, reducedMotion) => {
+			const p = params.current;
+			// Animation timing only; this is not a tissue mechanics solver.
+			shown +=
+				(p.accommodation - shown) *
+				(reducedMotion ? 1 : 1 - Math.exp(-dt / 0.25));
+			const shape = lensShape(shown);
+			if (Math.abs(shown - previous) > 1e-5) {
+				lens.scale.set(shape.lensRadius, shape.lensRadius, shape.thickness / 2);
+				for (const body of [...muscles, ...tracks])
+					deformCiliary(body.geometry, body.rest, shape.fraction);
+				for (const fold of folds)
+					fold.mesh.position.copy(
+						ciliaryPoint(5.85, fold.angle, 0.05, shape.fraction),
 					);
-					// Small bowing is a visual cue for reduced load, not a force calculation.
+				zonules.forEach((geometry, i) => {
+					// Representative fibres course between processes from a posterior
+					// origin, then fan toward three capsular attachment regions.
+					const angle = (((i % 40) + 0.5) / 40) * Math.PI * 2;
+					const side = Math.floor(i / 40) - 1;
+					const attachment = side === 0 ? 1 : 0.96;
 					const z =
-						side *
-						((1 - t) * attachmentZ +
-							Math.sin(t * Math.PI) * 0.2 * shape.fraction);
-					attribute.setXYZ(
-						j,
-						radius * Math.cos(angle),
-						radius * Math.sin(angle),
+						((side * shape.thickness) / 2) *
+						(side > 0 ? 0.85 : 1.15) *
+						Math.sqrt(1 - attachment ** 2);
+					const end = new THREE.Vector3(
+						shape.lensRadius * attachment * Math.cos(angle),
+						shape.lensRadius * attachment * Math.sin(angle),
 						z,
 					);
-				}
-				attribute.needsUpdate = true;
-				line.geometry.computeBoundingSphere();
-			});
-			controls.update();
-			renderer.render(scene, camera);
-			if (debug && now - lastDebug > 500) {
-				debug.textContent = JSON.stringify(
-					{
-						model: "Illustrative lens geometry; no optical ray tracing",
-						accommodation: shownAccommodation,
-						...shape,
-						camera: camera.position.toArray(),
-						geometries: renderer.info.memory.geometries,
-					},
-					null,
-					2,
-				);
-				lastDebug = now;
+					const origin = ciliaryPoint(6.58, angle, -1.95, shape.fraction);
+					const guide = ciliaryPoint(5.72, angle, -0.32, shape.fraction);
+					const attribute = geometry.getAttribute("position");
+					const point = new THREE.Vector3();
+					for (let j = 0; j <= 24; j++) {
+						const t = j / 24;
+						if (t < 0.5) point.lerpVectors(origin, guide, t * 2);
+						else point.lerpVectors(guide, end, (t - 0.5) * 2);
+						attribute.setXYZ(j, point.x, point.y, point.z);
+					}
+					attribute.needsUpdate = true;
+					geometry.computeBoundingSphere();
+				});
+				previous = shown;
 			}
-		}
-		frame = requestAnimationFrame(animate);
-		return () => {
-			cancelAnimationFrame(frame);
-			visibility.disconnect();
-			resize.disconnect();
-			controls.dispose();
-			disposeThree(scene);
-			renderer.dispose();
-			// This island owns its context. Release Three's internal scratch
-			// framebuffers/default textures as well when leaving the article.
-			renderer.forceContextLoss();
-			renderer.domElement.remove();
-		};
+			for (const muscle of muscles)
+				muscle.material.color.copy(p.fibreMap ? muscle.color : neutralMuscle);
+			fibreMaterial.opacity = p.fibreMap ? 0.65 : 0;
+			if (p.cutaway !== lastCutaway) {
+				for (const material of allMaterials) {
+					material.clippingPlanes = p.cutaway ? clipping : [];
+					material.needsUpdate = true;
+				}
+				lastCutaway = p.cutaway;
+			}
+			return {
+				model:
+					"Ciliary muscle regions, representative processes and zonular attachments; illustrative geometry",
+				accommodation: shown,
+				...shape,
+				fibreMap: p.fibreMap,
+				cutaway: p.cutaway,
+			};
+		});
+		return () => view.dispose();
 	}, []);
-
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
 				<strong>
-					{es ? "La lente y su suspensión" : "The lens and its suspension"}
+					{es
+						? "Músculo ciliar y suspensión zonular"
+						: "Ciliary muscle and zonular suspension"}
 				</strong>
 				<span className="lens-muted">
 					{es ? "Arrastra para girar" : "Drag to orbit"}
@@ -241,9 +243,7 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 			{error ? (
 				<p className="p-4" role="status">
-					{es
-						? "WebGL no está disponible. El texto explica el mismo mecanismo."
-						: "WebGL is unavailable. The article explains the same mechanism."}
+					{es ? "WebGL no está disponible." : "WebGL is unavailable."}
 				</p>
 			) : (
 				<div
@@ -252,30 +252,16 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 					role="img"
 					aria-label={
 						es
-							? "Modelo 3D del cristalino, las zónulas y el músculo ciliar"
-							: "3D model of the lens, zonules and ciliary muscle"
+							? "Músculo ciliar con fibras longitudinales, radiales y circulares, procesos ciliares y zónulas"
+							: "Ciliary muscle with longitudinal, radial and circular fibres, ciliary processes and zonules"
 					}
 				/>
 			)}
 			<div className="lens-legend">
-				<span
-					className="lens-key"
-					style={{ "--key-color": "#e18b7a" } as React.CSSProperties}
-				>
-					{es ? "Músculo ciliar" : "Ciliary muscle"}
-				</span>
-				<span
-					className="lens-key"
-					style={{ "--key-color": "#f9d889" } as React.CSSProperties}
-				>
-					{es ? "Zónulas" : "Zonules"}
-				</span>
-				<span
-					className="lens-key"
-					style={{ "--key-color": "#77dfe0" } as React.CSSProperties}
-				>
-					{es ? "Cristalino" : "Lens"}
-				</span>
+				<span style={{ color: "#d4a1bb" }}>Longitudinal</span>
+				<span style={{ color: "#e3bb85" }}>Radial</span>
+				<span style={{ color: "#e8a28a" }}>Circular</span>
+				<span>{es ? "Dorado: zónulas" : "Gold: zonules"}</span>
 			</div>
 			<div className="lens-controls">
 				<label>
@@ -314,11 +300,18 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 					>
 						{es ? "Sección abierta" : "Open section"}
 					</button>
+					<button
+						type="button"
+						aria-pressed={fibreMap}
+						onClick={() => setFibreMap(!fibreMap)}
+					>
+						{es ? "Mapa muscular" : "Muscle map"}
+					</button>
 				</div>
 				<p className="lens-note">
 					{es
-						? "Geometría y colores ilustrativos. El núcleo dorado no representa una opacidad."
-						: "Illustrative geometry and colours. The golden core does not represent an opacity."}
+						? "Los pliegues marrones son procesos ciliares. Las regiones musculares están resaltadas para mostrar su orientación; forman un músculo continuo, no tres motores separados."
+						: "Brown folds are ciliary processes. Muscle regions are highlighted to show orientation; they form a continuous muscle, not three separate motors."}
 				</p>
 			</div>
 		</div>
