@@ -12,7 +12,7 @@ const MAX_R = 5.2; // wide aperture so the edge flattening is easy to see
 const PRESETS = [
 	{
 		id: "human",
-		label: "Normal human",
+		label: "Typical human",
 		q: -0.26,
 		hex: 0x22d3ee,
 		note: "Prolate: steep center, flatter edges. Reduces spherical aberration relative to a sphere.",

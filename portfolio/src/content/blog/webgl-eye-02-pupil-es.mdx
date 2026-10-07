@@ -179,8 +179,8 @@ En el [payload documentado de mirada con estado ocular de Neon](https://pupil-la
 
 Asegúrate de que tu computadora o iPad esté en la misma red Wi-Fi que tu rastreador ocular, activa **Compute Eye State** en Companion, introduce su dirección y haz clic en Connect. El navegador interceptará la transmisión binaria, analizará las estructuras sobre la marcha y controlará el iris 3D con la media de las medidas pupilares válidas, usando un ojo si el otro no está disponible.
 
-> [!NOTE]
-> Esta integración experimental de navegador/WebGL conecta con Neon en la red local mediante la aplicación Monitor del Companion. Las políticas de red y seguridad del navegador pueden afectar al acceso, y las actualizaciones de Monitor pueden requerir ajustes en la demo.
+> [!WARNING]
+> Esta demo experimental de navegador/WebGL descarga y modifica el bundle de Monitor del Companion en la red local. El formato de los paquetes pupilares está documentado, pero la interceptación del bundle es deliberadamente frágil: las actualizaciones de Monitor o las políticas de red y seguridad del navegador pueden romperla. Para integraciones de producción, utiliza la [API Real-Time y el cliente oficiales de Pupil Labs](https://pupil-labs.github.io/pl-realtime-api/).
 
 <InteractiveViewer>
   <div slot="preview">

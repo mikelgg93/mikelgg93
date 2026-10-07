@@ -180,8 +180,8 @@ In the [documented Neon eye-state gaze payload](https://pupil-labs.github.io/pl-
 
 Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker, enable **Compute Eye State** in Companion, enter its address, and click Connect. The browser will intercept the binary stream, parse the structs on the fly, and drive the 3D iris from the mean of the valid pupil measurements, using one eye when the other is unavailable.
 
-> [!NOTE]
-> This experimental browser/WebGL integration connects to Neon on your local network through the Companion Monitor app. Browser networking and security policies can affect access, and Monitor updates may require adjustments to the demo.
+> [!WARNING]
+> This experimental browser/WebGL demo fetches and patches the Companion Monitor bundle on your local network. The pupil packet format is documented, but bundle interception is intentionally fragile: Monitor updates or browser networking and security policies can break it. For production integrations, use Pupil Labs’ [official Real-Time API and client](https://pupil-labs.github.io/pl-realtime-api/).
 
 <InteractiveViewer>
   <div slot="preview">
