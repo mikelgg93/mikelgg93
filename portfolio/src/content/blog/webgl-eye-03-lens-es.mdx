@@ -1,0 +1,128 @@
+---
+title: "Modelando el ojo III: El cristalino"
+description: "La lente ajustable del ojo: músculo ciliar, tensión zonular, acomodación y presbicia, explorados con modelos ópticos y 3D interactivos."
+date: 2026-10-07
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "optics", "anatomy"]
+lang: "es"
+image: "/images/blog/lens-banner.png"
+---
+
+import { Code } from 'astro:components';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import LensAnatomy from '../../components/eye/lens/LensAnatomy';
+import LensFocus from '../../components/eye/lens/LensFocus';
+import LensAnatomyCode from '../../components/eye/lens/LensAnatomy.tsx?raw';
+import LensFocusCode from '../../components/eye/lens/LensFocus.tsx?raw';
+import LensModelCode from '../../components/eye/lens/lensModel.ts?raw';
+
+En la [Parte 1](/es/blog/webgl-eye-01-cornea) dimos forma a la córnea. En la [Parte 2](/es/blog/webgl-eye-02-pupil) añadimos una apertura viva. La luz ya puede entrar en nuestro modelo, pero todavía hay un problema: una montaña y las palabras de tu teléfono no le piden al ojo el mismo enfoque.
+
+Una cámara suele resolverlo desplazando sus lentes. El ojo cambia principalmente la forma de una: el **cristalino**, situado detrás del iris. Este mecanismo se llama **acomodación**, y su motor es un anillo muscular que rodea la lente. Lo sorprendente es que enfocar de cerca implica reducir parte de la tracción sobre ella.
+
+Vamos a construir ese mecanismo y a ver qué ocurre cuando se queda sin recorrido.
+
+## Una lente transparente y viva
+
+El cristalino es un cuerpo biconvexo envuelto por una **cápsula** elástica. En su interior, células alargadas forman la **corteza** externa y el **núcleo** central, más antiguo. Se añaden nuevas fibras durante toda la vida. No contiene vasos sanguíneos; su transparencia depende de una organización celular especializada, que incluye la pérdida de núcleos y otros orgánulos en las fibras maduras y la disposición de las proteínas cristalinas. Esto reduce las variaciones del índice de refracción a pequeña escala que dispersarían la luz (Bassnett et al., 2011).
+
+Tampoco es un trozo de vidrio con un único índice de refracción. El índice generalmente aumenta desde la corteza hacia la región central. Este **gradiente de índice de refracción**, o **GRIN**, contribuye a la potencia óptica y a las aberraciones junto con la curvatura de las superficies. Las mediciones muestran que tanto la forma como la distribución del índice cambian durante la acomodación (Khan et al., 2018).
+
+Para el modelo 3D partimos de una forma más sencilla: un elipsoide aplanado con una mitad posterior más curva. Una envoltura cian transparente y un núcleo dorado permiten distinguir la estructura. Los colores son etiquetas visuales, no pigmentación ni catarata, y los reflejos del renderizado no son un trazado de rayos GRIN.
+
+## El músculo ciliar: Tirar menos para enfocar más cerca
+
+Alrededor del cristalino está el **cuerpo ciliar**, que contiene el **músculo ciliar**, de tipo liso. Las finas **fibras zonulares** conectan la cápsula con el aparato ciliar que la rodea. Según la explicación clásica de Helmholtz:
+
+1. **Para lejos**, el músculo ciliar se relaja. La tensión zonular mantiene el cristalino relativamente aplanado.
+2. **Para cerca**, el músculo se contrae y el anillo ciliar se estrecha. Disminuye la carga zonular que aplana la lente, permitiendo que el cristalino y su cápsula adopten una forma más redondeada.
+3. El cristalino aumenta su espesor central y reduce su diámetro ecuatorial. Su potencia óptica aumenta.
+
+El cristalino no contiene un músculo de enfoque. Sus fibras de suspensión tampoco se desprenden al mirar de cerca. La red zonular real tiene varias regiones de inserción y una distribución de fuerzas más compleja que nuestros radios. La idea útil es el cambio de carga: el anillo se contrae mientras la lente se redondea. Los estudios de imagen miden estos cambios del cristalino y del músculo ciliar durante la acomodación (Richdale et al., 2013).
+
+Mueve el control de **Lejos** a **Cerca**. Observa cómo el anillo coral se desplaza hacia dentro, el cristalino se engrosa y las fibras amarillas cubren una distancia menor. Abre la sección para mirar dentro; en el móvil, arrastra horizontalmente para girar y verticalmente para seguir leyendo.
+
+<InteractiveViewer>
+  <div slot="preview"><LensAnatomy lang="es" client:visible /></div>
+  <div slot="code"><Code code={LensAnatomyCode + '\n\n// Shared model\n' + LensModelCode} lang="tsx" theme="github-dark" /></div>
+</InteractiveViewer>
+
+Para esta visualización, el control traduce $0$–$8\ \text{D}$ de acomodación del modelo en cambios de forma ilustrativos. Las dimensiones se han elegido para mostrar el mecanismo; la malla no calcula su propia potencia óptica ni resuelve la mecánica de los tejidos. La ligera curvatura de las zónulas sugiere una menor carga, pero no mide la tensión.
+
+En el código creamos la geometría una sola vez. Escalamos la lente y el anillo y actualizamos los búferes de las fibras, sin reconstruir las mallas cada vez que se mueve el control. El elipsoide mantiene su volumen al engrosarse y estrecharse. La transición usa una respuesta de primer orden:
+
+```ts
+const tau = 0.25; // segundos: parámetro de animación
+shownAccommodation += (targetAccommodation - shownAccommodation)
+  * (1 - Math.exp(-dt / tau));
+```
+
+Ese cuarto de segundo controla la animación, no representa un tiempo de respuesta fisiológico universal. La demo también respeta la preferencia del navegador de reducir el movimiento.
+
+## De la distancia a las dioptrías
+
+Cuanto más se acerca un objeto, más divergen sus rayos antes de llegar al ojo. Para volver a reunirlos sobre la retina, hace falta más potencia óptica.
+
+En un ojo enfocado al infinito con la acomodación relajada, la demanda adicional se aproxima al inverso de la distancia del objeto en metros:
+
+$$A_{\mathrm{demanda}} \approx \frac{1}{d}$$
+
+Un objeto a $1\ \text{m}$ pide aproximadamente $1\ \text{D}$; a $50\ \text{cm}$, $2\ \text{D}$; a $25\ \text{cm}$, $4\ \text{D}$. La **demanda** describe el estímulo. La **respuesta** describe lo que aporta el ojo. Las respuestas reales pueden quedarse por debajo de la demanda y dependen de las condiciones de observación; no tienen por qué coincidir exactamente con esta relación.
+
+Para visualizar las cuentas ópticas, sustituimos ahora el ojo completo por un elemento de **ojo reducido**. Elegimos la potencia de lejos convencional $F_0 = 60\ \text{D}$ y el índice del espacio imagen $n' = 4/3$, como en el ojo reducido de Emsley (Harris, 2009). El elemento equivalente representa la córnea y el cristalino juntos. No estamos asignando $60\ \text{D}$ al cristalino ni sumando sin más las potencias de dos lentes gruesas y separadas.
+
+En la aproximación paraxial, la vergencia de salida es la de entrada más la potencia óptica. Con una demanda de cerca $A_{\mathrm{demanda}}$ y una respuesta $A_{\mathrm{respuesta}}$, la distancia imagen es:
+
+$$l' = \frac{n'}{F_0 + A_{\mathrm{respuesta}} - A_{\mathrm{demanda}}}$$
+
+Las distancias se miden desde el plano principal equivalente del modelo. Mantenemos la retina a $n'/F_0 \approx 22.2\ \text{mm}$ detrás de ese plano; es una distancia del ojo reducido, no la longitud anatómica de todos los ojos. Cuando la respuesta iguala la demanda, el foco permanece sobre la retina.
+
+Acerca el objeto en la demo. El símbolo central cambia de forma para indicar el aumento de potencia del ojo completo, mientras el foco permanece en su sitio.
+
+<InteractiveViewer>
+  <div slot="preview"><LensFocus lang="es" client:visible /></div>
+  <div slot="code"><Code code={LensFocusCode + '\n\n// Shared optical model\n' + LensModelCode} lang="tsx" theme="github-dark" /></div>
+</InteractiveViewer>
+
+El diagrama utiliza rayos paraxiales y una respuesta ideal con suficiente rango de acomodación. Omite las aberraciones, la difracción y el gradiente interno del índice. Explica dónde queda el foco; no predice la calidad de la imagen retiniana ni la agudeza visual.
+
+## ¿Quién le dice al músculo que se mueva?
+
+La acomodación depende principalmente de la salida parasimpática. Las fibras preganglionares del complejo de Edinger-Westphal viajan con el **III par craneal** hasta el **ganglio ciliar**. Desde allí, las fibras posganglionares llegan al músculo ciliar a través de los **nervios ciliares cortos** (McDougal & Gamlin, 2015).
+
+Comparte una vía de salida con el circuito pupilar de la Parte 2, pero los músculos hacen trabajos distintos. El esfínter del iris ajusta la apertura; el músculo ciliar cambia la carga sobre el cristalino.
+
+Al dirigir la mirada a un objeto cercano, la acomodación suele acompañarse de **convergencia** de los ojos y **constricción pupilar**: la respuesta de cerca. Una pupila menor puede aumentar la profundidad de foco, pero no devuelve la flexibilidad perdida al cristalino. Aquí aislamos la acomodación para que el efecto de cada control quede claro.
+
+## Cuando el cristalino no llega
+
+La acomodación disminuye con la edad, hasta dificultar el trabajo prolongado de cerca sin ayuda: la **presbicia**. Es tentador culpar a un músculo cansado, pero las mediciones muestran que la contracción ciliar puede persistir en ojos de mayor edad (Strenk et al., 1999). Los cambios de las propiedades mecánicas del cristalino desempeñan un papel importante; también cuentan su crecimiento continuo y la geometría del aparato que lo rodea. Los experimentos con cristalinos de donantes muestran una pérdida marcada de la capacidad de cambiar la potencia óptica con la edad (Glasser & Campbell, 1998).
+
+Podemos explorar la consecuencia óptica sin pretender calcular la edad de nadie. Asignamos al modelo una **acomodación disponible** y limitamos su respuesta a ese valor:
+
+```ts
+const response = Math.min(demand, availableAccommodation);
+const unmetDemand = demand - response;
+```
+
+Empieza a $25\ \text{cm}$ con solo $2\ \text{D}$ disponibles. El objeto exige $4\ \text{D}$: faltan $2\ \text{D}$ y el foco queda detrás de la retina. Aleja el objeto hasta $50\ \text{cm}$ y la demanda vuelve a entrar en el rango disponible.
+
+<InteractiveViewer>
+  <div slot="preview"><LensFocus lang="es" showReserve client:visible /></div>
+  <div slot="code"><Code code={LensFocusCode + '\n\n// Shared optical model\n' + LensModelCode} lang="tsx" theme="github-dark" /></div>
+</InteractiveViewer>
+
+El control de reserva es un parámetro del modelo, no una escala de edad ni una prueba clínica. También supone un enfoque correcto de lejos antes de empezar a acomodar. La visión próxima real depende de la corrección refractiva, el tamaño pupilar, la profundidad de foco y la tarea, además de la amplitud de acomodación.
+
+Nuestro ojo ya tiene una superficie frontal fija, una apertura ajustable y una lente capaz de cambiar el enfoque. Tres mecanismos distintos, trabajando hacia la misma pequeña región de retina.
+
+## Referencias
+
+1. **Bassnett, S., Shi, Y., & Vrensen, G. F. J. M. (2011)**. [*Biological glass: structural determinants of eye lens transparency*](https://pmc.ncbi.nlm.nih.gov/articles/PMC3061108/). Philosophical Transactions of the Royal Society B, 366, 1250–1264.
+2. **Khan et al. (2018)**. [*Change in human lens dimensions, lens refractive index distribution and ciliary body ring diameter with accommodation*](https://pmc.ncbi.nlm.nih.gov/articles/PMC5846530/). Biomedical Optics Express, 9, 1272–1282.
+3. **Purves et al. (2001)**. [*The formation of images on the retina*](https://www.ncbi.nlm.nih.gov/books/NBK11079/). Neuroscience, 2.ª edición. Óptica básica y mecanismo clásico de acomodación.
+4. **Richdale et al. (2013)**. [*Quantification of age-related and per diopter accommodative changes of the lens and ciliary muscle in the emmetropic human eye*](https://pubmed.ncbi.nlm.nih.gov/23287789/). Investigative Ophthalmology & Visual Science, 54, 1095–1105.
+5. **Harris, W. F. (2009)**. [*General approach to the sensitivity of the optics of an eye to change in elementary parameters with application to the Gaussian optics of a reduced eye*](https://avehjournal.org/index.php/aveh/article/download/169/138). South African Optometrist, 68, 166–175. Incluye los parámetros convencionales del ojo reducido de Emsley.
+6. **McDougal, D. H., & Gamlin, P. D. R. (2015)**. [*Autonomic control of the eye*](https://pmc.ncbi.nlm.nih.gov/articles/PMC4919817/). Comprehensive Physiology, 5, 439–473.
+7. **Strenk et al. (1999)**. [*Age-related changes in human ciliary muscle and lens: a magnetic resonance imaging study*](https://pubmed.ncbi.nlm.nih.gov/10235549/). Investigative Ophthalmology & Visual Science, 40, 1162–1169.
+8. **Glasser, A., & Campbell, M. C. W. (1998)**. [*Presbyopia and the optical changes in the human crystalline lens with age*](https://pubmed.ncbi.nlm.nih.gov/9536350/). Vision Research, 38, 209–229.

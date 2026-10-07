@@ -9,8 +9,9 @@ import "katex/dist/katex.min.css";
 const { frontmatter, prevUrl = null, nextUrl = null, id } = Astro.props;
 const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
 const isSpanish = Astro.url.pathname.startsWith("/es/");
-const isPupilArticle = Astro.url.pathname.includes("webgl-eye-02-pupil");
-const mobileHint = isPupilArticle
+const hasMobileModelControls = ["webgl-eye-02-pupil", "webgl-eye-03-lens"]
+  .some(slug => Astro.url.pathname.includes(slug));
+const mobileHint = hasMobileModelControls
   ? (isSpanish
     ? "Desliza lateralmente sobre los modelos para girarlos. Los controles están debajo."
     : "Swipe sideways on the models to rotate them. Use the controls below.")

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800" fill="none">
+  <title>The crystalline lens and its ciliary suspension</title>
+  <desc>An illustrative cyan lens, golden zonular fibres and coral ciliary ring against a dark green background.</desc>
+  <defs>
+    <radialGradient id="background"><stop stop-color="#184b4c"/><stop offset="1" stop-color="#041d1b"/></radialGradient>
+    <radialGradient id="lens" cx=".3" cy=".25" r=".8"><stop stop-color="#b0ffff" stop-opacity=".6"/><stop offset=".45" stop-color="#5ad8d9" stop-opacity=".14"/><stop offset="1" stop-color="#58b8bb" stop-opacity=".4"/></radialGradient>
+    <radialGradient id="core"><stop stop-color="#eddaaa" stop-opacity=".65"/><stop offset="1" stop-color="#d0a96e" stop-opacity=".08"/></radialGradient>
+    <linearGradient id="ring" x1="300" y1="150" x2="1100" y2="650" gradientUnits="userSpaceOnUse"><stop stop-color="#f3b6a1"/><stop offset=".5" stop-color="#ba725f"/><stop offset="1" stop-color="#714a43"/></linearGradient>
+    <path id="fibre" d="M 990 400 Q 1055 390 1120 400 M 977 465 Q 1040 470 1105 495 M 950 510 Q 995 550 1064 575 M 900 550 Q 940 620 997 648 M 825 585 Q 845 650 881 699 M 740 600 Q 745 670 755 716"/>
+  </defs>
+  <path fill="url(#background)" d="M0 0h1400v800H0z"/>
+  <g opacity=".13" stroke="#93cac1"><path d="M0 400H1400M700 0V800" stroke-dasharray="3 12"/><ellipse cx="700" cy="400" rx="520" ry="360"/></g>
+  <g transform="translate(700 400) rotate(-18) scale(1 .82) translate(-700 -400)">
+    <ellipse cx="700" cy="400" rx="425" ry="320" stroke="url(#ring)" stroke-width="23"/>
+    <g stroke="#f1cb81" stroke-width="2" opacity=".7">
+      <use href="#fibre"/><use href="#fibre" transform="translate(1400 0) scale(-1 1)"/>
+      <use href="#fibre" transform="translate(0 800) scale(1 -1)"/><use href="#fibre" transform="translate(1400 800) scale(-1 -1)"/>
+    </g>
+    <ellipse cx="700" cy="400" rx="295" ry="212" fill="url(#lens)" stroke="#90e6e3" stroke-opacity=".85" stroke-width="2"/>
+    <ellipse cx="700" cy="400" rx="203" ry="142" fill="url(#core)" stroke="#e4d4a5" stroke-opacity=".25"/>
+    <g stroke="#adffff" opacity=".2"><ellipse cx="700" cy="400" rx="295" ry="80"/><ellipse cx="700" cy="400" rx="180" ry="212"/><ellipse cx="700" cy="400" rx="75" ry="212"/></g>
+    <path d="M 466 307 C 539 224 689 196 806 228" stroke="#c2ffff" stroke-width="5" stroke-linecap="round" opacity=".4"/>
+  </g>
+</svg>

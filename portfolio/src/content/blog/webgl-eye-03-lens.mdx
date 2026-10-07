@@ -1,0 +1,128 @@
+---
+title: "Modelling the eye III: The lens"
+description: "The eye's adjustable lens: ciliary muscle, zonular tension, accommodation and presbyopia, explored with interactive 3D and optical models."
+date: 2026-10-07
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "optics", "anatomy"]
+lang: "en"
+image: "/images/blog/lens-banner.png"
+---
+
+import { Code } from 'astro:components';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import LensAnatomy from '../../components/eye/lens/LensAnatomy';
+import LensFocus from '../../components/eye/lens/LensFocus';
+import LensAnatomyCode from '../../components/eye/lens/LensAnatomy.tsx?raw';
+import LensFocusCode from '../../components/eye/lens/LensFocus.tsx?raw';
+import LensModelCode from '../../components/eye/lens/lensModel.ts?raw';
+
+In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea. In [Part 2](/blog/webgl-eye-02-pupil) we gave the eye a living aperture. Light can now enter our model, but there is still a problem: a mountain and the words on your phone do not ask the eye to focus in the same way.
+
+A camera often solves this by moving its lenses. The eye mainly changes the shape of one: the **crystalline lens**, tucked behind the iris. The mechanism is called **accommodation**, and its motor is a ring of muscle around the lens. The surprising part is that focusing up close involves releasing some of the pull on the lens.
+
+Let's build that mechanism, then work out what happens when it runs out of range.
+
+## A transparent, living lens
+
+The crystalline lens is a biconvex body enclosed by an elastic **capsule**. Inside it, elongated fibre cells form the outer **cortex** and the older central **nucleus**. New fibres are added throughout life. The lens has no blood vessels; its transparency depends on specialised cellular organisation, including the loss of nuclei and other organelles from mature fibres and the arrangement of densely packed crystallin proteins. These features reduce the small-scale refractive-index variations that would scatter light (Bassnett et al., 2011).
+
+It is not a piece of glass with one uniform refractive index, either. The index generally increases from the outer cortex toward the central region. This **gradient refractive index**, or **GRIN**, contributes to the lens's optical power and aberrations, alongside the curvature of its surfaces. Measurements show that both lens shape and the index distribution change with accommodation (Khan et al., 2018).
+
+For our 3D model, we start with a simpler shape: a flattened ellipsoid with a more curved posterior half. A transparent cyan shell and a golden core let us see the structure. Those colours are visual labels, not pigmentation or cataract, and the renderer's glassy highlights are not a GRIN ray trace.
+
+## The ciliary muscle: Pull less to focus closer
+
+Around the lens sits the **ciliary body**, containing the smooth **ciliary muscle**. Fine **zonular fibres** connect the lens capsule to the surrounding ciliary apparatus. In the classical Helmholtz account of accommodation:
+
+1. **For distance**, the ciliary muscle relaxes. Zonular tension holds the lens in a relatively flatter configuration.
+2. **For near**, the muscle contracts and the ciliary ring narrows. The main lens-flattening zonular load decreases, allowing the lens and capsule to adopt a rounder configuration.
+3. The lens becomes thicker centrally and its equatorial diameter decreases. Its optical power increases.
+
+The lens itself contains no focusing muscle. Nor do its supporting fibres detach when you look near. The real zonular network has several attachment regions and a more complex distribution of forces than our radial spokes can show. The useful idea is the change in load: the ring contracts, while the lens rounds up. Imaging studies measure these accompanying changes in the lens and ciliary muscle (Richdale et al., 2013).
+
+Drag the slider from **Distance** to **Near**. Watch the coral ring move inward, the lens become thicker and the yellow fibres span a shorter gap. Open the section to look inside; drag horizontally on a phone to rotate, and vertically to keep reading.
+
+<InteractiveViewer>
+  <div slot="preview"><LensAnatomy client:visible /></div>
+  <div slot="code"><Code code={LensAnatomyCode + '\n\n// Shared model\n' + LensModelCode} lang="tsx" theme="github-dark" /></div>
+</InteractiveViewer>
+
+For this visualisation, the slider maps $0$–$8\ \text{D}$ of model accommodation onto illustrative shape changes. The dimensions are chosen to make the mechanism readable; the mesh does not calculate its own optical power or solve tissue mechanics. The slight bowing of the zonules is a cue for reduced load, not a measurement of tension.
+
+In code, the geometry is allocated once. We scale the lens and ring and update the existing fibre buffers, rather than rebuilding meshes as the slider moves. The ellipsoid keeps a constant volume as it thickens and narrows. The transition uses a first-order easing step:
+
+```ts
+const tau = 0.25; // seconds: an animation parameter
+shownAccommodation += (targetAccommodation - shownAccommodation)
+  * (1 - Math.exp(-dt / tau));
+```
+
+That quarter-second value controls the animation, not a universal physiological response time. The demo also respects the browser's reduced-motion preference.
+
+## From distance to dioptres
+
+The closer an object gets, the more its rays diverge before reaching the eye. To bring them back onto the retina, the eye needs more optical power.
+
+For an eye focused at infinity with accommodation relaxed, the approximate additional demand is the reciprocal of object distance in metres:
+
+$$A_{\mathrm{demand}} \approx \frac{1}{d}$$
+
+A target at $1\ \text{m}$ asks for about $1\ \text{D}$; at $50\ \text{cm}$, $2\ \text{D}$; at $25\ \text{cm}$, $4\ \text{D}$. **Demand** describes the stimulus. **Response** describes what the eye actually supplies. Real responses can lag behind demand and depend on viewing conditions; they need not match this simple reciprocal exactly.
+
+To make the optical bookkeeping visible, we now replace the entire eye with one **reduced-eye** element. We choose the conventional distance power $F_0 = 60\ \text{D}$ and image-space index $n' = 4/3$, as in Emsley's reduced eye (Harris, 2009). The equivalent element represents cornea and lens together. We are not assigning $60\ \text{D}$ to the crystalline lens, or simply adding the separate powers of two thick, separated lenses.
+
+In the paraxial approximation, the outgoing vergence is the incoming vergence plus the optical power. With a near demand $A_{\mathrm{demand}}$ and response $A_{\mathrm{response}}$, the image distance is:
+
+$$l' = \frac{n'}{F_0 + A_{\mathrm{response}} - A_{\mathrm{demand}}}$$
+
+Distances here are measured from the model's equivalent principal plane. We keep the retina at $n'/F_0 \approx 22.2\ \text{mm}$ behind that plane; this is a reduced-eye distance, not a claim about the anatomical length of every eye. When response matches demand, the focus stays on the retina.
+
+Move the target closer below. The central symbol changes shape to indicate increased whole-eye power, while the focus remains in place.
+
+<InteractiveViewer>
+  <div slot="preview"><LensFocus client:visible /></div>
+  <div slot="code"><Code code={LensFocusCode + '\n\n// Shared optical model\n' + LensModelCode} lang="tsx" theme="github-dark" /></div>
+</InteractiveViewer>
+
+The diagram uses paraxial rays and an ideal response with enough accommodative range. It leaves out aberrations, diffraction and the lens's internal index gradient. It explains where the focus goes; it does not predict retinal image quality or visual acuity.
+
+## Who tells the muscle to move?
+
+Accommodation is mainly driven by parasympathetic output. Preganglionic fibres from the Edinger-Westphal complex travel with **cranial nerve III** to the **ciliary ganglion**. Postganglionic fibres then reach the ciliary muscle through the **short ciliary nerves** (McDougal & Gamlin, 2015).
+
+This shares an outgoing route with the pupil pathway from Part 2, but the muscles do different jobs. The iris sphincter adjusts the aperture; the ciliary muscle changes the loading of the lens.
+
+When we shift our gaze toward a near target, accommodation usually accompanies **convergence** of the eyes and **pupil constriction**: the near response. A smaller pupil can increase depth of focus, but it does not restore lost lens flexibility. Here we isolate accommodation so the effect of each control stays clear.
+
+## When the lens cannot keep up
+
+Accommodation declines with age, eventually making sustained near work difficult without help: **presbyopia**. It is tempting to blame a tired focusing muscle, but measurements show that ciliary contraction can persist in older eyes (Strenk et al., 1999). Age-related changes in the lens's mechanical properties play a major role; its continuing growth and the geometry of the surrounding apparatus also matter. Experiments on donor lenses demonstrate a marked loss of the ability to change optical power with age (Glasser & Campbell, 1998).
+
+We can explore the optical consequence without pretending to calculate someone's age. Give the model an **available accommodation** and let its response stop at that limit:
+
+```ts
+const response = Math.min(demand, availableAccommodation);
+const unmetDemand = demand - response;
+```
+
+Start at $25\ \text{cm}$ with only $2\ \text{D}$ available. The target demands $4\ \text{D}$, so the model falls short by $2\ \text{D}$ and the focus lies behind the retina. Move the target out to $50\ \text{cm}$ and the demand fits within the available range again.
+
+<InteractiveViewer>
+  <div slot="preview"><LensFocus showReserve client:visible /></div>
+  <div slot="code"><Code code={LensFocusCode + '\n\n// Shared optical model\n' + LensModelCode} lang="tsx" theme="github-dark" /></div>
+</InteractiveViewer>
+
+The reserve slider is a model parameter, not an age scale or a clinical test. It also assumes accurate distance focus before accommodation begins. Real near vision depends on refractive correction, pupil size, depth of focus and the task, as well as accommodative amplitude.
+
+Our eye now has a fixed front surface, an adjustable aperture and a lens that can change the focus. Three different mechanisms, all working toward the same small patch of retina.
+
+## References
+
+1. **Bassnett, S., Shi, Y., & Vrensen, G. F. J. M. (2011)**. [*Biological glass: structural determinants of eye lens transparency*](https://pmc.ncbi.nlm.nih.gov/articles/PMC3061108/). Philosophical Transactions of the Royal Society B, 366, 1250–1264.
+2. **Khan et al. (2018)**. [*Change in human lens dimensions, lens refractive index distribution and ciliary body ring diameter with accommodation*](https://pmc.ncbi.nlm.nih.gov/articles/PMC5846530/). Biomedical Optics Express, 9, 1272–1282.
+3. **Purves et al. (2001)**. [*The formation of images on the retina*](https://www.ncbi.nlm.nih.gov/books/NBK11079/). Neuroscience, 2nd edition. The basic optics and classical mechanism of accommodation.
+4. **Richdale et al. (2013)**. [*Quantification of age-related and per diopter accommodative changes of the lens and ciliary muscle in the emmetropic human eye*](https://pubmed.ncbi.nlm.nih.gov/23287789/). Investigative Ophthalmology & Visual Science, 54, 1095–1105.
+5. **Harris, W. F. (2009)**. [*General approach to the sensitivity of the optics of an eye to change in elementary parameters with application to the Gaussian optics of a reduced eye*](https://avehjournal.org/index.php/aveh/article/download/169/138). South African Optometrist, 68, 166–175. Includes the conventional Emsley reduced-eye parameters.
+6. **McDougal, D. H., & Gamlin, P. D. R. (2015)**. [*Autonomic control of the eye*](https://pmc.ncbi.nlm.nih.gov/articles/PMC4919817/). Comprehensive Physiology, 5, 439–473.
+7. **Strenk et al. (1999)**. [*Age-related changes in human ciliary muscle and lens: a magnetic resonance imaging study*](https://pubmed.ncbi.nlm.nih.gov/10235549/). Investigative Ophthalmology & Visual Science, 40, 1162–1169.
+8. **Glasser, A., & Campbell, M. C. W. (1998)**. [*Presbyopia and the optical changes in the human crystalline lens with age*](https://pubmed.ncbi.nlm.nih.gov/9536350/). Vision Research, 38, 209–229.

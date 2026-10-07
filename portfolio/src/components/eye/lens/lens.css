@@ -1,0 +1,142 @@
+.lens-demo {
+	color: var(--foreground);
+	font-family: var(--font-sans, sans-serif);
+	font-size: 14px;
+	line-height: 1.5;
+	min-width: 0;
+}
+.lens-demo .lens-heading {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 8px 20px;
+	padding: 16px;
+	border-bottom: 1px solid var(--border);
+}
+.lens-demo .lens-heading strong {
+	font-weight: 600;
+}
+.lens-demo .lens-muted {
+	color: var(--muted-foreground);
+}
+.lens-demo .lens-scene {
+	height: 420px;
+	background: radial-gradient(ellipse at center, #123e3d 0%, #061e20 72%);
+	cursor: grab;
+}
+.lens-demo .lens-scene canvas {
+	display: block;
+	touch-action: pan-y !important;
+}
+.lens-demo .lens-legend {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px 20px;
+	padding: 12px 16px;
+	background: #061e20;
+	color: #dce9e7;
+	font-size: 12px;
+}
+.lens-demo .lens-key::before {
+	content: "";
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	margin-right: 6px;
+	background: var(--key-color);
+}
+.lens-demo .lens-controls {
+	display: grid;
+	gap: 12px;
+	padding: 16px;
+	border-top: 1px solid var(--border);
+}
+.lens-demo label {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+}
+.lens-demo .lens-value {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 4px 12px;
+}
+.lens-demo output {
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+.lens-demo input[type="range"] {
+	width: 100%;
+	height: 44px;
+	margin: 0;
+	accent-color: var(--primary);
+	cursor: pointer;
+}
+.lens-demo .lens-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.lens-demo button {
+	min-height: 44px;
+	padding: 8px 14px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--secondary);
+	color: var(--foreground);
+	cursor: pointer;
+}
+.lens-demo button[aria-pressed="true"] {
+	background: var(--primary);
+	color: var(--primary-foreground);
+}
+.lens-demo button:focus-visible,
+.lens-demo input:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 3px;
+}
+.lens-demo .lens-note {
+	margin: 0;
+	font-size: 12px;
+	color: var(--muted-foreground);
+}
+.lens-demo .lens-stats {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	padding: 16px;
+}
+.lens-demo .lens-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+	font-size: 12px;
+	color: var(--muted-foreground);
+}
+.lens-demo .lens-stat strong {
+	font-size: 22px;
+	color: var(--foreground);
+	font-variant-numeric: tabular-nums;
+}
+.lens-demo .lens-rays {
+	display: block;
+	width: 100%;
+	height: auto;
+	background: #061e20;
+}
+@media (max-width: 767px) {
+	.lens-demo .lens-scene {
+		height: auto;
+		aspect-ratio: 1;
+		max-height: 380px;
+	}
+	.lens-demo .lens-heading,
+	.lens-demo .lens-controls,
+	.lens-demo .lens-stats {
+		padding: 12px;
+	}
+}
