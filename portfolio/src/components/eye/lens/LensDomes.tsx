@@ -1,12 +1,14 @@
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import LensViews from "./LensViews";
 import { capHeight, DOME_APERTURE } from "./lensOptics";
 import { createLensScene } from "./lensScene";
 
 export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es";
 	const mount = useRef<HTMLDivElement>(null);
+	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [radius, setRadius] = useState(6.5);
 	const [separated, setSeparated] = useState(true);
 	const [wireframe, setWireframe] = useState(true);
@@ -14,16 +16,18 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 	const params = useRef({ radius, separated, wireframe });
 	useEffect(() => {
 		params.current = { radius, separated, wireframe };
+		viewRef.current?.invalidate();
 	}, [radius, separated, wireframe]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
 		try {
-			view = createLensScene(mount.current, 23);
+			view = createLensScene(mount.current, 23, lang);
 		} catch {
 			setError(true);
 			return;
 		}
+		viewRef.current = view;
 		view.camera.position.set(17, 4, 14);
 		// One cap, duplicated and reversed. The same vertex buffer supplies both
 		// surfaces, just as a cornea-like spherical cap supplies the first lesson.
@@ -53,15 +57,21 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 			}),
 		);
 		back.rotation.y = Math.PI;
-		const wireMaterial = new THREE.MeshBasicMaterial({
+		const wireMaterial = new THREE.LineBasicMaterial({
 			color: 0xc4f9f4,
-			wireframe: true,
 			transparent: true,
-			opacity: 0.12,
+			opacity: 0.4,
 			depthWrite: false,
 		});
-		const frontWire = new THREE.Mesh(geometry, wireMaterial);
-		const backWire = new THREE.Mesh(geometry, wireMaterial);
+		// A sparse construction grid stays legible on phones; the surface is smooth.
+		const grid = new THREE.BufferGeometry();
+		const gridPositions = new THREE.Float32BufferAttribute(
+			new Float32Array(768 * 2 * 3),
+			3,
+		);
+		grid.setAttribute("position", gridPositions);
+		const frontWire = new THREE.LineSegments(grid, wireMaterial);
+		const backWire = new THREE.LineSegments(grid, wireMaterial);
 		front.add(frontWire);
 		back.add(backWire);
 		view.scene.add(front, back);
@@ -82,22 +92,52 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 				positions.needsUpdate = true;
 				geometry.computeVertexNormals();
 				geometry.computeBoundingSphere();
+				let vertex = 0;
+				const point = (r: number, angle: number) => {
+					gridPositions.setXYZ(
+						vertex++,
+						r * Math.cos(angle),
+						r * Math.sin(angle),
+						capHeight(p.radius, r) + 0.005,
+					);
+				};
+				for (let ring = 1; ring <= 6; ring++) {
+					const r = (ring / 6) * DOME_APERTURE;
+					for (let j = 0; j < 64; j++) {
+						point(r, (j / 64) * Math.PI * 2);
+						point(r, ((j + 1) / 64) * Math.PI * 2);
+					}
+				}
+				for (let meridian = 0; meridian < 16; meridian++) {
+					const angle = (meridian / 16) * Math.PI * 2;
+					for (let j = 0; j < 24; j++) {
+						point((j / 24) * DOME_APERTURE, angle);
+						point(((j + 1) / 24) * DOME_APERTURE, angle);
+					}
+				}
+				gridPositions.needsUpdate = true;
+				grid.computeBoundingSphere();
 				lastRadius = p.radius;
 			}
 			front.position.z = p.separated ? 1.25 : 0;
 			back.position.z = p.separated ? -1.25 : 0;
 			frontWire.visible = backWire.visible = p.wireframe;
 			return {
-				model:
-					"Two identical opposing spherical caps, not anatomical lens surfaces",
-				radius: p.radius,
-				aperture: DOME_APERTURE,
-				thickness: 2 * capHeight(p.radius, 0),
-				separated: p.separated,
+				state: {
+					model:
+						"Two identical opposing spherical caps, not anatomical lens surfaces",
+					radius: p.radius,
+					aperture: DOME_APERTURE,
+					thickness: 2 * capHeight(p.radius, 0),
+					separated: p.separated,
+				},
 			};
 		});
-		return () => view.dispose();
-	}, []);
+		return () => {
+			viewRef.current = null;
+			view.dispose();
+		};
+	}, [lang]);
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
@@ -131,6 +171,10 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 				<span>{es ? "Violeta: copia invertida" : "Violet: reversed copy"}</span>
 			</div>
 			<div className="lens-controls">
+				<LensViews
+					lang={lang}
+					onView={(view) => viewRef.current?.setView(view)}
+				/>
 				<label>
 					<span className="lens-value">
 						<span>

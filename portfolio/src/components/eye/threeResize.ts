@@ -10,6 +10,7 @@ export function observeThreeResize(
 	container: HTMLElement,
 	renderer: THREE.WebGLRenderer,
 	camera: THREE.PerspectiveCamera,
+	onResize?: () => void,
 ): ResizeObserver {
 	const resizeObserver = new ResizeObserver((entries) => {
 		for (const entry of entries) {
@@ -18,6 +19,7 @@ export function observeThreeResize(
 			renderer.setSize(width, height);
 			camera.aspect = width / height;
 			camera.updateProjectionMatrix();
+			onResize?.();
 		}
 	});
 	resizeObserver.observe(container);

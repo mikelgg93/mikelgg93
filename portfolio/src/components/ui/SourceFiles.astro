@@ -1,0 +1,52 @@
+---
+import { Code } from 'astro:components';
+interface Props {
+  files: { path: string; code: string; lang: 'ts' | 'tsx' | 'css' }[];
+  lang?: 'en' | 'es';
+}
+const { files, lang = 'en' } = Astro.props;
+const es = lang === 'es';
+---
+<source-files data-copied={es ? 'Copiado' : 'Copied'} data-failed={es ? 'No se pudo copiar; selecciona el código.' : 'Copy failed; select the code instead.'}>
+  <p class="source-intro">{es ? 'Cada bloque es un archivo independiente. Conserva estas rutas bajo src/components/; se incluyen los módulos compartidos y los estilos.' : 'Each block is a separate file. Keep these paths under src/components/; shared modules and styles are included.'}</p>
+  {files.map((file, i) => (
+    <details open={i === 0}>
+      <summary>{file.path}</summary>
+      <div class="source-actions">
+        <button type="button" data-copy-source aria-label={`${es ? 'Copiar' : 'Copy'} ${file.path}`}>{es ? 'Copiar archivo' : 'Copy file'}</button>
+        <span role="status"></span>
+      </div>
+      <Code code={file.code} lang={file.lang} theme="github-dark" />
+    </details>
+  ))}
+</source-files>
+<script>
+  class SourceFiles extends HTMLElement {
+    private copy = async (event: Event) => {
+      const button = (event.target as Element).closest<HTMLButtonElement>('[data-copy-source]');
+      if (!button || !this.contains(button)) return;
+      const file = button.closest('details');
+      const code = file?.querySelector('code')?.textContent;
+      const status = file?.querySelector('[role="status"]');
+      if (!code || !status) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        if (this.isConnected) status.textContent = this.dataset.copied ?? 'Copied';
+      } catch {
+        if (this.isConnected) status.textContent = this.dataset.failed ?? 'Copy failed';
+      }
+    };
+    connectedCallback() { this.addEventListener('click', this.copy); }
+    disconnectedCallback() { this.removeEventListener('click', this.copy); }
+  }
+  if (!customElements.get('source-files')) customElements.define('source-files', SourceFiles);
+</script>
+<style>
+  source-files { display: block; background: #24292e; color: #e1e4e8; }
+  .source-intro { padding: 16px; margin: 0; font: 14px/1.5 system-ui, sans-serif; }
+  details { border-top: 1px solid #59636d; }
+  summary { padding: 12px 16px; min-height: 44px; overflow-wrap: anywhere; cursor: pointer; font-family: monospace; }
+  .source-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 0 16px 8px; font-size: 13px; }
+  button { min-height: 44px; padding: 8px 12px; color: #fff; background: #455a64; border: 1px solid #9db0b7; border-radius: 6px; cursor: pointer; }
+  button:focus-visible, summary:focus-visible { outline: 2px solid #8ee6d1; outline-offset: -2px; }
+</style>

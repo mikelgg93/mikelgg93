@@ -64,7 +64,7 @@
 
           const globalCopy = viewer.querySelector('.global-copy-btn');
           if (globalCopy) {
-            if (targetTab === 'preview') {
+            if (targetTab === 'preview' || (targetTab === 'code' && viewer.querySelector('source-files'))) {
               globalCopy.classList.add('hidden');
             } else {
               globalCopy.classList.remove('hidden');

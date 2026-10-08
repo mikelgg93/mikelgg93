@@ -1,0 +1,27 @@
+---
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+const es = lang === 'es';
+const source = 'https://www.nature.com/articles/s41598-026-42539-3/figures/2';
+const image = '/images/blog/lens-oct-reconstruction.png';
+---
+<figure>
+  <p class="table-scroll-hint">{es ? 'Desliza para recorrer la figura; ábrela para ampliarla.' : 'Swipe to explore the figure; open it to zoom.'}</p>
+  <div class="table-scroll" role="region" aria-label={es ? 'De las imágenes OCT a la reconstrucción del cristalino' : 'From OCT images to lens reconstruction'} tabindex="0">
+    <a href={image} aria-label={es ? 'Abrir la figura OCT a tamaño completo' : 'Open the full-size OCT figure'}>
+      <img src={image} width="1654" height="493" loading="lazy" decoding="async" alt={es ? 'Imágenes OCT desde distintos ángulos, a la izquierda; superficies identificadas, corregidas y alineadas para reconstruir y ajustar la forma del cristalino, a la derecha.' : 'OCT images from different angles on the left; identified surfaces are corrected and aligned to reconstruct and fit the lens shape on the right.'} />
+    </a>
+  </div>
+  <figcaption>
+    {es ? 'De la medición a la forma: los datos OCT requieren segmentación, corrección óptica y alineamiento antes de ajustar el modelo. ' : 'From measurement to shape: OCT data require segmentation, optical correction and alignment before fitting the model. '}
+    <a href={source}>De la Peña et al. (2026), {es ? 'Figura 2' : 'Figure 2'}</a>.
+    {' '}<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; {es ? 'reproducida sin modificaciones.' : 'reproduced without modification.'}
+    {' '}<a href={image}>{es ? 'Ver a tamaño completo' : 'View full size'}</a>.
+  </figcaption>
+</figure>
+<style>
+  img { display: block; width: 100%; min-width: 960px; max-width: none; height: auto; margin: 0; background: white; }
+  .table-scroll { overflow-x: auto; max-width: 100%; overscroll-behavior-x: contain; }
+  .table-scroll:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+  figcaption { margin-top: 12px; font-size: 0.875rem; }
+</style>

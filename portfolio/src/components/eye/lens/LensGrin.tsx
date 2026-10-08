@@ -10,7 +10,8 @@ const project = (points: { x: number; y: number }[]) =>
 				`${i ? "L" : "M"}${(160 + 30 * p.x).toFixed(3)} ${(150 - 27 * p.y).toFixed(3)}`,
 		)
 		.join(" ");
-const uniformRays = HEIGHTS.map((y) => project(traceGrinRay(y, 0).points));
+const uniformTraces = HEIGHTS.map((y) => traceGrinRay(y, 0));
+const uniformRays = uniformTraces.map((ray) => project(ray.points));
 
 export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es";
@@ -94,8 +95,8 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 						fill="none"
 						stroke="#c4d5d5"
 						strokeDasharray="3 4"
-						strokeWidth="1"
-						opacity="0.7"
+						strokeWidth={i === HEIGHTS.length - 1 ? 1.8 : 1}
+						opacity={i === HEIGHTS.length - 1 ? 1 : 0.35}
 					/>
 				))}
 				{rays.map((ray, i) => (
@@ -104,13 +105,18 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 						d={project(ray.points)}
 						fill="none"
 						stroke="#ffd493"
-						strokeWidth="1.6"
+						strokeWidth={i === HEIGHTS.length - 1 ? 2.6 : 1.2}
+						opacity={i === HEIGHTS.length - 1 ? 1 : 0.45}
 					/>
 				))}
 				<text x="160" y="18" fill="#c0e1da" fontSize="14" textAnchor="middle">
-					{es
-						? "Índice mayor hacia el centro"
-						: "Higher index toward the centre"}
+					{gradient === 0
+						? es
+							? "Índice de refracción uniforme"
+							: "Uniform refractive index"
+						: es
+							? "Índice mayor hacia el centro"
+							: "Higher index toward the centre"}
 				</text>
 				<text x="200" y="292" fill="#a9c8c2" fontSize="13" textAnchor="middle">
 					{es
@@ -127,6 +133,15 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 				</span>
 			</div>
 			<div className="lens-controls">
+				<p className="lens-note">
+					{gradient === 0
+						? es
+							? "Los dos trazados se superponen: el interior tiene un único índice."
+							: "The two paths overlap: the interior has one uniform index."
+						: es
+							? "Sigue el rayo superior resaltado y compara su extremo dorado con el discontinuo de la derecha. El gradiente añade curvatura dentro de la lente."
+							: "Follow the highlighted upper ray and compare its golden tip with the dashed path on the right. The gradient adds bending inside the lens."}
+				</p>
 				<label>
 					<span className="lens-value">
 						<span>

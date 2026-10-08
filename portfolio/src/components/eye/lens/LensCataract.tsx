@@ -1,6 +1,7 @@
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import LensViews from "./LensViews";
 import { createLensGeometry, createLensScene } from "./lensScene";
 
 type CataractType = "nuclear" | "cortical" | "posterior";
@@ -41,16 +42,19 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [type, setType] = useState<CataractType>("nuclear");
 	const [opacity, setOpacity] = useState(0.7);
+	const previousOpacity = useRef(0.7);
 	const [error, setError] = useState(false);
 	const params = useRef({ type, opacity });
 	useEffect(() => {
 		params.current = { type, opacity };
+		if (opacity > 0) previousOpacity.current = opacity;
+		viewRef.current?.invalidate();
 	}, [type, opacity]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
 		try {
-			view = createLensScene(mount.current, 23);
+			view = createLensScene(mount.current, 23, lang);
 		} catch {
 			setError(true);
 			return;
@@ -130,27 +134,19 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 			])
 				material.uniforms.amount!.value = p.opacity;
 			return {
-				model:
-					"Illustrative opacity distribution; no scattering or visual-acuity prediction",
-				opacityPattern: p.type,
-				illustrativeOpacity: p.opacity,
+				state: {
+					model:
+						"Illustrative opacity distribution; no scattering or visual-acuity prediction",
+					opacityPattern: p.type,
+					illustrativeOpacity: p.opacity,
+				},
 			};
 		});
 		return () => {
 			viewRef.current = null;
 			view.dispose();
 		};
-	}, []);
-	function cameraPosition(side: boolean) {
-		const view = viewRef.current;
-		if (!view) return;
-		view.camera.position.set(
-			side ? 23 : 0,
-			2,
-			side ? 0 : type === "posterior" ? -23 : 23,
-		);
-		view.controls.update();
-	}
+	}, [lang]);
 	const descriptions = {
 		nuclear: es
 			? "Nuclear: opacidad central, aquí con un tono amarillento."
@@ -183,10 +179,20 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 					ref={mount}
 					className="lens-scene"
 					role="img"
-					aria-label={descriptions[type]}
+					aria-label={
+						opacity === 0
+							? es
+								? "Cristalino transparente para comparar"
+								: "Clear lens for comparison"
+							: descriptions[type]
+					}
 				/>
 			)}
 			<div className="lens-controls">
+				<LensViews
+					lang={lang}
+					onView={(view) => viewRef.current?.setView(view)}
+				/>
 				<div className="lens-buttons">
 					{(["nuclear", "cortical", "posterior"] as const).map((value) => (
 						<button
@@ -226,7 +232,9 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 					<button
 						type="button"
 						aria-pressed={opacity === 0}
-						onClick={() => setOpacity(opacity === 0 ? 0.7 : 0)}
+						onClick={() =>
+							setOpacity(opacity === 0 ? previousOpacity.current : 0)
+						}
 					>
 						{opacity === 0
 							? es
@@ -236,10 +244,12 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 								? "Comparar con transparente"
 								: "Compare with clear"}
 					</button>
-					<button type="button" onClick={() => cameraPosition(true)}>
-						{es ? "Vista lateral" : "Side view"}
-					</button>
-					<button type="button" onClick={() => cameraPosition(false)}>
+					<button
+						type="button"
+						onClick={() =>
+							viewRef.current?.setView(type === "posterior" ? "back" : "front")
+						}
+					>
 						{es ? "Ver la zona afectada" : "Face the affected region"}
 					</button>
 				</div>

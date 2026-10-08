@@ -7,12 +7,14 @@ import {
 	MUSCLE_REGIONS,
 	muscleGeometry,
 } from "./ciliaryGeometry";
+import LensViews from "./LensViews";
 import { lensShape, MAX_ACCOMMODATION } from "./lensModel";
 import { createLensGeometry, createLensScene } from "./lensScene";
 
 export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es";
 	const mount = useRef<HTMLDivElement>(null);
+	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [accommodation, setAccommodation] = useState(0);
 	const [cutaway, setCutaway] = useState(false);
 	const [fibreMap, setFibreMap] = useState(true);
@@ -20,16 +22,18 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 	const params = useRef({ accommodation, cutaway, fibreMap });
 	useEffect(() => {
 		params.current = { accommodation, cutaway, fibreMap };
+		viewRef.current?.invalidate();
 	}, [accommodation, cutaway, fibreMap]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
 		try {
-			view = createLensScene(mount.current, 30);
+			view = createLensScene(mount.current, 30, lang);
 		} catch {
 			setError(true);
 			return;
 		}
+		viewRef.current = view;
 		view.camera.position.set(16, 12, 22);
 		const lens = new THREE.Group();
 		const shapeGeometry = createLensGeometry();
@@ -158,6 +162,26 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			foldMaterial,
 			zonuleMaterial,
 		];
+		// Outline the cut profiles so a clipped surface reads as a section.
+		const section = new THREE.Group();
+		const sectionMaterial = new THREE.LineBasicMaterial({ color: 0xffebce });
+		const sectionTracks = MUSCLE_REGIONS.flatMap((region) =>
+			[0, Math.PI].map((angle) => {
+				const geometry = new THREE.BufferGeometry().setFromPoints(
+					region.profile.map(([r, z]) => {
+						const point = ciliaryPoint(r, angle, z, 0);
+						point.y = -0.004;
+						return point;
+					}),
+				);
+				section.add(new THREE.Line(geometry, sectionMaterial));
+				return {
+					geometry,
+					rest: new Float32Array(geometry.getAttribute("position").array),
+				};
+			}),
+		);
+		view.scene.add(section);
 		const clipping = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
 		const neutralMuscle = new THREE.Color(0xa16c65);
 		let shown = params.current.accommodation,
@@ -169,10 +193,11 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			shown +=
 				(p.accommodation - shown) *
 				(reducedMotion ? 1 : 1 - Math.exp(-dt / 0.25));
+			if (Math.abs(p.accommodation - shown) < 1e-4) shown = p.accommodation;
 			const shape = lensShape(shown);
 			if (Math.abs(shown - previous) > 1e-5) {
 				lens.scale.set(shape.lensRadius, shape.lensRadius, shape.thickness / 2);
-				for (const body of [...muscles, ...tracks])
+				for (const body of [...muscles, ...tracks, ...sectionTracks])
 					deformCiliary(body.geometry, body.rest, shape.fraction);
 				for (const fold of folds)
 					fold.mesh.position.copy(
@@ -211,6 +236,7 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			for (const muscle of muscles)
 				muscle.material.color.copy(p.fibreMap ? muscle.color : neutralMuscle);
 			fibreMaterial.opacity = p.fibreMap ? 0.65 : 0;
+			section.visible = p.cutaway;
 			if (p.cutaway !== lastCutaway) {
 				for (const material of allMaterials) {
 					material.clippingPlanes = p.cutaway ? clipping : [];
@@ -219,16 +245,22 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 				lastCutaway = p.cutaway;
 			}
 			return {
-				model:
-					"Ciliary muscle regions, representative processes and zonular attachments; illustrative geometry",
-				accommodation: shown,
-				...shape,
-				fibreMap: p.fibreMap,
-				cutaway: p.cutaway,
+				state: {
+					model:
+						"Ciliary muscle regions, representative processes and zonular attachments; illustrative geometry",
+					accommodation: shown,
+					...shape,
+					fibreMap: p.fibreMap,
+					cutaway: p.cutaway,
+				},
+				animating: shown !== p.accommodation,
 			};
 		});
-		return () => view.dispose();
-	}, []);
+		return () => {
+			viewRef.current = null;
+			view.dispose();
+		};
+	}, [lang]);
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
@@ -262,8 +294,13 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 				<span style={{ color: "#e3bb85" }}>Radial</span>
 				<span style={{ color: "#e8a28a" }}>Circular</span>
 				<span>{es ? "Dorado: zónulas" : "Gold: zonules"}</span>
+				<span>{es ? "Cian: guías de superficie" : "Cyan: surface guides"}</span>
 			</div>
 			<div className="lens-controls">
+				<LensViews
+					lang={lang}
+					onView={(view) => viewRef.current?.setView(view)}
+				/>
 				<label>
 					<span className="lens-value">
 						<span>{es ? "Acomodación del modelo" : "Model accommodation"}</span>
@@ -308,6 +345,15 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 						{es ? "Mapa muscular" : "Muscle map"}
 					</button>
 				</div>
+				<p className="lens-note" aria-live="polite">
+					{accommodation === 0
+						? es
+							? "Para lejos: mayor carga zonular de aplanamiento."
+							: "Distance: greater zonular flattening load."
+						: es
+							? "Hacia cerca: el anillo se estrecha y disminuye la carga que aplana el cristalino. Indicación cualitativa, no medida de fuerza."
+							: "Toward near: the ring narrows and the lens-flattening load decreases. A qualitative cue, not a force measurement."}
+				</p>
 				<p className="lens-note">
 					{es
 						? "Los pliegues marrones son procesos ciliares. Las regiones musculares están resaltadas para mostrar su orientación; forman un músculo continuo, no tres motores separados."
