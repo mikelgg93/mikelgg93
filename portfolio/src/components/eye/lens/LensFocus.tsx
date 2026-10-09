@@ -150,7 +150,7 @@ export default function LensFocus({
 			<div className="lens-controls">
 				<label>
 					<span className="lens-value">
-						<span>{es ? "Demanda de cerca" : "Near demand"}</span>
+						<span>{es ? "Distancia del objeto" : "Target distance"}</span>
 						<output>{distance}</output>
 					</span>
 					<input
@@ -159,6 +159,7 @@ export default function LensFocus({
 						max="8"
 						step="0.1"
 						value={demand}
+						aria-valuetext={distance}
 						onChange={(e) => setDemand(Number(e.target.value))}
 					/>
 				</label>

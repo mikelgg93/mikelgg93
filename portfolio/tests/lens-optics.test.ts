@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
+import { CILIARY_PROFILE } from "../src/components/eye/lens/ciliaryApparatus";
 import {
 	ciliaryPoint,
 	deformCiliary,
-	MUSCLE_REGIONS,
 	muscleGeometry,
 } from "../src/components/eye/lens/ciliaryGeometry";
 import { lensShape } from "../src/components/eye/lens/lensModel";
@@ -80,8 +80,8 @@ test("uniform interiors are straight; GRIN adds curvature and converges as the s
 });
 
 test("ciliary anatomy deforms inward while preserving the outer anchor and lens clearance", () => {
-	for (const region of MUSCLE_REGIONS) {
-		const geometry = muscleGeometry(region.profile);
+	{
+		const geometry = muscleGeometry(CILIARY_PROFILE);
 		const rest = new Float32Array(geometry.getAttribute("position").array);
 		for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
 			deformCiliary(geometry, rest, fraction);

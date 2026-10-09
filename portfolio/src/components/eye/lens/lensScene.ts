@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { disposeThree } from "../disposeThree";
 import { observeThreeResize } from "../threeResize";
 
-export type LensView = "front" | "side" | "back" | "reset";
+export type LensView = "front" | "side" | "back" | "section" | "reset";
 type FrameState = { state: object; animating?: boolean };
 
 // Islands draw on demand, including while easing or orbit damping is active.
@@ -18,6 +19,22 @@ export function createLensScene(
 	renderer.localClippingEnabled = true;
 	container.appendChild(renderer.domElement);
 	const scene = new THREE.Scene();
+	// Transmission samples the WebGL background, not the CSS behind the canvas.
+	scene.background = new THREE.Color(0x092a2a);
+	scene.environmentIntensity = 0.45;
+	// Original procedural studio reflections; no photographic environment assets.
+	function createEnvironment() {
+		const room = new RoomEnvironment();
+		const pmrem = new THREE.PMREMGenerator(renderer);
+		try {
+			return pmrem.fromScene(room, 0.04);
+		} finally {
+			disposeThree(room);
+			pmrem.dispose();
+		}
+	}
+	let environment = createEnvironment();
+	scene.environment = environment.texture;
 	const camera = new THREE.PerspectiveCamera(
 		35,
 		container.clientWidth / Math.max(1, container.clientHeight),
@@ -26,11 +43,15 @@ export function createLensScene(
 	);
 	camera.position.set(distance * 0.52, distance * 0.23, distance * 0.82);
 	const initialCamera = camera.position.clone();
-	const controls = new OrbitControls(camera, renderer.domElement);
-	controls.enableDamping = true;
-	controls.enablePan = false;
-	controls.minDistance = distance * 0.8;
-	controls.maxDistance = distance * 1.6;
+	function makeControls() {
+		const orbit = new OrbitControls(camera, renderer.domElement);
+		orbit.enableDamping = true;
+		orbit.enablePan = false;
+		orbit.minDistance = distance * 0.8;
+		orbit.maxDistance = distance * 1.6;
+		return orbit;
+	}
+	let controls = makeControls();
 	scene.add(new THREE.HemisphereLight(0xcdf4ff, 0x102323, 2));
 	const light = new THREE.DirectionalLight(0xffffff, 2.5);
 	light.position.set(-5, 7, 12);
@@ -108,11 +129,22 @@ export function createLensScene(
 	controls.addEventListener("change", invalidate);
 	document.addEventListener("visibilitychange", invalidate);
 	reducedMotion.addEventListener("change", invalidate);
-	renderer.domElement.addEventListener("webglcontextrestored", invalidate);
+	function restoreEnvironment() {
+		environment.dispose();
+		environment = createEnvironment();
+		scene.environment = environment.texture;
+		invalidate();
+	}
+	renderer.domElement.addEventListener(
+		"webglcontextrestored",
+		restoreEnvironment,
+	);
 	return {
 		scene,
 		camera,
-		controls,
+		get controls() {
+			return controls;
+		},
 		renderer,
 		invalidate,
 		start(callback: NonNullable<typeof update>) {
@@ -126,13 +158,24 @@ export function createLensScene(
 			controls.enableDamping = false;
 			controls.update();
 			controls.target.set(0, 0, 0);
+			const upChanged = camera.up.z !== (view === "section" ? 1 : 0);
+			camera.up.set(0, view === "section" ? 0 : 1, view === "section" ? 1 : 0);
 			if (view === "reset") camera.position.copy(initialCamera);
+			else if (view === "section")
+				camera.position.set(0, distance, distance * 0.12);
 			else
 				camera.position.set(
 					view === "side" ? distance : 0,
 					0,
 					view === "front" ? distance : view === "back" ? -distance : 0,
 				);
+			// OrbitControls caches its up-axis basis in the constructor.
+			if (upChanged) {
+				controls.removeEventListener("change", invalidate);
+				controls.dispose();
+				controls = makeControls();
+				controls.addEventListener("change", invalidate);
+			}
 			controls.update();
 			controls.enableDamping = damping;
 			invalidate();
@@ -147,10 +190,12 @@ export function createLensScene(
 			reducedMotion.removeEventListener("change", invalidate);
 			renderer.domElement.removeEventListener(
 				"webglcontextrestored",
-				invalidate,
+				restoreEnvironment,
 			);
 			controls.dispose();
 			disposeThree(scene);
+			scene.environment = null;
+			environment.dispose();
 			renderer.dispose();
 			renderer.forceContextLoss();
 			renderer.domElement.remove();

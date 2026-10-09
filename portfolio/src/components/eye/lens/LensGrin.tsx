@@ -126,7 +126,7 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 			</svg>
 			<div className="lens-legend">
 				<span>
-					{es ? "Discontinuo: índice uniforme" : "Dashed: uniform index"}
+					{es ? "Discontinuo: n uniforme = 1,370" : "Dashed: uniform n = 1.370"}
 				</span>
 				<span>
 					{es ? "Dorado: perfil seleccionado" : "Gold: selected profile"}

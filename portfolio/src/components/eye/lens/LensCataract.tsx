@@ -2,6 +2,7 @@ import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import LensViews from "./LensViews";
+import { clearLensMaterial } from "./lensMaterial";
 import { createLensGeometry, createLensScene } from "./lensScene";
 
 type CataractType = "nuclear" | "cortical" | "posterior";
@@ -61,17 +62,7 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 		}
 		viewRef.current = view;
 		const shape = createLensGeometry();
-		const shell = new THREE.Mesh(
-			shape,
-			new THREE.MeshPhongMaterial({
-				color: 0xb3e2db,
-				transparent: true,
-				opacity: 0.16,
-				shininess: 100,
-				side: THREE.DoubleSide,
-				depthWrite: false,
-			}),
-		);
+		const shell = new THREE.Mesh(shape, clearLensMaterial());
 		shell.scale.set(4.6, 4.6, 1.8);
 		view.scene.add(shell);
 		const edge = new THREE.LineLoop(
@@ -87,7 +78,7 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 				),
 			),
 			new THREE.LineBasicMaterial({
-				color: 0xb4e7df,
+				color: 0xe6e6ca,
 				transparent: true,
 				opacity: 0.6,
 			}),

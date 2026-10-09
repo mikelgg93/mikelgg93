@@ -44,7 +44,8 @@
     const viewers = document.querySelectorAll('.interactive-viewer');
 
     viewers.forEach(viewer => {
-      // Remove previous event listeners by cloning if necessary, or just rely on the fact that this script runs once per page load
+      if (viewer.hasAttribute('data-viewer-ready')) return;
+      viewer.setAttribute('data-viewer-ready', '');
       const btns = viewer.querySelectorAll('.tab-btn');
       const contents = viewer.querySelectorAll('.tab-content');
 
@@ -89,7 +90,7 @@
       const debugOutput = viewer.querySelector('[data-content="debug"]');
 
       if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
+        copyBtn.addEventListener('click', async () => {
           const activeTabElement = viewer.querySelector('.active-tab');
           if (!activeTabElement) return;
           const activeTab = activeTabElement.getAttribute('data-tab');
@@ -102,7 +103,14 @@
           }
 
           if (textToCopy) {
-            navigator.clipboard.writeText(textToCopy);
+            try {
+              await navigator.clipboard.writeText(textToCopy);
+            } catch {
+              const span = copyBtn.querySelector('span');
+              if (copyBtn.isConnected && span) span.textContent = 'Copy failed';
+              return;
+            }
+            if (!copyBtn.isConnected) return;
 
             // Visual feedback
             const span = copyBtn.querySelector('span');
@@ -113,6 +121,7 @@
             copyBtn.classList.add('text-green-400', 'border-green-400/50');
 
             setTimeout(() => {
+              if (!copyBtn.isConnected) return;
               if (span) span.innerText = activeTab === 'code' ? 'Copy Code' : 'Copy JSON';
               if (icon) icon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>'; // Clipboard
               copyBtn.classList.remove('text-green-400', 'border-green-400/50');

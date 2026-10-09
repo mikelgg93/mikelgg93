@@ -1,0 +1,12 @@
+---
+import { Code } from 'astro:components';
+import { lensSources } from '../../components/eye/lens/lensSources';
+import { sourceId } from '../../components/ui/sourcePath';
+export const partial = true;
+export function getStaticPaths() {
+  const files = new Map(Object.values(lensSources).flat().map(file => [file.path, file]));
+  return [...files.values()].map(file => ({ params: { id: sourceId(file.path) }, props: file }));
+}
+const { code, lang } = Astro.props;
+---
+<Code code={code} lang={lang} theme="github-dark" />

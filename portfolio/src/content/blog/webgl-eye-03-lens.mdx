@@ -16,7 +16,7 @@ import LensFocus from '../../components/eye/lens/LensFocus';
 import LensDomes from '../../components/eye/lens/LensDomes';
 import LensGrin from '../../components/eye/lens/LensGrin';
 import LensCataract from '../../components/eye/lens/LensCataract';
-import LensOCT from '../../components/eye/lens/LensOCT.astro';
+import LensAssembly from '../../components/eye/lens/LensAssembly';
 
 In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea. In [Part 2](/blog/webgl-eye-02-pupil) we gave the eye a living aperture. Light can now enter our model, but there is still a problem: a mountain and the words on your phone do not ask the eye to focus in the same way.
 
@@ -47,17 +47,22 @@ Join the domes below, change their curvature, then separate them again to see th
 
 The crystalline lens is a biconvex body enclosed by an elastic **capsule**. Inside it, elongated fibre cells form the outer **cortex** and the older central **nucleus**. Here “nucleus” names the central lens region, not a cell nucleus. New fibres are added throughout life. The lens has no blood vessels; its transparency depends on specialised cellular organisation, including the loss of nuclei and other organelles from mature fibres and the arrangement of densely packed crystallin proteins. These features reduce the small-scale refractive-index variations that would scatter light (Bassnett et al., 2011).
 
-It is not a piece of glass with one uniform refractive index, either. The index generally increases from the outer cortex toward the central region. A higher refractive index means light travels more slowly through that part of the lens. This **gradient refractive index**, or **GRIN**, contributes to the lens's optical power and aberrations, alongside the curvature of its surfaces. Measurements show that both lens shape and the index distribution change with accommodation (Khan et al., 2018).
+It is not a piece of glass with one uniform refractive index, either. The index generally increases from the outer cortex toward the central region. A higher refractive index means light travels more slowly through that part of the lens. This **gradient refractive index**, or **GRIN**, contributes to the lens's optical power and aberrations, alongside the curvature of its surfaces. MRI measurements and MRI-derived estimates of refractive index indicate that both lens shape and the index distribution change with accommodation (Khan et al., 2018).
 
 There is a link back to Part 1, too: measurements in young eyes show that internal ocular optics can partially compensate corneal aberrations (Artal et al., 2001). This balance involves the whole eye; increasing the gradient in an isolated lens does not automatically improve retinal image quality.
 
-At a sharp interface, a ray changes direction according to Snell's law. Inside a smoothly varying index, its direction changes continuously. To show the difference, the next demo traces rays through an isolated lens with an illustrative quadratic profile:
+A smooth change in index across the lens steers light; irregular microscopic variations can scatter it. At a sharp interface, a ray changes direction according to Snell's law. Inside a smoothly varying index, its direction changes continuously. To show the difference, the next demo traces rays through an isolated lens with an illustrative quadratic profile:
+
+<details>
+<summary>Optional: The index profile and its parameters</summary>
 
 $$n(x,y) = n_{\mathrm{edge}} + \Delta n\left(1 - \frac{x^2}{a^2} - \frac{y^2}{b^2}\right)$$
 
 Here $x$ is the optical axis, $y$ is the height above it, and $a$ and $b$ are the axial and equatorial semiaxes. The formula applies inside the elliptical section. We choose $a=2\ \text{mm}$, $b=4.5\ \text{mm}$ and $n_{\mathrm{edge}}=1.37$ as model parameters. At $\Delta n=0.05$, the central index is $1.42$. The surrounding medium is assigned $1.336$, approximating the aqueous and vitreous for this single-wavelength example. This is a teaching profile, not a fit to an individual's GRIN.
 
-Switch between **Uniform** and **GRIN**. The dashed rays keep the same surface geometry with a uniform index; the golden rays follow the selected internal gradient. Follow the highlighted upper ray and compare its tip with the dashed path on the right. The colour contours mark equal index, not physical tissue boundaries.
+</details>
+
+Switch between **Uniform** and **GRIN**. The dashed rays keep the same surface geometry with a uniform index of $1.370$; the golden rays follow the selected internal gradient. Follow the highlighted upper ray and compare its tip with the dashed path on the right. The colour contours mark equal index, not physical tissue boundaries.
 
 <InteractiveViewer>
   <div slot="preview"><LensGrin client:visible /></div>
@@ -101,9 +106,9 @@ In the classical Helmholtz account of accommodation:
 
 The lens itself contains no focusing muscle. Nor do its supporting fibres detach when you look near. The real zonular network has several attachment regions and a more complex distribution of forces than our radial spokes can show. The useful idea is the change in load: the ring contracts, while the lens rounds up. Imaging studies measure these accompanying changes in the lens and ciliary muscle (Richdale et al., 2013).
 
-We now add the ciliary body, with coloured muscle regions and representative surface fibre directions. The brown folds are ciliary processes; yellow zonules course between them toward the lens. The iris and outer eye wall are omitted so we can see the apparatus.
+We now add the ciliary body. A continuous, rounded muscle carries subtle bundle detail; the optional colour map locates its interwoven regions. The brown folds are ciliary processes; yellow zonules course between them toward the lens. The iris and outer eye wall are omitted so we can see the apparatus.
 
-Drag the slider from **Distance** to **Near**. Watch the inner ciliary tissue move inward and slightly forward while the lens rounds up. Use the front and side views to orient yourself: front is toward the cornea, back toward the retina. Open the outlined section to inspect the depth of the muscle, or turn off the muscle map for a less diagrammatic view. On a phone, drag horizontally to rotate and vertically to keep reading.
+Drag the slider from **Distance** to **Near**. Watch the inner ciliary tissue move inward and slightly forward while the lens rounds up. Use the front and side views to orient yourself: front is toward the cornea, back toward the retina. Open the section to face the exposed muscle and lens. Turn on the muscle map to locate the regions without separating them into three rings. On a phone, drag horizontally to rotate and vertically to keep reading.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy client:visible /></div>
@@ -112,7 +117,7 @@ Drag the slider from **Distance** to **Near**. Watch the inner ciliary tissue mo
 
 For this visualisation, the slider maps $0$–$8\ \text{D}$ of model accommodation onto illustrative shape changes. Muscle boundaries, fold counts and fibre paths are simplified for readability. The mesh does not calculate its own optical power or solve tissue mechanics, and fibre length is not a measurement of zonular force.
 
-In code, the geometry is allocated once. We deform the muscle and update the existing fibre buffers, rather than rebuilding meshes as the slider moves. The illustrative lens ellipsoid keeps a constant volume as it thickens and narrows. The transition uses a first-order easing step:
+In code, the geometry is allocated once. We deform the muscle and update the existing fibre buffers, rather than rebuilding meshes as the slider moves. The illustrative lens mesh keeps a constant volume as it thickens and narrows. The transition uses a first-order easing step:
 
 ```ts
 const tau = 0.25; // seconds: an animation parameter
@@ -122,15 +127,11 @@ shownAccommodation += (targetAccommodation - shownAccommodation)
 
 That quarter-second value controls the animation, not a universal physiological response time. The demo also respects the browser's reduced-motion preference.
 
-## Checking the shape with OCT
+## How OCT measures lens shape
 
 How do we get beyond an attractive mesh? **Optical coherence tomography**, or **OCT**, uses interference between returning light and a reference beam to resolve tissue structure in depth. Scanning across the eye builds a cross-section, often called a **B-scan**. Anterior-segment systems can image lens surfaces through the pupil, with the visible area depending on the instrument and acquisition.
 
-In [Pérez-Merino et al. (2015)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4679276/), researchers used OCT volumes to reconstruct the anterior and posterior lens surfaces during accommodation. Their Figure 3 shows real relaxed and accommodated eyes alongside surface maps: a useful comparison with the idealised symmetry of our model.
-
-A later study by de la Peña et al. (2026) shows the steps from measured OCT sections to a reconstructed lens. Compare the partial surfaces visible in the scans with the completed shape on the right.
-
-<LensOCT />
+In [Pérez-Merino et al. (2015)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4679276/), researchers used OCT volumes to reconstruct the anterior and posterior lens surfaces during accommodation. Figure 3(a) in the linked paper compares relaxed and accommodated scans; Figure 3(b) maps departures from fitted spherical surfaces in the central $4\ \text{mm}$ of the relaxed eye. Those asymmetries show what our rotationally symmetric mesh leaves out.
 
 There is an optical catch. OCT depth is based on optical path length, and the beam has already been refracted by the structures in front of the surface being measured. Reconstructing physical shape therefore requires refractive-index assumptions and distortion correction. Image brightness mainly describes the returned signal; it is not a direct GRIN map, a muscle-force measurement or a simple scale of visual transparency. MRI and other methods provide complementary information about the lens and ciliary apparatus.
 
@@ -182,6 +183,8 @@ Switch between the patterns below and compare each with the clear model. Use the
   <div slot="code"><SourceFiles files={lensSources.cataract} /></div>
 </InteractiveViewer>
 
+Light scattered back toward an observer helps reveal an opacity; light scattered forward toward the retina affects the retinal image. They are not interchangeable measurements (Crnej et al., 2017).
+
 The shader adds cloudiness in selected regions without calculating multiple scattering, glare or a person's view through the lens. Turning the opacity down is a comparison tool, not a model of treatment. When cataract affects daily activities enough to warrant surgery, the cloudy lens is removed and usually replaced by an artificial intraocular lens (National Eye Institute).
 
 ## Presbyopia: When the lens cannot keep up
@@ -206,7 +209,20 @@ Start at $25\ \text{cm}$ with only $2\ \text{D}$ available. The target demands $
 
 The reserve slider is a model parameter, not an age scale or a clinical test. It also assumes accurate distance focus before accommodation begins. Real near vision depends on refractive correction, pupil size, depth of focus and the task, as well as accommodative amplitude.
 
-Our eye now has a fixed front surface, an adjustable aperture and a lens that can change the focus. Three different mechanisms, all working toward the same small patch of retina.
+## Bring the three parts together
+
+The cornea supplies the front refracting surface. The iris sets the opening, and the crystalline lens changes shape behind it. Here they finally share one scene.
+
+Start with the assembled view, then **Open the eye** to see how the parts sit together. **Separate the parts** pulls the cornea and iris forward for inspection. The pupil and accommodation sliders remain independent, so you can follow each change. Use **Hide muscle & zonules** to uncover the lens. **IOL + capsule** replaces it with a generic monofocal intraocular lens inside the retained capsular bag, behind the iris: a usual position after cataract surgery. Its haptics support it within the bag. The capsule has an opening at the front, and this implant does not accommodate by changing shape. (Moorfields Eye Hospital).
+
+<InteractiveViewer>
+  <div slot="preview"><LensAssembly client:visible /></div>
+  <div slot="code"><SourceFiles files={lensSources.assembly} /></div>
+</InteractiveViewer>
+
+This is an anatomical assembly of our teaching models. It brings together the conic cornea from Part 1, a pigmented iris with a real opening, and our deforming lens and ciliary apparatus. The lens uses a clear, subtly warm material with procedurally generated studio reflections. That finish does not measure light transmission or replace the GRIN calculation. The spacing and surface finishes are illustrative; the scene does not combine their optical calculations or predict a retinal image.
+
+We have now explored three mechanisms: a fixed front surface, an adjustable aperture and a lens that changes focus. In the real eye, they work together to form the retinal image.
 
 ## References
 
@@ -225,4 +241,5 @@ Our eye now has a fixed front surface, an adjustable aperture and a lens that ca
 13. **Aliancy, J. F., & Mamalis, N. (2017)**. [*Crystalline lens and cataract*](https://www.ncbi.nlm.nih.gov/books/NBK476171/). Webvision, University of Utah.
 14. **National Eye Institute**. [*Cataracts*](https://www.nei.nih.gov/eye-health-information/eye-conditions-and-diseases/cataracts); [*Cataract surgery*](https://www.nei.nih.gov/eye-health-information/eye-conditions-and-diseases/cataracts/cataract-surgery).
 15. **Artal, P., Guirao, A., Berrio, E., & Williams, D. R. (2001)**. [*Compensation of corneal aberrations by the internal optics in the human eye*](https://pubmed.ncbi.nlm.nih.gov/12678609/). Journal of Vision, 1, 1–8.
-16. **De la Peña et al. (2026)**. [*Reconstruction of the crystalline lens full-geometry from OCT images acquired with off-axis viewing*](https://doi.org/10.1038/s41598-026-42539-3). Scientific Reports.
+16. **Crnej et al. (2017)**. [*Methods for assessing forward and backward light scatter in patients with cataract*](https://doi.org/10.1016/j.jcrs.2017.05.032). Journal of Cataract & Refractive Surgery.
+17. **Moorfields Eye Hospital**. [*Cataract surgery*](https://www.moorfields.nhs.uk/private/eye-conditions-and-treatments/cataract/surgery); [*Cataract service: patient information*](https://www.moorfields.nhs.uk/mediaLocal/ojzfucri/cataract-service_1.pdf), p. 4.

@@ -16,7 +16,7 @@ import LensFocus from '../../components/eye/lens/LensFocus';
 import LensDomes from '../../components/eye/lens/LensDomes';
 import LensGrin from '../../components/eye/lens/LensGrin';
 import LensCataract from '../../components/eye/lens/LensCataract';
-import LensOCT from '../../components/eye/lens/LensOCT.astro';
+import LensAssembly from '../../components/eye/lens/LensAssembly';
 
 En la [Parte 1](/es/blog/webgl-eye-01-cornea) dimos forma a la córnea. En la [Parte 2](/es/blog/webgl-eye-02-pupil) añadimos una apertura viva. La luz ya puede entrar en nuestro modelo, pero todavía hay un problema: una montaña y las palabras de tu teléfono no le piden al ojo el mismo enfoque.
 
@@ -47,17 +47,22 @@ Une las cúpulas, cambia su curvatura y vuelve a separarlas para ver la construc
 
 El cristalino es un cuerpo biconvexo envuelto por una **cápsula** elástica. En su interior, células alargadas forman la **corteza** externa y el **núcleo** central, más antiguo. Aquí «núcleo» designa la región central del cristalino, no el núcleo de una célula. Se añaden nuevas fibras durante toda la vida. No contiene vasos sanguíneos; su transparencia depende de una organización celular especializada, que incluye la pérdida de núcleos y otros orgánulos en las fibras maduras y la disposición de las proteínas cristalinas. Esto reduce las variaciones del índice de refracción a pequeña escala que dispersarían la luz (Bassnett et al., 2011).
 
-Tampoco es un trozo de vidrio con un único índice de refracción. El índice generalmente aumenta desde la corteza hacia la región central. Un índice de refracción mayor significa que la luz viaja más despacio por esa parte de la lente. Este **gradiente de índice de refracción**, o **GRIN**, contribuye a la potencia óptica y a las aberraciones junto con la curvatura de las superficies. Las mediciones muestran que tanto la forma como la distribución del índice cambian durante la acomodación (Khan et al., 2018).
+Tampoco es un trozo de vidrio con un único índice de refracción. El índice generalmente aumenta desde la corteza hacia la región central. Un índice de refracción mayor significa que la luz viaja más despacio por esa parte de la lente. Este **gradiente de índice de refracción**, o **GRIN**, contribuye a la potencia óptica y a las aberraciones junto con la curvatura de las superficies. Las mediciones por resonancia magnética y las estimaciones del índice derivadas de ellas indican que tanto la forma como la distribución del índice cambian durante la acomodación (Khan et al., 2018).
 
 También hay un vínculo con la Parte 1: las mediciones en ojos jóvenes muestran que la óptica interna puede compensar parcialmente las aberraciones corneales (Artal et al., 2001). Ese equilibrio depende del ojo completo; aumentar el gradiente de una lente aislada no mejora automáticamente la calidad de la imagen retiniana.
 
-En una interfaz abrupta, un rayo cambia de dirección según la ley de Snell. Dentro de un índice que varía suavemente, su dirección cambia de forma continua. Para mostrar la diferencia, la siguiente demo traza rayos por una lente aislada con un perfil cuadrático ilustrativo:
+Un cambio suave del índice a través del cristalino desvía la luz; las variaciones microscópicas irregulares pueden dispersarla. En una interfaz abrupta, un rayo cambia de dirección según la ley de Snell. Dentro de un índice que varía suavemente, su dirección cambia de forma continua. Para mostrar la diferencia, la siguiente demo traza rayos por una lente aislada con un perfil cuadrático ilustrativo:
+
+<details>
+<summary>Opcional: El perfil de índice y sus parámetros</summary>
 
 $$n(x,y) = n_{\mathrm{borde}} + \Delta n\left(1 - \frac{x^2}{a^2} - \frac{y^2}{b^2}\right)$$
 
 Aquí $x$ es el eje óptico, $y$ es la altura respecto a él, y $a$ y $b$ son los semiejes axial y ecuatorial. La fórmula se aplica dentro de la sección elíptica. Elegimos $a=2\ \text{mm}$, $b=4.5\ \text{mm}$ y $n_{\mathrm{borde}}=1.37$ como parámetros del modelo. Con $\Delta n=0.05$, el índice central es $1.42$. Asignamos $1.336$ al medio circundante, aproximando el acuoso y el vítreo para este ejemplo de una sola longitud de onda. Es un perfil didáctico, no un ajuste del GRIN de una persona.
 
-Alterna entre **Uniforme** y **GRIN**. Los rayos discontinuos mantienen la misma geometría superficial con un índice uniforme; los dorados siguen el gradiente seleccionado. Sigue el rayo superior resaltado y compara su extremo con el trazado discontinuo de la derecha. Los contornos de color indican igual índice, no fronteras anatómicas.
+</details>
+
+Alterna entre **Uniforme** y **GRIN**. Los rayos discontinuos mantienen la misma geometría superficial con un índice uniforme de $1.370$; los dorados siguen el gradiente seleccionado. Sigue el rayo superior resaltado y compara su extremo con el trazado discontinuo de la derecha. Los contornos de color indican igual índice, no fronteras anatómicas.
 
 <InteractiveViewer>
   <div slot="preview"><LensGrin lang="es" client:visible /></div>
@@ -101,9 +106,9 @@ Según la explicación clásica de Helmholtz:
 
 El cristalino no contiene un músculo de enfoque. Sus fibras de suspensión tampoco se desprenden al mirar de cerca. La red zonular real tiene varias regiones de inserción y una distribución de fuerzas más compleja que nuestros radios. La idea útil es el cambio de carga: el anillo se contrae mientras la lente se redondea. Los estudios de imagen miden estos cambios del cristalino y del músculo ciliar durante la acomodación (Richdale et al., 2013).
 
-Ahora añadimos el cuerpo ciliar, con regiones musculares coloreadas y direcciones representativas de sus fibras. Los pliegues marrones son procesos ciliares; las zónulas amarillas pasan entre ellos hacia el cristalino. Omitimos el iris y la pared externa del ojo para ver el aparato.
+Ahora añadimos el cuerpo ciliar. Un músculo continuo y redondeado presenta un detalle sutil de sus haces; el mapa de color opcional localiza sus regiones entrelazadas. Los pliegues marrones son procesos ciliares; las zónulas amarillas pasan entre ellos hacia el cristalino. Omitimos el iris y la pared externa del ojo para ver el aparato.
 
-Mueve el control de **Lejos** a **Cerca**. Observa cómo el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. Las vistas anterior y lateral ayudan a orientarte: anterior es hacia la córnea; posterior, hacia la retina. Abre la sección delineada para inspeccionar el espesor muscular o desactiva el mapa para una vista menos esquemática. En el móvil, arrastra horizontalmente para girar y verticalmente para seguir leyendo.
+Mueve el control de **Lejos** a **Cerca**. Observa cómo el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. Las vistas anterior y lateral ayudan a orientarte: anterior es hacia la córnea; posterior, hacia la retina. Abre la sección para mirar de frente el músculo expuesto y el cristalino. Activa el mapa muscular para localizar las regiones sin separarlas en tres anillos. En el móvil, arrastra horizontalmente para girar y verticalmente para seguir leyendo.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy lang="es" client:visible /></div>
@@ -112,7 +117,7 @@ Mueve el control de **Lejos** a **Cerca**. Observa cómo el tejido ciliar intern
 
 Para esta visualización, el control traduce $0$–$8\ \text{D}$ de acomodación del modelo en cambios de forma ilustrativos. Simplificamos los límites musculares, el número de pliegues y los trayectos de las fibras para facilitar la lectura. La malla no calcula su propia potencia ni resuelve la mecánica de los tejidos, y la longitud de una fibra no mide su fuerza.
 
-En el código creamos la geometría una sola vez. Deformamos el músculo y actualizamos los búferes de las fibras, sin reconstruir las mallas cada vez que se mueve el control. El elipsoide ilustrativo del cristalino mantiene su volumen al engrosarse y estrecharse. La transición usa una respuesta de primer orden:
+En el código creamos la geometría una sola vez. Deformamos el músculo y actualizamos los búferes de las fibras, sin reconstruir las mallas cada vez que se mueve el control. La malla ilustrativa del cristalino mantiene su volumen al engrosarse y estrecharse. La transición usa una respuesta de primer orden:
 
 ```ts
 const tau = 0.25; // segundos: parámetro de animación
@@ -122,15 +127,11 @@ shownAccommodation += (targetAccommodation - shownAccommodation)
 
 Ese cuarto de segundo controla la animación, no representa un tiempo de respuesta fisiológico universal. La demo también respeta la preferencia del navegador de reducir el movimiento.
 
-## Comprobar la forma con OCT
+## Cómo mide la OCT la forma del cristalino
 
 ¿Cómo pasamos de una malla atractiva a una medición? La **tomografía de coherencia óptica**, u **OCT**, utiliza la interferencia entre la luz que regresa y un haz de referencia para resolver la estructura del tejido en profundidad. Al barrer el ojo se construye una sección, normalmente llamada **B-scan**. Los sistemas de segmento anterior pueden captar las superficies del cristalino a través de la pupila; el área visible depende del instrumento y de la adquisición.
 
-En [Pérez-Merino et al. (2015)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4679276/), los investigadores reconstruyeron las superficies anterior y posterior a partir de volúmenes OCT durante la acomodación. Su Figura 3 muestra ojos reales relajados y acomodados junto con mapas de superficie: una comparación útil con la simetría idealizada de nuestro modelo.
-
-Un estudio posterior (de la Peña et al., 2026) muestra los pasos desde las secciones OCT medidas hasta un cristalino reconstruido. Compara las superficies parciales visibles en las imágenes con la forma completa de la derecha.
-
-<LensOCT lang="es" />
+En [Pérez-Merino et al. (2015)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4679276/), los investigadores reconstruyeron las superficies anterior y posterior a partir de volúmenes OCT durante la acomodación. La Figura 3(a) del artículo enlazado compara las secciones relajada y acomodada; la Figura 3(b) muestra las desviaciones respecto a superficies esféricas ajustadas en los $4\ \text{mm}$ centrales del ojo relajado. Esas asimetrías muestran lo que deja fuera nuestra malla de revolución.
 
 Hay una complicación óptica. La profundidad OCT se basa en el camino óptico y el haz ya se ha refractado al atravesar las estructuras anteriores a la superficie medida. Reconstruir la forma física requiere, por tanto, supuestos sobre el índice y corrección de distorsiones. El brillo representa principalmente la señal recibida; no es un mapa directo de GRIN, una medida de fuerza muscular ni una escala sencilla de transparencia visual. La resonancia magnética y otras técnicas aportan información complementaria sobre el cristalino y el aparato ciliar.
 
@@ -182,6 +183,8 @@ Alterna entre los patrones y compara cada uno con el modelo transparente. La vis
   <div slot="code"><SourceFiles files={lensSources.cataract} lang="es" /></div>
 </InteractiveViewer>
 
+La luz dispersada hacia el observador ayuda a revelar una opacidad; la dispersada hacia la retina afecta a la imagen retiniana. No son medidas intercambiables (Crnej et al., 2017).
+
 El shader añade turbidez en regiones seleccionadas sin calcular dispersión múltiple, deslumbramiento ni la visión de una persona a través de la lente. Reducir la opacidad sirve para comparar, no para representar un tratamiento. Cuando la catarata afecta a las actividades diarias lo suficiente para justificar la cirugía, se extrae el cristalino opaco y normalmente se sustituye por una lente intraocular artificial (National Eye Institute).
 
 ## Presbicia: Cuando el cristalino no llega
@@ -206,7 +209,20 @@ Empieza a $25\ \text{cm}$ con solo $2\ \text{D}$ disponibles. El objeto exige $4
 
 El control de reserva es un parámetro del modelo, no una escala de edad ni una prueba clínica. También supone un enfoque correcto de lejos antes de empezar a acomodar. La visión próxima real depende de la corrección refractiva, el tamaño pupilar, la profundidad de foco y la tarea, además de la amplitud de acomodación.
 
-Nuestro ojo ya tiene una superficie frontal fija, una apertura ajustable y una lente capaz de cambiar el enfoque. Tres mecanismos distintos, trabajando hacia la misma pequeña región de retina.
+## Reunir las tres piezas
+
+La córnea aporta la superficie refractora anterior. El iris define la abertura y el cristalino cambia de forma detrás. Aquí comparten por fin una misma escena.
+
+Empieza con las piezas juntas y pulsa **Abrir el ojo** para ver su posición. **Separar las piezas** adelanta la córnea y el iris para inspeccionarlos. Los controles de pupila y acomodación son independientes, para seguir cada cambio. Usa **Ocultar músculo y zónulas** para despejar la vista del cristalino. **LIO y cápsula** sustituye el cristalino por una lente intraocular monofocal genérica, dentro del saco capsular conservado y detrás del iris: una posición habitual tras la cirugía de cataratas. Sus hápticos la sostienen en el saco. La cápsula conserva una abertura anterior y este implante no acomoda cambiando de forma. (Moorfields Eye Hospital).
+
+<InteractiveViewer>
+  <div slot="preview"><LensAssembly lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={lensSources.assembly} lang="es" /></div>
+</InteractiveViewer>
+
+Es una composición anatómica de nuestros modelos didácticos. Reúne la córnea cónica de la Parte 1, un iris pigmentado con una abertura real y nuestro cristalino con su aparato ciliar. El cristalino usa un material transparente, ligeramente cálido, con reflejos de estudio generados por código. Ese acabado no mide la transmisión de luz ni sustituye al cálculo GRIN. Los espacios y acabados son ilustrativos; la escena no combina sus cálculos ópticos ni predice una imagen retiniana.
+
+Hemos explorado tres mecanismos: una superficie anterior fija, una abertura ajustable y una lente que cambia el enfoque. En el ojo real, trabajan juntos para formar la imagen retiniana.
 
 ## Referencias
 
@@ -225,4 +241,5 @@ Nuestro ojo ya tiene una superficie frontal fija, una apertura ajustable y una l
 13. **Aliancy, J. F., & Mamalis, N. (2017)**. [*Crystalline lens and cataract*](https://www.ncbi.nlm.nih.gov/books/NBK476171/). Webvision, University of Utah.
 14. **National Eye Institute**. [*Cataracts*](https://www.nei.nih.gov/eye-health-information/eye-conditions-and-diseases/cataracts); [*Cataract surgery*](https://www.nei.nih.gov/eye-health-information/eye-conditions-and-diseases/cataracts/cataract-surgery).
 15. **Artal, P., Guirao, A., Berrio, E., & Williams, D. R. (2001)**. [*Compensation of corneal aberrations by the internal optics in the human eye*](https://pubmed.ncbi.nlm.nih.gov/12678609/). Journal of Vision, 1, 1–8.
-16. **De la Peña et al. (2026)**. [*Reconstruction of the crystalline lens full-geometry from OCT images acquired with off-axis viewing*](https://doi.org/10.1038/s41598-026-42539-3). Scientific Reports.
+16. **Crnej et al. (2017)**. [*Methods for assessing forward and backward light scatter in patients with cataract*](https://doi.org/10.1016/j.jcrs.2017.05.032). Journal of Cataract & Refractive Surgery.
+17. **Moorfields Eye Hospital**. [*Cataract surgery*](https://www.moorfields.nhs.uk/private/eye-conditions-and-treatments/cataract/surgery); [*Cataract service: patient information*](https://www.moorfields.nhs.uk/mediaLocal/ojzfucri/cataract-service_1.pdf), p. 4.

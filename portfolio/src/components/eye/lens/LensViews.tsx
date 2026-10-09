@@ -3,9 +3,11 @@ import type { LensView } from "./lensScene";
 export default function LensViews({
 	lang,
 	onView,
+	section = false,
 }: {
 	lang: "en" | "es";
 	onView: (view: LensView) => void;
+	section?: boolean;
 }) {
 	const es = lang === "es";
 	return (
@@ -16,6 +18,11 @@ export default function LensViews({
 				role="group"
 				aria-label={es ? "Vistas de cámara" : "Camera views"}
 			>
+				{section && (
+					<button type="button" onClick={() => onView("section")}>
+						{es ? "Ver el corte" : "Face the section"}
+					</button>
+				)}
 				{(["front", "side", "back", "reset"] as const).map((view, i) => (
 					<button type="button" key={view} onClick={() => onView(view)}>
 						{
