@@ -1,0 +1,150 @@
+---
+title: "Modelando el ojo IV: La retina"
+description: "De una malla curva a las capas retinianas, los conos, los bastones y el muestreo: construimos el extremo receptor del ojo con WebGL."
+date: 2026-10-09
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "retina", "anatomy"]
+lang: "es"
+image: "/images/blog/retina-banner.png"
+---
+
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import { retinaSources } from '../../components/eye/retina/retinaSources';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import RetinaCup from '../../components/eye/retina/RetinaCup';
+import RetinaLayers from '../../components/eye/retina/RetinaLayers';
+import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
+import RetinaSampling from '../../components/eye/retina/RetinaSampling';
+import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
+
+Hemos dado forma a la [córnea](/es/blog/webgl-eye-01-cornea), abierto la [pupila](/es/blog/webgl-eye-02-pupil) y dado al [cristalino](/es/blog/webgl-eye-03-lens) una forma de cambiar el enfoque. La luz ya tiene un camino, pero todavía no hay nadie que la reciba.
+
+Entra en escena la **retina**: una lámina curva de tejido neural que recubre la parte posterior del ojo. Llamarla el sensor de la cámara ocular es una primera aproximación útil. También es una trampa. La retina no se limita a registrar una imagen y enviar sus píxeles. Sus células empiezan a procesar información visual antes de que las señales abandonen el ojo.
+
+Como antes, construiremos primero la versión sencilla. Una superficie, después capas y luego células repetidas. Solo entonces preguntaremos qué ocurre cuando una imagen continua se encuentra con un conjunto finito de fotorreceptores.
+
+## Primera aproximación: Curvar una malla
+
+Nuestra primera retina es una copa. Muestreamos ángulos sobre una esfera y conservamos su porción posterior. Es el otro extremo de la construcción que usamos para la córnea: esta vez miramos hacia una superficie cóncava.
+
+Para esta visualización elegimos un radio de $12\ \text{mm}$. Es una **dimensión de un modelo esquemático**, no una curvatura retiniana universal. Las medidas por resonancia magnética muestran que las dimensiones y la forma del ojo varían, también con el error refractivo (Atchison et al., 2004). La copa esférica es una malla inicial cómoda.
+
+```ts
+const theta = u * Math.PI * 0.49;
+const r = radius * Math.sin(theta);
+const x = r * Math.cos(angle);
+const y = r * Math.sin(angle);
+const z = centreZ - radius * Math.cos(theta);
+```
+
+El ángulo se detiene poco antes de completar un hemisferio. La demo comienza con las mismas filas de vértices aplanadas en un disco; **Curvar la malla** recupera su profundidad. Desactiva los triángulos para ver la superficie. La retina no se aplana y se infla así: estamos viendo un paso de construcción geométrica.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><RetinaCup lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.cup} lang="es" /></div>
+</InteractiveViewer>
+
+Los vértices permanecen en el mismo búfer de la GPU. Al mover el control cambiamos sus posiciones y actualizamos las normales y la esfera envolvente. No hace falta crear y descartar una geometría nueva en cada fotograma.
+
+El tono cálido hace visible la superficie; no predice el color del fondo de ojo. La superficie nos da posición y curvatura. Todavía no nos ha dado una sola célula sensible a la luz.
+
+## Convertir la superficie en tejido
+
+La luz llega desde el **vítreo**, el espacio gelatinoso situado detrás del cristalino. En la retina de los vertebrados, los conos y bastones se encuentran hacia el lado externo, cerca del **epitelio pigmentario de la retina**, o EPR. La luz suele atravesar las capas neurales internas antes de alcanzar sus segmentos externos fotosensibles.
+
+El EPR sostiene a los fotorreceptores: entre sus funciones están absorber luz parásita, participar en el ciclo visual y fagocitar el material que se desprende de los segmentos externos. Detrás está la **coroides**, vascularizada. La retina neural y su epitelio pigmentario están estrechamente asociados, pero no son dos nombres intercambiables para una misma capa (Kolb, *Simple Anatomy of the Retina*).
+
+La sección siguiente agrupa el tejido en siete bandas legibles. Las **capas nucleares** contienen cuerpos celulares; las **plexiformes**, muchas de las conexiones sinápticas. Es un mapa de los compartimentos principales, no el recuento convencional completo de capas. Agrupamos las fibras nerviosas y las células ganglionares, y omitimos las membranas limitantes.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><RetinaLayers lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.layers} lang="es" /></div>
+</InteractiveViewer>
+
+Usa **Separar bandas** para inspeccionar la pila. Esos huecos ayudan al dibujo; no son espacios entre los tejidos. Las flechas distinguen la luz entrante del recorrido general de la señal neural hacia las células ganglionares. Los fotones no dan media vuelta para viajar por los nervios.
+
+## Una depresión con propósito: La fóvea
+
+Activa **Mostrar fóvea**. Las capas internas se adelgazan hacia el centro mientras permanecen las bandas externas. En una fóvea típica, el tejido retiniano interno se desplaza fuera del centro; los conos centrales, densamente empaquetados, se estrechan y alargan. La región central también carece de vasos retinianos. La depresión, la especialización de los conos y la organización vascular son rasgos relacionados, no un agujero perforado en la retina (Provis et al., 2013).
+
+Nuestro perfil representa ese cambio de organización con las dimensiones verticales exageradas. No reproduce la variación individual, las trayectorias de las fibras de Henle ni espesores medidos. Tampoco la profundidad de la depresión determina por sí sola la agudeza visual: puede existir especialización de los conos centrales sin una depresión convencional.
+
+La **OCT** permite inspeccionar la profundidad retiniana en un ojo vivo. Usa [interferometría de baja coherencia](https://pubmed.ncbi.nlm.nih.gov/1957169/) para resolver en profundidad la luz retrodispersada. En un corte B-scan suele reconocerse enseguida el contorno foveal. Pero una OCT no es una fotografía de siete láminas pintadas. Las bandas claras y oscuras dependen de la dispersión del tejido y del sistema de imagen; su interpretación anatómica exige cuidado. Spaide y Curcio (2011), por ejemplo, estudiaron cómo se corresponden las bandas externas de OCT con las estructuras de los fotorreceptores.
+
+El esquema anterior es un dibujo anatómico, **no una OCT simulada**. Sus colores identifican compartimentos y su brillo no indica reflectividad en OCT.
+
+## Poblar la malla: Conos y bastones
+
+Una retina real contiene demasiados fotorreceptores para dibujarlos uno por uno en una demo ligera. En su muestra histológica, Curcio et al. (1990) encontraron promedios de aproximadamente **4,6 millones de conos y 92 millones de bastones por retina**, con variación considerable entre ojos. Son promedios medidos en un estudio, no una especificación fija de todos los ojos humanos.
+
+La distribución importa tanto como los totales. La densidad de conos alcanza un pico pronunciado cerca del centro foveal y disminuye al alejarnos. Los bastones están ausentes en la zona central libre de bastones y abundan fuera de ella; su densidad también varía por la retina. El disco óptico, por donde salen los axones de las células ganglionares, no tiene conos ni bastones y corresponde al punto ciego fisiológico.
+
+Dibujaremos un pequeño conjunto de **iconos de fotorreceptores ampliados**. Un cono y un bastón necesitan una geometría y un material cada uno; `InstancedMesh` los repite en distintas posiciones con relativamente pocas llamadas de dibujo.
+
+```ts
+const cells = new THREE.InstancedMesh(geometry, material, capacity);
+transform.position.set(x, y, z);
+transform.updateMatrix();
+cells.setMatrixAt(index, transform.matrix);
+cells.instanceMatrix.needsUpdate = true;
+```
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><RetinaMosaic lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.mosaic} lang="es" /></div>
+</InteractiveViewer>
+
+Alterna entre **Centro foveal** y **Fuera del centro**. El primero contiene solo conos; el segundo intercala conos entre bastones. Los iconos de conos centrales son más estrechos y alargados. Son distribuciones cualitativas, no muestras de un mapa de densidad medido. El espaciado regularizado hace legible la construcción; los mosaicos reales presentan irregularidad espacial. Aquí omitimos núcleos, sinapsis y células de soporte.
+
+Los bastones permiten una visión muy sensible con poca luz. Los conos sostienen la visión diurna y la discriminación cromática. Las clases de conos S, M y L tienen sensibilidades espectrales amplias y solapadas: no son píxeles rojos, verdes y azules organizados en tripletes repetidos (Stockman y Sharpe, 2000). El dorado identifica aquí a *los conos como grupo*; la demo no asigna clases de conos ni simula visión cromática.
+
+## Muestreo: Más detalle no siempre es más información
+
+Imagina proyectar franjas finas sobre una fila de receptores. Si las franjas son más finas de lo que la fila puede distinguir, dos patrones distintos pueden producir las mismas muestras. Esto es **aliasing**: el detalle puede volverse ambiguo, en lugar de desaparecer simplemente en un desenfoque.
+
+Para aislar la idea, dejamos un momento la anatomía. La siguiente demo usa **muestras puntuales igualmente espaciadas en una dimensión**. La frecuencia se expresa en ciclos a lo ancho del panel, no en ciclos por grado de ángulo visual. Con $N$ muestras en ese intervalo, el límite de Nyquist es $N/2$ ciclos por intervalo. En el propio límite, la fase puede hacer desaparecer la señal de las muestras; reconstruirla sin ambigüedad requiere limitar adecuadamente su banda por debajo de él.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><RetinaSampling lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.sampling} lang="es" /></div>
+</InteractiveViewer>
+
+Empieza con 16 muestras y aumenta las franjas por encima de 8 ciclos. La fila inferior muestra un patrón de menor frecuencia que coincide en las posiciones muestreadas. Añade muestras y el límite cambia. **Desplazar ¼ de ciclo** cambia dónde caen las franjas respecto a los receptores; con ciertos ajustes, todas las muestras pueden caer sobre el mismo gris.
+
+Es un experimento de muestreo, no un simulador de imagen retiniana o de percepción. Los receptores tienen áreas de captación finitas, la óptica ocular filtra el patrón entrante y también importan los circuitos neurales, la adaptación y los movimientos oculares. El aliasing foveal humano se ha demostrado experimentalmente en condiciones cuidadosamente controladas (Williams, 1985); nuestra fila regular unidimensional ayuda a comprender la ambigüedad, no a calcular la agudeza visual de alguien.
+
+## La retina ya está calculando
+
+Un fotón absorbido inicia una cascada bioquímica. En conos y bastones, la respuesta a la luz **hiperpolariza** la célula y reduce la liberación de glutamato. Ese cambio es el comienzo de un mensaje neural, no una fotografía eléctrica diminuta.
+
+Las células bipolares transmiten señales hacia las ganglionares; las horizontales y amacrinas contribuyen a las interacciones laterales y a otros procesos. Las vías ON y OFF responden de forma diferente a los incrementos y decrementos de luz. Los axones ganglionares forman el nervio óptico y transportan potenciales de acción. La circuitería real incluye varios tipos celulares y vías paralelas, no una conexión única entre cada cono y un cable (Kolb, *How the Retina Works*).
+
+También hay un enlace con la Parte 2. Las **ipRGC** que expresan melanopsina son células ganglionares: pueden responder intrínsecamente a la luz y también reciben señales de conos y bastones. Por tanto, la contribución retiniana al reflejo pupilar no se limita a un solo tipo de fotorreceptor.
+
+Nuestras mallas muestran dónde pertenecen algunas de estas estructuras. No implementan fototransducción, campos receptivos ni trenes de potenciales de acción. Esa es otra capa de modelado, que merece más que una flecha animada.
+
+## Colocar la superficie receptora detrás de la óptica
+
+Ya podemos situar la copa detrás de la córnea, el iris y el cristalino de los artículos anteriores. Sus sistemas de coordenadas deben coincidir. En esta composición, el vértice corneal está en $z=5,6\ \text{mm}$ y el polo retiniano posterior en $z=-18,4\ \text{mm}$: una separación elegida de $24\ \text{mm}$ para la ilustración.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><RetinaAssembly lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.assembly} lang="es" /></div>
+</InteractiveViewer>
+
+Abre la **Sección** para mirar dentro, u oculta las estructuras anteriores para inspeccionar la copa. Conservamos solo la superficie retiniana posterior: omitimos su extensión anterior completa, los vasos, el nervio óptico, la coroides y la esclerótica. El esquema de capas y el mosaico de receptores son vistas ampliadas separadas, no células de tamaño milimétrico añadidas a este ojo.
+
+Tenemos las principales piezas anatómicas del modelo. Colocarlas en una escena todavía no crea una simulación óptica o neural completa. Para predecir una imagen retiniana tendríamos que acoplar y validar las superficies, los índices de refracción y las distancias; para predecir la visión también habría que modelar qué hacen la retina y el cerebro con esa imagen.
+
+Por ahora, la construcción alcanza un punto útil: la luz tiene una superficie a la que llegar, células que la muestrean y una razón por la que «más polígonos» y «más información visual» son cosas distintas.
+
+## Referencias
+
+1. **Atchison, D. A., et al. (2004).** [*Eye shape in emmetropia and myopia*](https://pubmed.ncbi.nlm.nih.gov/15452039/). Investigative Ophthalmology & Visual Science, 45, 3380–3386.
+2. **Kolb, H.** [*Simple Anatomy of the Retina*](https://www.ncbi.nlm.nih.gov/books/NBK11533/). Webvision, NCBI Bookshelf.
+3. **Provis, J. M., Dubis, A. M., Maddess, T., & Carroll, J. (2013).** [*Adaptation of the central retina for high acuity vision: cones, the fovea and the avascular zone*](https://pmc.ncbi.nlm.nih.gov/articles/PMC3658155/). Progress in Retinal and Eye Research, 35, 63–81.
+4. **Spaide, R. F., & Curcio, C. A. (2011).** [*Anatomical correlates to the bands seen in the outer retina by optical coherence tomography*](https://pmc.ncbi.nlm.nih.gov/articles/PMC3619110/). Retina, 31, 1609–1619.
+5. **Curcio, C. A., Sloan, K. R., Kalina, R. E., & Hendrickson, A. E. (1990).** [*Human photoreceptor topography*](https://pubmed.ncbi.nlm.nih.gov/2324310/). Journal of Comparative Neurology, 292, 497–523.
+6. **Stockman, A., & Sharpe, L. T. (2000).** [*The spectral sensitivities of the middle- and long-wavelength-sensitive cones derived from measurements in observers of known genotype*](https://pubmed.ncbi.nlm.nih.gov/10814758/). Vision Research, 40, 1711–1737.
+7. **Williams, D. R. (1985).** [*Aliasing in human foveal vision*](https://pubmed.ncbi.nlm.nih.gov/4013088/). Vision Research, 25, 195–205.
+8. **Kolb, H.** [*How the Retina Works*](https://www.ncbi.nlm.nih.gov/books/NBK610611/). Webvision, NCBI Bookshelf.

@@ -1,6 +1,6 @@
 // Construction excerpts, not a standalone program. Full loops live in the linked source.
 // Numbers describe these teaching meshes and this virtual camera, not a patient.
-export const steps = [
+const baseSteps = [
 	{
 		chapter: "SCENE",
 		title: "Start with space.",
@@ -130,3 +130,124 @@ export const steps = [
 		note: "A typical posterior-chamber placement, not a surgical simulation. This fixed implant does not change shape to accommodate.",
 	},
 ] as const;
+
+export type ConstructionStep = {
+	chapter: string;
+	title: string;
+	text: string;
+	code: string;
+	value: string;
+	note: string;
+	stage: number;
+	detail?: string;
+};
+const additions: Record<number, ConstructionStep[]> = {
+	4: [
+		{
+			stage: 4,
+			chapter: "TRIANGLES",
+			title: "Connect the dots.",
+			text: "Each grid cell becomes two triangles. Store their vertex numbers in an index buffer so neighbouring faces can share vertices.",
+			code: "const a = row * 65 + sector;\nconst b = a + 65;\nindices.push(a, b, a + 1, b, b + 1, a + 1);\ngeometry.setIndex(indices);",
+			value: "one cell → two triangles",
+			note: "Here each row has 65 vertices, including the duplicated seam. Winding order determines which face is front.",
+		},
+		{
+			stage: 4,
+			detail: "normals",
+			chapter: "NORMALS",
+			title: "Tell light which way is out.",
+			text: "A surface normal describes its orientation. Recalculate vertex normals after changing the cap so lighting follows the new shape.",
+			code: "geometry.computeVertexNormals();\ngeometry.computeBoundingSphere();\n// Gold lines show the sphere's outward normal:\nconst normal = position.clone().normalize();",
+			value: "normals → shading · bounds → culling",
+			note: "The radial normal is valid for this sphere centred at the origin. A conic needs normals from its own shape.",
+		},
+	],
+	10: [
+		{
+			stage: 10,
+			detail: "lighting",
+			chapter: "REFLECTIONS",
+			title: "Give glass something to reflect.",
+			text: "A clear mesh against black is difficult to read. Generate a small studio environment and filter it for the physical material.",
+			code: "const room = new RoomEnvironment();\nconst pmrem = new THREE.PMREMGenerator(renderer);\nconst target = pmrem.fromScene(room, 0.04);\nscene.environment = target.texture;\nscene.environmentIntensity = 0.45;",
+			value: "procedural environment · no photographs",
+			note: "Dispose the room and generator after construction, and the target on teardown. Reflections reveal form; they are not retinal ray traces.",
+		},
+	],
+	12: [
+		{
+			stage: 12,
+			detail: "fibres",
+			chapter: "ZONULES",
+			title: "Connect the attachments.",
+			text: "Write each fibre as two line segments through a guide point. Batch their positions into one buffer and update the ends with lens shape.",
+			code: "for (const p of [origin, guide, guide, end])\n  positions.setXYZ(k++, p.x, p.y, p.z);\npositions.needsUpdate = true;\ngeometry.computeBoundingSphere();",
+			value: "origin → guide → lens capsule",
+			note: "Line positions draw a simplified fibre route; their length does not calculate tension.",
+		},
+	],
+};
+export const steps: ConstructionStep[] = baseSteps.flatMap((step, stage) => [
+	{
+		...step,
+		stage,
+		...(stage === 12
+			? {
+					detail: "muscle",
+					title: "Build the muscle body.",
+					text: "Revolve a rounded cross-section, then repeat small meshes for the ciliary processes. Give the muscle irregular bundle detail.",
+					code: "const muscle = muscleGeometry(CILIARY_PROFILE);\nsupport.add(new THREE.Mesh(muscle, material));\n// Repeated folds use one instanced mesh.\nfolds.setMatrixAt(i, transform.matrix);\nfolds.instanceMatrix.needsUpdate = true;",
+					value: "continuous muscle + ciliary processes",
+				}
+			: {}),
+	},
+	...(additions[stage] ?? []),
+]);
+steps.push(
+	{
+		stage: 16,
+		chapter: "RETINAL CUP",
+		title: "Build the receiving surface.",
+		text: "Keep the posterior part of a sphere. Begin with a flat disc, then restore each row's depth to form the retinal cup.",
+		code: "const theta = u * Math.PI * 0.49;\nconst r = 12 * Math.sin(theta);\nconst z = -6.4 - 12 * Math.cos(theta);\np.setXYZ(i, r * Math.cos(a), r * Math.sin(a), z);",
+		value: "chosen radius 12 mm",
+		note: "A schematic posterior surface. Its anterior extent, vessels and optic nerve are omitted.",
+	},
+	{
+		stage: 17,
+		chapter: "RETINAL LAYERS",
+		title: "Give the surface depth.",
+		text: "Build separate bands for the main tissue compartments. Translate them apart to inspect their order, from vitreous side to pigment epithelium.",
+		code: "const band = new THREE.BoxGeometry(10, 3, 1, 64, 1, 1);\n// Deform its upper and lower vertices to the profiles.\nmesh.position.z = (6 - index) * 0.35 * t;",
+		value: "seven grouped bands · magnified",
+		note: "The dimensions and colours are drawing choices. These separated bands are neither full histology nor an OCT scan.",
+	},
+	{
+		stage: 18,
+		chapter: "FOVEAL PROFILE",
+		title: "Displace the inner layers.",
+		text: "Taper the inner bands towards the centre and reshape the outer bands. Interpolate vertex heights between the two profiles.",
+		code: "const z = THREE.MathUtils.lerp(flatZ, fovealZ, t);\nposition.setZ(i, z);\nposition.needsUpdate = true;\ngeometry.computeVertexNormals();",
+		value: "inner layers recede · outer bands remain",
+		note: "A schematic foveal profile, with exaggerated depth and omitted Henle-fibre detail. This is not a tissue-development simulation.",
+	},
+	{
+		stage: 19,
+		chapter: "PHOTORECEPTORS",
+		title: "Repeat one cell efficiently.",
+		text: "Create one cone icon and reuse it across the central patch. Each instance gets a transform, while sharing geometry and material.",
+		code: "const cells = new THREE.InstancedMesh(geometry, material, count);\ntransform.position.set(x, y, 0);\ntransform.updateMatrix();\ncells.setMatrixAt(i, transform.matrix);\ncells.instanceMatrix.needsUpdate = true;",
+		value: "central cone icons · shared geometry",
+		note: "Enlarged cone-only teaching patch, not measured density. The article separately introduces rods and the sampling experiment.",
+	},
+	{
+		stage: 20,
+		chapter: "THE COMPLETE ASSEMBLY",
+		title: "Meet at the back of the eye.",
+		text: "Return to millimetres and put the retinal cup behind the earlier parts. A section opens the view without changing the underlying meshes.",
+		code: "scene.add(cornea, iris, anatomy.group, retina);\n// Corneal apex: z = 5.6 mm.\n// Posterior retinal pole: z = -18.4 mm.\nrenderer.render(scene, camera);",
+		value: "chosen axial separation 24 mm",
+		note: "One anatomical scene, with separate magnified tissue lessons. A predictive eye still needs coupled, validated optical and neural models.",
+	},
+);

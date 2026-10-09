@@ -4,6 +4,12 @@ import { createLensScene } from "../lens/lensScene";
 import { createConstructionScene } from "./constructionScene";
 import { steps } from "./steps";
 
+type FullscreenDocument = Document & {
+	webkitFullscreenElement?: Element;
+	webkitExitFullscreen?: () => void;
+};
+type FullscreenElement = HTMLElement & { webkitRequestFullscreen?: () => void };
+
 export default function EyeConstruction({
 	standalone = false,
 }: {
@@ -11,16 +17,52 @@ export default function EyeConstruction({
 }) {
 	const article = (slug: string) =>
 		standalone
-			? `https://github.com/mikelgg93/mikelgg93/blob/webgl-eye-03-lens/portfolio/src/content/blog/${slug}.mdx`
+			? `https://github.com/mikelgg93/mikelgg93/blob/webgl-eye-04-retina/portfolio/src/content/blog/${slug}.mdx`
 			: `/blog/${slug}/`;
 	const [slide, setSlide] = useState(0),
 		[playing, setPlaying] = useState(true),
-		[error, setError] = useState(false);
+		[error, setError] = useState(false),
+		[fullscreen, setFullscreen] = useState(false),
+		[fullscreenNotice, setFullscreenNotice] = useState("");
 	const mount = useRef<HTMLDivElement>(null),
 		root = useRef<HTMLDivElement>(null),
 		badge = useRef<HTMLOutputElement>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const clock = useRef({ step: 0, progress: 0, playing: true });
+	useEffect(() => {
+		const doc = document as FullscreenDocument;
+		const changed = () =>
+			setFullscreen(
+				Boolean(doc.fullscreenElement || doc.webkitFullscreenElement),
+			);
+		document.addEventListener("fullscreenchange", changed);
+		document.addEventListener("webkitfullscreenchange", changed);
+		return () => {
+			document.removeEventListener("fullscreenchange", changed);
+			document.removeEventListener("webkitfullscreenchange", changed);
+		};
+	}, []);
+	async function toggleFullscreen() {
+		const doc = document as FullscreenDocument;
+		const element = root.current as FullscreenElement | null;
+		setFullscreenNotice("");
+		try {
+			if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+				if (doc.exitFullscreen) await doc.exitFullscreen();
+				else doc.webkitExitFullscreen?.();
+			} else if (element?.requestFullscreen) await element.requestFullscreen();
+			else if (element?.webkitRequestFullscreen)
+				element.webkitRequestFullscreen();
+			else
+				setFullscreenNotice(
+					"This browser does not offer page fullscreen. On iPhone, use Safari’s Share → Add to Home Screen, then open the saved slides.",
+				);
+		} catch {
+			setFullscreenNotice(
+				"Fullscreen was not available. On iPhone, try Safari’s Share → Add to Home Screen, then open the saved slides.",
+			);
+		}
+	}
 	function go(index: number) {
 		const next = Math.min(steps.length - 1, Math.max(0, index));
 		clock.current = { step: next, progress: 0, playing: true };
@@ -77,7 +119,8 @@ export default function EyeConstruction({
 			}
 			view.controls.enableRotate = !state.playing;
 			if (state.step !== previousStep || state.progress !== previousProgress) {
-				const label = model.update(state.step, state.progress);
+				const lesson = steps[state.step]!;
+				const label = model.update(lesson.stage, state.progress, lesson.detail);
 				if (badge.current)
 					badge.current.textContent = label ?? steps[state.step]!.value;
 				if (root.current) {
@@ -140,8 +183,22 @@ export default function EyeConstruction({
 				<a href={article("webgl-eye-03-lens")} className="deck-brand">
 					MGG <span>/ WebGL eye</span>
 				</a>
-				<span className="deck-label">Build it in Three.js</span>
+				<div className="deck-header-actions">
+					<span className="deck-label">Build it in Three.js</span>
+					<button
+						type="button"
+						aria-pressed={fullscreen}
+						onClick={() => void toggleFullscreen()}
+					>
+						{fullscreen ? "Exit fullscreen" : "Fullscreen"}
+					</button>
+				</div>
 			</header>
+			{fullscreenNotice && (
+				<p className="deck-fullscreen-notice" role="status">
+					{fullscreenNotice}
+				</p>
+			)}
 			<section className="deck-body">
 				<div className="deck-copy" key={slide}>
 					<p className="deck-chapter">
@@ -215,7 +272,7 @@ export default function EyeConstruction({
 				<p>
 					The slides show construction excerpts, using Three.js to draw with
 					WebGL. Read the complete{" "}
-					<a href="https://github.com/mikelgg93/mikelgg93/tree/webgl-eye-03-lens/portfolio/src/components/eye/presentation">
+					<a href="https://github.com/mikelgg93/mikelgg93/tree/webgl-eye-04-retina/portfolio/src/components/eye/presentation">
 						presentation source
 					</a>{" "}
 					and its linked model helpers for the loops, shaders and resource
@@ -224,8 +281,9 @@ export default function EyeConstruction({
 				<p>
 					This is an original construction lesson using the models in{" "}
 					<a href={article("webgl-eye-01-cornea")}>Cornea</a>,{" "}
-					<a href={article("webgl-eye-02-pupil")}>Pupil</a> and{" "}
-					<a href={article("webgl-eye-03-lens")}>Lens</a>. Their references
+					<a href={article("webgl-eye-02-pupil")}>Pupil</a>,{" "}
+					<a href={article("webgl-eye-03-lens")}>Lens</a> and{" "}
+					<a href={article("webgl-eye-04-retina")}>Retina</a>. Their references
 					support the science; mesh dimensions, lighting and animation timing
 					are teaching choices.{" "}
 					<a href="https://www.moorfields.nhs.uk/mediaLocal/ojzfucri/cataract-service_1.pdf">

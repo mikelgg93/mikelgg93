@@ -10,6 +10,7 @@ import { createCiliaryApparatus } from "../lens/ciliaryApparatus";
 import { createIntraocularLens } from "../lens/intraocularLens";
 import { capHeight, traceGrinRay } from "../lens/lensOptics";
 import type { createLensScene } from "../lens/lensScene";
+import { createRetinaConstruction } from "./retinaConstruction";
 
 const R = 7.8,
 	APERTURE = 5.8;
@@ -19,6 +20,31 @@ export function createConstructionScene(
 	view: ReturnType<typeof createLensScene>,
 ) {
 	const { scene, camera } = view;
+	const retinal = createRetinaConstruction(scene);
+	const lights: { light: THREE.Light; intensity: number }[] = [];
+	scene.traverse((object) => {
+		if (object instanceof THREE.Light)
+			lights.push({ light: object, intensity: object.intensity });
+	});
+	const normalPoints: THREE.Vector3[] = [];
+	for (const r of [2, 4, 5.5])
+		for (let j = 0; j < 8; j++) {
+			const a = (j * Math.PI) / 4,
+				v = new THREE.Vector3(
+					r * Math.cos(a),
+					r * Math.sin(a),
+					Math.sqrt(R * R - r * r),
+				);
+			normalPoints.push(
+				v,
+				v.clone().add(v.clone().normalize().multiplyScalar(1.4)),
+			);
+		}
+	const normals = new THREE.LineSegments(
+		new THREE.BufferGeometry().setFromPoints(normalPoints),
+		new THREE.LineBasicMaterial({ color: 0xf2c178 }),
+	);
+	scene.add(normals);
 	scene.background = new THREE.Color(0x000000);
 	view.controls.minDistance = 20;
 	view.controls.maxDistance = 95;
@@ -253,13 +279,29 @@ export function createConstructionScene(
 		[20, 12, 25],
 		[22, 11, 25],
 		[20, 24, 20],
+		[27, 20, 32],
+		[15, 10, 20],
+		[15, 10, 20],
+		[13, 8, 20],
+		[31, 28, 35],
 	];
 	let previousStep = -1;
 	return {
-		update(step: number, progress: number) {
+		update(step: number, progress: number, detail = "") {
 			const t = ease(THREE.MathUtils.clamp(progress, 0, 1));
+			const wholeEye = step === 20,
+				sectionView = step === 15 || wholeEye;
+			retinal.update(step, t);
+			normals.visible = detail === "normals";
+			scene.environmentIntensity = 0.45 * (detail === "lighting" ? t : 1);
+			for (const { light, intensity } of lights)
+				light.intensity = intensity * (detail === "lighting" ? t : 1);
+			anatomy.support.traverse((object) => {
+				if (object instanceof THREE.LineSegments)
+					object.visible = detail !== "muscle";
+			});
 			grid.visible = step <= 8;
-			axes.visible = step <= 4;
+			axes.visible = step <= 4 && detail !== "normals";
 			cameraHelper.visible = rig.visible = step === 1;
 			sphere.visible = step === 2 || step === 3;
 			sphereWire.visible = sphere.visible || step === 5;
@@ -288,10 +330,12 @@ export function createConstructionScene(
 						: Infinity,
 				);
 			}
-			cornea.visible = (step >= 6 && step <= 8) || step >= 14;
+			cornea.visible =
+				(step >= 6 && step <= 8) || step === 14 || step === 15 || wholeEye;
 			cornea.material.opacity = step === 6 ? 0.1 * t : 0.1;
 			cornea.position.z = step === 14 ? 8 * (1 - t) : 0;
-			iris.visible = step === 7 || step === 8 || step >= 14;
+			iris.visible =
+				step === 7 || step === 8 || step === 14 || step === 15 || wholeEye;
 			iris.scale.setScalar(step === 7 ? mix(0.01, 1, t) : 1);
 			iris.position.z = step === 14 ? 4 * (1 - t) : 0;
 			const pupil = step === 8 ? mix(8, 2, t) : 4;
@@ -300,8 +344,9 @@ export function createConstructionScene(
 			toy.visible = step === 9;
 			for (const { mesh, side } of toyCaps)
 				mesh.position.z = side * 3 * (1 - t);
-			anatomy.group.visible = step === 10 || step >= 12;
-			anatomy.update(step === 13 ? 8 * t : 0, step === 15, false);
+			anatomy.group.visible =
+				step === 10 || (step >= 12 && step <= 15) || wholeEye;
+			anatomy.update(step === 13 ? 8 * t : 0, sectionView, false);
 			anatomy.support.visible = step >= 12;
 			for (const [material, original] of supportMaterials) {
 				const transparent = step === 12 || original.transparent;
@@ -309,7 +354,12 @@ export function createConstructionScene(
 					material.transparent = transparent;
 					material.needsUpdate = true;
 				}
-				material.opacity = original.opacity * (step === 12 ? t : 1);
+				material.opacity =
+					original.opacity *
+					(step === 12 &&
+					(detail !== "fibres" || material instanceof THREE.LineBasicMaterial)
+						? t
+						: 1);
 			}
 			anatomy.lens.visible = step !== 15;
 			grin.visible = step === 11;
@@ -324,7 +374,7 @@ export function createConstructionScene(
 			iol.setSection(step === 15);
 			if (step !== previousStep) {
 				for (const material of [cornea.material, iris.material]) {
-					material.clippingPlanes = step === 15 ? section : [];
+					material.clippingPlanes = sectionView ? section : [];
 					material.needsUpdate = true;
 				}
 				previousStep = step;
@@ -335,17 +385,21 @@ export function createConstructionScene(
 			camera.up.set(0, 1, 0);
 			camera.position.lerpVectors(start, end, t);
 			const targetZ =
-				step === 1
-					? 10
-					: step === 3
-						? 6.5 * t
-						: step === 4 || step === 5
-							? 6.5
-							: step === 6
-								? mix(6.5, 3.5, t)
-								: step === 7 || step === 8
-									? 3.5
-									: 0;
+				step === 16
+					? -12
+					: wholeEye
+						? -6
+						: step === 1
+							? 10
+							: step === 3
+								? 6.5 * t
+								: step === 4 || step === 5
+									? 6.5
+									: step === 6
+										? mix(6.5, 3.5, t)
+										: step === 7 || step === 8
+											? 3.5
+											: 0;
 			view.controls.target.set(0, 0, targetZ);
 			view.controls.update();
 			return step === 5

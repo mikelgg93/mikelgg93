@@ -1,0 +1,150 @@
+---
+title: "Modelling the eye IV: The retina"
+description: "From a curved mesh to retinal layers, rods, cones and sampling: build the receiving end of the eye in WebGL."
+date: 2026-10-09
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "retina", "anatomy"]
+lang: "en"
+image: "/images/blog/retina-banner.png"
+---
+
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import { retinaSources } from '../../components/eye/retina/retinaSources';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import RetinaCup from '../../components/eye/retina/RetinaCup';
+import RetinaLayers from '../../components/eye/retina/RetinaLayers';
+import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
+import RetinaSampling from '../../components/eye/retina/RetinaSampling';
+import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
+
+We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the [lens](/blog/webgl-eye-03-lens) a way to change focus. There is now somewhere for light to go, but nobody to receive it.
+
+Enter the **retina**: a curved sheet of neural tissue lining the back of the eye. Calling it the eye's camera sensor is a useful first approximation. It is also a trap. The retina does not simply record an image and send the pixels onwards. Its cells begin processing visual information before the signals leave the eye.
+
+As before, we'll build the easy version first. One surface, then layers, then repeated cells. Only after that will we ask what happens when a continuous image meets a finite collection of photoreceptors.
+
+## First approximation: Bend a mesh
+
+Our first retina is a cup. We sample angles around a sphere and retain its posterior portion. It is the opposite end of the construction we used for the cornea: this time we look into the concave surface.
+
+For this visualisation, choose a radius of $12\ \text{mm}$. This is a **schematic dimension**, not a universal retinal curvature. MRI measurements show that eye dimensions and shape vary, including with refractive error (Atchison et al., 2004). A spherical cup is a convenient starting mesh.
+
+```ts
+const theta = u * Math.PI * 0.49;
+const r = radius * Math.sin(theta);
+const x = r * Math.cos(angle);
+const y = r * Math.sin(angle);
+const z = centreZ - radius * Math.cos(theta);
+```
+
+The angle stops just short of a hemisphere. The demo begins with the same vertex rows flattened into a disc; **Bend the mesh** restores their depth. Turn off the triangles to see the surface. The retina does not flatten and inflate like this: we are watching a mesh-construction step.
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaCup client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.cup} /></div>
+</InteractiveViewer>
+
+The vertices stay in the same GPU buffer. Moving the slider changes their positions, after which we update the normals and bounding sphere. There is no need to create and discard a new geometry on every frame.
+
+The warm tint makes the surface visible; it is not a prediction of fundus colour. This shell gives us position and curvature. It has not yet given us a single light-sensitive cell.
+
+## Turn the surface into a tissue
+
+Light arrives from the **vitreous**, the gel-filled space behind the lens. In the vertebrate retina, rods and cones lie towards the outer side, close to the **retinal pigment epithelium**, or RPE. Light generally crosses the inner neural layers before reaching their light-sensitive outer segments.
+
+The RPE supports photoreceptors: among its jobs are absorbing stray light, participating in the visual cycle, and phagocytosing shed outer-segment material. Behind it lies the vascular **choroid**. The neural retina and its pigment epithelium are closely associated, but they are not interchangeable names for one layer (Kolb, *Simple Anatomy of the Retina*).
+
+The section below groups the tissue into seven readable bands. **Nuclear layers** contain cell bodies; **plexiform layers** contain many of the synaptic connections. It is a map of the main compartments, not the complete conventional layer count. The nerve-fibre and ganglion-cell layers are grouped together, and limiting membranes are omitted.
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaLayers client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.layers} /></div>
+</InteractiveViewer>
+
+Use **Separate bands** to inspect the stack. Those gaps are a drawing aid, not spaces between the tissues. The arrows distinguish incoming light from the overall route of the neural signal back towards ganglion cells; photons do not turn around and travel through the nerves.
+
+## A pit with a purpose: The fovea
+
+Now turn on **Show fovea**. The inner layers thin out towards the centre while the outer bands remain. In a typical fovea, inner retinal tissue is displaced away from the centre; tightly packed central cones become narrow and elongated. The central region is also free of retinal blood vessels. The pit, cone specialisation and vascular arrangement are related features, rather than a hole punched through the retina (Provis et al., 2013).
+
+Our profile captures that change in organisation, with exaggerated vertical dimensions. It does not reproduce individual variation, Henle-fibre trajectories or measured layer thicknesses. Nor does pit depth alone determine visual acuity: central cone specialisation can occur even when a conventional pit is absent.
+
+**OCT** gives us a way to inspect retinal depth in a living eye. It uses [low-coherence interferometry](https://pubmed.ncbi.nlm.nih.gov/1957169/) to resolve backscattered light with depth. A cross-sectional B-scan often makes the foveal contour immediately recognisable. But an OCT image is not a photograph of seven painted sheets. Bright and dark bands depend on tissue scattering and the imaging system, and their anatomical interpretation requires care. Spaide and Curcio (2011), for example, examined how outer-retinal OCT bands correspond to photoreceptor structures.
+
+The diagram above is an anatomical sketch, **not a simulated OCT scan**. Its colours label compartments; its brightness says nothing about OCT reflectivity.
+
+## Populate the mesh: Rods and cones
+
+A real retina contains far too many photoreceptors to draw each one in a lightweight browser demo. In their histological sample, Curcio et al. (1990) reported averages of roughly **4.6 million cones and 92 million rods per retina**, with substantial variation between eyes. These are measured study averages, not a fixed specification for every human eye.
+
+The distribution matters as much as the totals. Cone density peaks sharply near the foveal centre and falls away from it. Rods are absent from the central rod-free zone and abundant outside it; their density also varies across the retina. The optic disc, where ganglion-cell axons leave the eye, has no rods or cones and corresponds to the physiological blind spot.
+
+We will draw a small set of **enlarged photoreceptor icons**. A cone and a rod each need one geometry and material; `InstancedMesh` repeats them at different positions with relatively few draw calls.
+
+```ts
+const cells = new THREE.InstancedMesh(geometry, material, capacity);
+transform.position.set(x, y, z);
+transform.updateMatrix();
+cells.setMatrixAt(index, transform.matrix);
+cells.instanceMatrix.needsUpdate = true;
+```
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaMosaic client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.mosaic} /></div>
+</InteractiveViewer>
+
+Switch between the **Foveal centre** and **Away from centre** presets. The first is cone-only; the second intersperses cones among rods. Central cone icons are narrower and longer. These are qualitative arrangements, not samples from a measured density map. The regularised spacing makes the construction legible; real mosaics contain spatial irregularity. We omit nuclei, synapses and supporting cells here.
+
+Rods support very sensitive vision in dim conditions. Cones support daylight vision and colour discrimination. The S-, M- and L-cone classes have broad, overlapping spectral sensitivities: they are not red, green and blue screen pixels arranged in repeating triplets (Stockman & Sharpe, 2000). Our gold colour identifies *cones as a group*; the demo does not assign cone classes or simulate colour vision.
+
+## Sampling: More detail is not always more information
+
+Imagine projecting fine stripes onto a row of receptors. If the stripes become finer than that row can distinguish, two different patterns can produce the same samples. This is **aliasing**: detail can become ambiguous, rather than simply disappearing into a blur.
+
+To isolate the idea, leave the anatomy aside for a moment. The next demo uses equally spaced **point samples in one dimension**. Frequency is measured in cycles across the panel, not cycles per degree of visual angle. With $N$ samples across that interval, its Nyquist boundary is $N/2$ cycles per interval. At the boundary itself, phase can make the signal disappear from the samples; unique reconstruction requires appropriate band-limiting below it.
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaSampling client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.sampling} /></div>
+</InteractiveViewer>
+
+Start with 16 samples and increase the stripes beyond 8 cycles. The bottom row shows a lower-frequency pattern that agrees at the sample positions. Add more samples and the boundary moves. **Shift ¼ cycle** changes where the stripes fall relative to the receptors; at certain settings, every sample can land on the same grey.
+
+This is a sampling experiment, not a retinal-image or perception simulator. Receptors have finite collecting areas, ocular optics filter the incoming pattern, and neural circuitry, adaptation and eye movements also matter. Human foveal aliasing has been demonstrated experimentally under carefully controlled conditions (Williams, 1985); our regular one-dimensional row is a way to understand the ambiguity, not a way to calculate somebody's visual acuity.
+
+## The retina is already doing computation
+
+An absorbed photon initiates a biochemical cascade. In rods and cones, the light response **hyperpolarises** the cell and reduces glutamate release. That change is the beginning of a neural message, not a tiny electrical photograph.
+
+Bipolar cells pass signals towards ganglion cells; horizontal and amacrine cells contribute lateral interactions and other processing. ON and OFF pathways respond differently to light increments and decrements. Ganglion-cell axons form the optic nerve, carrying action potentials onwards. The real circuitry includes multiple cell types and parallel routes, not a single cone-to-wire connection (Kolb, *How the Retina Works*).
+
+There is also a link back to Part 2. Melanopsin-expressing **ipRGCs** are ganglion cells: they can respond intrinsically to light and also receive rod/cone input. The retina's contribution to the pupil light reflex therefore is not confined to one kind of photoreceptor.
+
+Our meshes show where some of these structures belong. They do not implement phototransduction, receptive fields or spike trains. That is a different layer of modelling, and it deserves more than an animated arrow.
+
+## Put the receiving surface behind the optics
+
+We can now place the cup behind the cornea, iris and lens from the earlier articles. Their coordinate systems must agree. In this assembly the corneal apex is at $z=5.6\ \text{mm}$ and the posterior retinal pole at $z=-18.4\ \text{mm}$: a chosen $24\ \text{mm}$ separation for the illustration.
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaAssembly client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.assembly} /></div>
+</InteractiveViewer>
+
+Open the **Section** to look inside, or hide the anterior structures to inspect the cup. We retain only the posterior retinal surface; its full anterior extent, vessels, optic nerve, choroid and sclera are omitted. The layer diagram and receptor mosaic are separate magnified views, not millimetre-sized cells added to this eye.
+
+We now have the main anatomical pieces of an eye model. Putting them in one scene does not yet make a complete optical or neural simulation. To predict a retinal image we would have to couple and validate the surfaces, refractive indices and distances; to predict vision we would need to model what the retina and brain do with that image too.
+
+For now, the construction has reached a useful milestone: light has a surface to reach, cells to sample it, and a reason that “more polygons” and “more visual information” are different things.
+
+## References
+
+1. **Atchison, D. A., et al. (2004).** [*Eye shape in emmetropia and myopia*](https://pubmed.ncbi.nlm.nih.gov/15452039/). Investigative Ophthalmology & Visual Science, 45, 3380–3386.
+2. **Kolb, H.** [*Simple Anatomy of the Retina*](https://www.ncbi.nlm.nih.gov/books/NBK11533/). Webvision, NCBI Bookshelf.
+3. **Provis, J. M., Dubis, A. M., Maddess, T., & Carroll, J. (2013).** [*Adaptation of the central retina for high acuity vision: cones, the fovea and the avascular zone*](https://pmc.ncbi.nlm.nih.gov/articles/PMC3658155/). Progress in Retinal and Eye Research, 35, 63–81.
+4. **Spaide, R. F., & Curcio, C. A. (2011).** [*Anatomical correlates to the bands seen in the outer retina by optical coherence tomography*](https://pmc.ncbi.nlm.nih.gov/articles/PMC3619110/). Retina, 31, 1609–1619.
+5. **Curcio, C. A., Sloan, K. R., Kalina, R. E., & Hendrickson, A. E. (1990).** [*Human photoreceptor topography*](https://pubmed.ncbi.nlm.nih.gov/2324310/). Journal of Comparative Neurology, 292, 497–523.
+6. **Stockman, A., & Sharpe, L. T. (2000).** [*The spectral sensitivities of the middle- and long-wavelength-sensitive cones derived from measurements in observers of known genotype*](https://pubmed.ncbi.nlm.nih.gov/10814758/). Vision Research, 40, 1711–1737.
+7. **Williams, D. R. (1985).** [*Aliasing in human foveal vision*](https://pubmed.ncbi.nlm.nih.gov/4013088/). Vision Research, 25, 195–205.
+8. **Kolb, H.** [*How the Retina Works*](https://www.ncbi.nlm.nih.gov/books/NBK610611/). Webvision, NCBI Bookshelf.

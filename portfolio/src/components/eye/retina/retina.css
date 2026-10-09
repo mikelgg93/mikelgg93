@@ -1,0 +1,80 @@
+.retina-demo {
+	min-width: 0;
+}
+.retina-demo .lens-scene canvas {
+	position: absolute;
+	inset: 0;
+	width: 100% !important;
+	height: 100% !important;
+}
+.retina-demo .lens-orientation {
+	display: none;
+}
+.retina-demo .retina-key {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 12px;
+}
+.retina-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	display: inline-block;
+	flex-shrink: 0;
+}
+.retina-bands {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px 16px;
+	padding: 12px 16px;
+	margin: 0;
+	list-style: none;
+	font-size: 12px;
+}
+.retina-bands li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+.retina-figure {
+	display: block;
+	width: 100%;
+	height: auto;
+	background: #061e20;
+}
+.retina-demo .retina-reading {
+	padding: 12px 16px;
+	margin: 0;
+	font-size: 13px;
+}
+.retina-demo .retina-readouts {
+	display: flex;
+	gap: 8px 20px;
+	flex-wrap: wrap;
+	font-size: 13px;
+	padding: 12px 16px;
+	color: var(--muted-foreground);
+}
+.retina-demo .retina-camera {
+	position: absolute;
+	bottom: 10px;
+	left: 12px;
+	right: 12px;
+	margin: 0;
+	color: #dce9e7;
+	font-size: 12px;
+	pointer-events: none;
+}
+@media (max-width: 500px) {
+	.retina-bands {
+		grid-template-columns: 1fr;
+	}
+	.retina-demo .lens-scene {
+		aspect-ratio: 1.05;
+	}
+	.retina-demo .retina-camera {
+		font-size: 11px;
+	}
+}

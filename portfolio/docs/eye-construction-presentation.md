@@ -1,9 +1,10 @@
 # Eye construction presentation
 
-Route: `/presentations/webgl-eye/`. One WebGL canvas, 16 construction steps, a black background and original procedural scenes. No external image assets.
+Route: `/presentations/webgl-eye/`. One WebGL canvas, 25 construction steps, a black background and original procedural scenes. No external image assets.
 
-The lesson follows the implementation: scene → camera → sphere → clipping → editable vertex buffers → conic sag → corneal shell → iris aperture → deformation → opposed lens caps → material → GRIN ray paths → suspension → accommodation → assembly → IOL. Three.js manages WebGL; snippets show the operation being taught, not complete standalone programs. The source link exposes the full loops and helpers.
+The lesson follows the implementation: scene → camera → sphere → clipping → vertex buffers → triangle indices → normals → conic sag → corneal shell → iris aperture → deformation → opposed lens caps → material and generated reflections → GRIN ray paths → muscle and zonules → accommodation → assembly → IOL → retinal cup → layer bands → foveal profile → instanced cones → complete anatomical assembly. Three.js manages WebGL; snippets show the operation being taught, not complete standalone programs. The source link exposes the full loops and helpers.
 
+- Fullscreen uses the browser API where available. On iPhone browsers without it, the button explains Safari’s Share → Add to Home Screen route.
 - Previous / Next change slides. Pause / Replay controls each short animation.
 - Left / Right and Page Up / Page Down change slides; Home / End jump to the ends.
 - Space pauses or resumes; R restarts the current step. Drag the stopped scene to orbit.
