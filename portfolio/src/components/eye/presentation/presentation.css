@@ -1,0 +1,333 @@
+/* Microsoft's Michelangelus licence permits local use, not redistribution. */
+@font-face {
+	font-family: "Michelangelus Local";
+	src: local("Michelangelus Italic"), local("Michelangelus-Italic");
+	font-style: italic;
+	font-weight: 400;
+}
+:root {
+	color-scheme: dark;
+	font-family: "Geist Sans", system-ui, sans-serif;
+	background: #000;
+	color: #eee;
+	font-synthesis: none;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+}
+button {
+	font: inherit;
+}
+button,
+a,
+summary {
+	outline-offset: 5px;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+	outline: 1px solid #fff;
+}
+button {
+	cursor: pointer;
+	min-height: 44px;
+	padding: 10px 0;
+	border: 0;
+	color: #ddd;
+	background: transparent;
+}
+button:hover {
+	color: #fff;
+	text-decoration: underline;
+	text-underline-offset: 5px;
+}
+button:disabled {
+	color: #555;
+	cursor: default;
+	text-decoration: none;
+}
+a {
+	color: inherit;
+	text-underline-offset: 4px;
+}
+.construction {
+	min-height: 100svh;
+	max-width: 1920px;
+	margin: auto;
+	padding: 0 max(32px, env(safe-area-inset-right)) 0
+		max(32px, env(safe-area-inset-left));
+	background: #000;
+	display: flex;
+	flex-direction: column;
+}
+.deck-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18px;
+	min-height: 76px;
+	color: #929292;
+	font-size: 12px;
+}
+.deck-brand {
+	text-decoration: none;
+}
+.deck-brand span {
+	margin-left: 8px;
+}
+.deck-label {
+	font-size: 11px;
+}
+.deck-body {
+	display: grid;
+	grid-template-columns: minmax(290px, 0.88fr) minmax(0, 1.3fr);
+	gap: clamp(24px, 4vw, 72px);
+	align-items: center;
+	flex: 1;
+	padding: 32px 0;
+	min-width: 0;
+}
+.deck-copy {
+	min-width: 0;
+	animation: deck-enter 0.35s ease-out;
+}
+.deck-chapter {
+	color: #999;
+	font:
+		10px / 1.5 "Geist Mono",
+		monospace;
+	letter-spacing: 0.1em;
+	margin: 0 0 24px;
+	scroll-margin-top: 20px;
+}
+.deck-chapter span {
+	color: #ddd;
+	padding-right: 12px;
+}
+h1 {
+	font-family: "Michelangelus Local", "Old Standard TT", Georgia, serif;
+	font-style: italic;
+	font-size: clamp(40px, 4.6vw, 78px);
+	font-weight: 400;
+	line-height: 1.03;
+	letter-spacing: -0.035em;
+	margin: 0 0 24px;
+	max-width: 13ch;
+}
+h1:focus {
+	outline: none;
+}
+.deck-description {
+	font-size: clamp(15px, 1.25vw, 19px);
+	line-height: 1.6;
+	color: #bbb;
+	margin: 0 0 28px;
+	max-width: 43ch;
+}
+.deck-code {
+	font:
+		12px / 1.85 "Geist Mono",
+		monospace;
+	color: #e0c6a3;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	margin: 0 0 24px;
+	tab-size: 2;
+}
+.deck-note {
+	color: #919191;
+	font-size: 12px;
+	line-height: 1.6;
+	max-width: 52ch;
+	margin: 0;
+}
+.deck-visual {
+	min-width: 0;
+}
+.deck-stage {
+	height: clamp(340px, 60vh, 720px);
+	position: relative;
+	cursor: grab;
+}
+.deck-stage canvas {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100% !important;
+	height: 100% !important;
+	touch-action: pan-y !important;
+}
+.deck-stage .lens-orientation {
+	display: none;
+}
+.deck-stage-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	align-items: center;
+	font:
+		11px / 1.5 "Geist Mono",
+		monospace;
+	color: #999;
+}
+.deck-stage-meta button {
+	font:
+		11px "Geist Sans",
+		sans-serif;
+	min-width: 44px;
+}
+.deck-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	min-height: 64px;
+	border-top: 1px solid #202020;
+}
+.deck-location {
+	font:
+		11px "Geist Mono",
+		monospace;
+	white-space: nowrap;
+	color: #aaa;
+}
+.deck-keys {
+	font-size: 11px;
+	color: #919191;
+}
+.deck-footer nav {
+	display: flex;
+	gap: 32px;
+	flex-shrink: 0;
+}
+.deck-footer nav button {
+	font-size: 12px;
+}
+.deck-sources {
+	font-size: 11px;
+	color: #919191;
+	line-height: 1.7;
+	padding: 4px 0 max(12px, env(safe-area-inset-bottom));
+}
+.deck-sources summary {
+	cursor: pointer;
+	min-height: 32px;
+	width: fit-content;
+}
+.deck-sources p {
+	max-width: 95ch;
+}
+.deck-error {
+	padding: 32px;
+	color: #ddd;
+}
+@keyframes deck-enter {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@media (max-width: 1050px) {
+	.deck-body {
+		grid-template-columns: minmax(270px, 1fr) minmax(0, 1.1fr);
+	}
+	.deck-keys {
+		display: none;
+	}
+}
+@media (max-width: 760px) {
+	.construction {
+		padding-left: max(20px, env(safe-area-inset-left));
+		padding-right: max(20px, env(safe-area-inset-right));
+	}
+	.deck-header {
+		min-height: 60px;
+	}
+	.deck-label {
+		display: none;
+	}
+	.deck-body {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		align-items: stretch;
+		padding: 20px 0 28px;
+	}
+	.deck-copy {
+		display: contents;
+	}
+	.deck-chapter {
+		order: 0;
+		margin: 0;
+	}
+	.deck-copy h1 {
+		order: 1;
+		font-size: clamp(38px, 10vw, 60px);
+		margin: 0;
+		max-width: 16ch;
+	}
+	.deck-description {
+		order: 2;
+		margin: 0;
+		font-size: 15px;
+	}
+	.deck-visual {
+		order: 3;
+	}
+	.deck-code {
+		order: 4;
+		margin: 0;
+		font-size: 11px;
+	}
+	.deck-note {
+		order: 5;
+	}
+	.deck-stage {
+		height: auto;
+		aspect-ratio: 1.12;
+		max-height: 500px;
+	}
+	.deck-footer {
+		gap: 16px;
+	}
+	.deck-footer nav {
+		gap: 24px;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.deck-copy {
+		animation: none;
+	}
+}
+@media print {
+	.deck-header,
+	.deck-footer,
+	.deck-stage-meta button {
+		display: none;
+	}
+	.construction {
+		color: black;
+		background: white;
+	}
+	.deck-body,
+	.deck-copy {
+		display: block;
+	}
+	h1,
+	.deck-description,
+	.deck-note,
+	.deck-code {
+		color: black;
+	}
+	.deck-visual {
+		break-inside: avoid;
+	}
+	.deck-stage {
+		height: 400px;
+	}
+}

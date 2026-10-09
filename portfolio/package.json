@@ -6,6 +6,7 @@
 		"dev": "astro dev",
 		"build": "astro build",
 		"preview": "astro preview",
+		"build:presentation": "bun scripts/build-eye-presentation.ts",
 		"astro": "astro",
 		"check": "biome check .",
 		"format": "biome format . --write"
