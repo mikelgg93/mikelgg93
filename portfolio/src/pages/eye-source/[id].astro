@@ -2,10 +2,11 @@
 import { Code } from 'astro:components';
 import { lensSources } from '../../components/eye/lens/lensSources';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
+import { modelSources } from '../../components/eye/models/modelSources';
 import { sourceId } from '../../components/ui/sourcePath';
 export const partial = true;
 export function getStaticPaths() {
-  const files = new Map([...Object.values(lensSources), ...Object.values(retinaSources)].flat().map(file => [file.path, file]));
+  const files = new Map([...Object.values(lensSources), ...Object.values(retinaSources), ...Object.values(modelSources)].flat().map(file => [file.path, file]));
   return [...files.values()].map(file => ({ params: { id: sourceId(file.path) }, props: file }));
 }
 const { code, lang } = Astro.props;

@@ -1,0 +1,180 @@
+---
+title: "Modelando el ojo V: Un ojo no es una población"
+description: "Comparamos nuestro ojo WebGL con Navarro y Atchison, y construimos ojos sintéticos con distribuciones normales y covarianzas publicadas."
+date: 2026-10-10
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "schematic eye", "statistics"]
+lang: "es"
+image: "/images/blog/eye-models-banner.png"
+---
+
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import { modelSources } from '../../components/eye/models/modelSources';
+import ModelComparison from '../../components/eye/models/ModelComparison';
+import NormalVariation from '../../components/eye/models/NormalVariation';
+import PopulationVariation from '../../components/eye/models/PopulationVariation';
+
+Tenemos una [córnea](/es/blog/webgl-eye-01-cornea), una [pupila](/es/blog/webgl-eye-02-pupil), un [cristalino](/es/blog/webgl-eye-03-lens) y una [retina](/es/blog/webgl-eye-04-retina). Las piezas encajan. El modelo gira muy bien. Ahora llega la pregunta incómoda: **¿qué ojo hemos construido?**
+
+Es un ojo didáctico. Su geometría permite ver estructuras y pasos de construcción. Algunas dimensiones proceden de valores esquemáticos habituales; otras son decisiones de dibujo. Eso resulta útil, pero no convierte el conjunto en un modelo óptico de una persona concreta, ni en la media de todas las personas.
+
+Esta vez lo pondremos junto a dos ojos esquemáticos publicados y después pasaremos de un conjunto de medidas a muchos. Primero una distribución normal. Después las relaciones entre medidas. Por último, una pequeña población sintética que podremos explorar en WebGL.
+
+## Darle un trabajo al modelo
+
+Un modelo puede responder a una pregunta si incluye lo que importa para esa pregunta. Una malla puede mostrar dónde está el cristalino sin calcular dónde enfoca la luz. Una prescripción óptica puede predecir aberraciones sin dibujar una sola fibra muscular.
+
+«El ojo de Navarro» y «el ojo de Atchison» también necesitan fecha y versión. Ambos nombres corresponden a más de una construcción. Aquí utilizaremos:
+
+| Modelo | Qué comparamos | Qué añade el modelo óptico publicado |
+| :--- | :--- | :--- |
+| Nuestro conjunto de las Partes I–IV | Geometría didáctica en reposo | No incorpora un cálculo óptico acoplado y validado del ojo completo |
+| Escudero-Sanz y Navarro, 1999 | Cuatro superficies refractivas y una superficie imagen esférica | Índices dependientes de la longitud de onda y un cristalino homogéneo de índice equivalente; trazado de rayos de campo amplio |
+| Atchison, 2006, versión centrada | Geometría dependiente de la refracción con retina bicónica | Un cristalino de índice gradual y una prescripción óptica para ojos emétropes y miopes |
+
+El [artículo de Navarro de 1999](https://doi.org/10.1364/JOSAA.16.001881) estudia las aberraciones fuera de eje. El de [Atchison de 2006](https://doi.org/10.1016/j.visres.2006.01.004) relaciona varias dimensiones con la refracción en gafas. Ninguno pretendía ganar un concurso de renders fotorrealistas. Su utilidad depende de las preguntas ópticas para las que se construyeron y evaluaron.
+
+## Ponerlos sobre la misma regla
+
+Antes de construir las mallas, fijemos unidades y extremos. **CCT** es el espesor corneal central; **ACD**, la profundidad *interna* de la cámara anterior, desde la cara posterior de la córnea hasta la cara anterior del cristalino; y **LT**, el espesor del cristalino. Las distancias se expresan en milímetros.
+
+ACD merece esa palabra adicional. Algunos conjuntos de datos miden la cámara anterior desde la cara anterior de la córnea. Mezclar ambas definiciones sin restar CCT desplazaría el cristalino aproximadamente un espesor corneal.
+
+| Dimensión axial | Nuestro conjunto | Navarro 1999 | Atchison 2006, SR = 0 D |
+| :--- | ---: | ---: | ---: |
+| CCT | 0,55 | 0,55 | 0,55 |
+| ACD interna | 3,52 | 3,05 | 3,15 |
+| LT | 3,60 | 4,00 | 3,60 |
+| Ápice corneal hasta el extremo posterior declarado | 24,30 | 23,9203 | 23,58 |
+
+La última fila requiere cuidado. En la Parte IV terminamos en una **referencia del epitelio pigmentario de la retina (EPR)**. Las prescripciones ópticas especifican una **superficie imagen**, que no identifica por sí sola una capa histológica. La longitud axial clínica también depende de las convenciones de referencia del instrumento. Podemos comparar las distancias declaradas sin dar por hecho que sus extremos sean intercambiables.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><ModelComparison client:visible lang="es" /></div>
+  <div slot="code"><SourceFiles files={modelSources.comparison} lang="es" /></div>
+</InteractiveViewer>
+
+Elige **Vista lateral** y cambia de modelo. La escala de la cámara permanece fija. Mostramos las mismas ventanas de dibujo de cada prescripción: parches centrales de córnea y cristalino, más un casquete posterior. Son superficies abiertas, no envolventes anatómicas completas. Los colores identifican estructuras; no representan el color medido del tejido ni su rendimiento óptico.
+
+Nuestro cristalino deja al descubierto un atajo anterior. Sus dos mitades elipsoidales asimétricas son fáciles de construir, pero sus curvaturas centrales no son las superficies de Navarro o Atchison. Igualar el espesor no hace que dos lentes sean ópticamente equivalentes. Tampoco darle aspecto de vidrio a un material de Three.js implementa la distribución interna del índice de refracción.
+
+### Cambiar una prescripción, no solo una escala
+
+En el modelo centrado de Atchison, la refracción en gafas $SR$ modifica varios parámetros a la vez. Dos de sus relaciones son:
+
+$$
+R_{\mathrm{córnea}} = 7.77 + 0.022\,SR,
+\qquad
+VCD = 16.28 - 0.299\,SR.
+$$
+
+$SR$ se expresa en dioptrías; el radio y la profundidad de la cámara vítrea, en milímetros. Una graduación más negativa alarga la cámara vítrea en este modelo; también cambian la curvatura y la asfericidad retinianas. La demo permite explorar de $-10$ a $0\ \mathrm{D}$ y utiliza la prescripción centrada resumida por [Atchison y Thibos (2016)](https://doi.org/10.1111/cxo.12352).
+
+Es una relación **dentro de esa familia de modelos**, no una regla general para convertir la longitud axial de alguien en su graduación. Aquí tampoco calculamos la óptica de su GRIN. La comparación dibuja geometría; calcular la calidad de la imagen retiniana exigiría un trazador de rayos coherente, índices de refracción, longitud de onda, pupila, distancia del objeto y definición de la superficie imagen.
+
+## Primera aproximación: Variar un número
+
+Supongamos que queremos más de un ojo. Lo tentador es añadir un poco de ruido aleatorio a cada control. Podemos hacerlo mejor si le damos significado a ese ruido.
+
+Una distribución normal, o gaussiana, tiene una media $\mu$ y una desviación estándar $\sigma$. Extraemos un valor normal estándar $z$ y calculamos:
+
+$$x = \mu + \sigma z, \qquad z \sim \mathcal{N}(0,1).$$
+
+La media fija el centro; la desviación estándar controla la dispersión. Una muestra finita no reproducirá exactamente ninguno de los dos objetivos. La campana describe la distribución de partida, no garantiza que cada lote la copie a la perfección.
+
+Como ejemplo concreto, tomamos cinco entradas del modelo estadístico para ojos derechos de [Rozema, Atchison y Tassignon (2011)](https://doi.org/10.1167/iovs.10-6705), tablas A1 y A2 del apéndice:
+
+| Variable | Media del modelo publicado | SD a partir de la diagonal de covarianza |
+| :--- | ---: | ---: |
+| Potencia queratométrica anterior, K | 43,294 D | 1,355 D |
+| CCT | 0,545 mm | 0,032 mm |
+| ACD interna | 2,870 mm | 0,378 mm |
+| LT | 4,070 mm | 0,437 mm |
+| Longitud axial, AL | 23,667 mm | 1,110 mm |
+
+Son **parámetros de un modelo estadístico publicado**, no intervalos normales universales. Su matriz combinaba datos biométricos y del cristalino procedentes de conjuntos diferentes. Usamos un subconjunto de cinco variables; no reproducimos el modelo completo ni su filtrado posterior por refracción.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><NormalVariation client:visible lang="es" /></div>
+  <div slot="code"><SourceFiles files={modelSources.normal} lang="es" /></div>
+</InteractiveViewer>
+
+Empieza en **1×** para usar la dispersión publicada. Prueba **0×**: todas las muestras coinciden con la media. Después aumenta la dispersión o pide otro lote. La semilla permite repetirlo, algo útil cuando un fallo geométrico aparece en «el ojo aleatorio número 173».
+
+El código usa Box–Muller para transformar números uniformes en normales. Su logaritmo necesita una entrada estrictamente mayor que cero. Nuestro generador devuelve valores dentro del intervalo abierto $(0,1)$, evitando que ese extremo produzca una coordenada infinita.
+
+K también merece su nombre. Es **potencia queratométrica**, no la potencia real de las dos superficies corneales. Para obtener un radio utilizamos el índice queratométrico convencional $1.3375$:
+
+```ts
+const anteriorRadiusMm = 337.5 / keratometricPowerD;
+```
+
+La conversión no es lineal. Una K gaussiana **no** da un radio exactamente gaussiano. Transformar la media tampoco equivale, en general, a promediar las muestras transformadas.
+
+## Las medidas pertenecen al mismo ojo
+
+Imagina ahora que extraemos ACD y espesor del cristalino de forma independiente. Cada histograma podría parecer convincente aunque las combinaciones fueran incorrectas. En la matriz seleccionada, ambas medidas presentan correlación negativa: los cristalinos más gruesos tienden a acompañarse de cámaras menos profundas en esa población modelada. La asociación no obliga a que ocurra en cada ojo, ni establece por sí sola un mecanismo.
+
+Necesitamos una **matriz de covarianza** $\Sigma$. Su diagonal contiene varianzas; las entradas restantes describen cómo varían juntas las parejas de medidas. La covarianza tiene unidades: K–AL se expresa en D·mm, mientras que ACD–LT se expresa en mm². El orden de los parámetros importa tanto como sus unidades.
+
+La factorización de Cholesky nos da una matriz triangular inferior $L$ tal que $\Sigma = LL^{\mathsf T}$. Entonces:
+
+$$
+\mathbf{x} = \boldsymbol\mu + L\mathbf{z},
+\qquad z_i \overset{\mathrm{ind}}{\sim} \mathcal{N}(0,1).
+$$
+
+En palabras: extraer números normales independientes, mezclarlos en las proporciones de $L$ y añadir las medias. La covarianza de cinco variables utilizada aquí es simétrica y definida positiva. El código comprueba ambas condiciones en lugar de reparar silenciosamente una matriz defectuosa.
+
+```ts
+// Orden: K, CCT, ACD interna, LT, AL.
+const factor = cholesky(covariance);
+const z = mean.map(() => standardNormal());
+const sample = mean.map((mu, i) =>
+  mu + factor[i].reduce((sum, lij, j) => sum + lij * z[j], 0)
+);
+```
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><PopulationVariation client:visible lang="es" /></div>
+  <div slot="code"><SourceFiles files={modelSources.population} lang="es" /></div>
+</InteractiveViewer>
+
+Cambia **Independientes** por **Covarianza publicada**. Ambos modos parten de la misma secuencia de normales, determinada por la semilla. Antes de aplicar límites de dibujo, las distribuciones marginales objetivo son las mismas; cambian las combinaciones. La correlación objetivo ACD–LT es aproximadamente $-0.55$. Prueba también AL frente a K: en esta matriz la asociación es negativa, de aproximadamente $-0.39$.
+
+Mueve **Inspeccionar ojo** para conectar un punto con su geometría. El espesor corneal, la posición y espesor del cristalino y el extremo posterior proceden del vector seleccionado. El radio corneal anterior se obtiene de K. Las demás formas, incluida Q, permanecen fijas como soporte de dibujo basado en las superficies de Navarro. Es un ejercicio de construcción con cinco parámetros, no una población de prescripciones ópticas completamente personalizadas.
+
+## Mantener las piezas unidas
+
+La longitud axial es un total, no otro hueco libre que añadir después de los demás. Con CCT, ACD interna, LT y AL, el tramo axial restante es:
+
+```ts
+const vitreousSpan = axialLength - cct - internalACD - lensThickness;
+```
+
+Colocamos la superficie posterior del dibujo en ese extremo AL. El cierre mantiene coherentes las dimensiones elegidas; no resuelve las distintas convenciones de referencia retiniana mencionadas antes.
+
+Una gaussiana también tiene colas ilimitadas. Nuestro dibujo acepta K entre 35–52 D, CCT entre 0,35–0,80 mm, ACD interna entre 1,5–5,0 mm, LT entre 2,5–5,8 mm y AL entre 19–30,5 mm, con un tramo restante superior a 10 mm. Son **límites amplios elegidos para dibujar esta demo**, no criterios diagnósticos. También comprobamos las superficies cónicas dentro de sus aperturas de dibujo.
+
+Si falla un candidato, descartamos el **vector completo** y extraemos otro. Recortar cada medida a un límite acumularía valores idénticos artificiales y alteraría las relaciones entre medidas. El rechazo también modifica la distribución: la demo informa de los candidatos descartados y la correlación obtenida puede diferir del objetivo inicial. Hay además un máximo de intentos, para que una configuración imposible no bloquee la página.
+
+**Descargar JSON** guarda los vectores con unidades, semilla, covarianza, fuente y recuentos de rechazo. La reproducibilidad necesita ese contexto, no solo cinco números anónimos.
+
+## Cuando una campana no basta
+
+«Ojos normales» en el título de un artículo no significa que todas las medidas sigan una distribución normal. La edad, el intervalo refractivo, la acomodación y la población estudiada influyen en qué modelo estadístico resulta adecuado. Nuestro subconjunto no está condicionado por esos factores.
+
+El modelo posterior [SyntEyes (Rozema et al., 2016)](https://doi.org/10.1167/iovs.15-18067) va más allá: reduce una descripción detallada de la córnea a menos variables y utiliza una **mezcla de dos distribuciones gaussianas multivariantes**. Primero se elige un componente y después se extrae una muestra con su media y covarianza. Así pueden describirse estructuras que una sola nube elíptica no recoge. Nuestra demo implementa el subconjunto anterior de cinco variables, no SyntEyes.
+
+Para una población de investigación, el siguiente paso sería contrastar medidas generadas, correlaciones y resultados ópticos con datos apropiados reservados para validación. Para el ojo de una persona, comenzaríamos por sus propias medidas. Un render convincente no sustituye ninguna de las dos validaciones.
+
+Ahora podemos construir un ojo, declarar qué prescripción sigue y generar variación controlada a partir de estadísticas publicadas. Las mallas siguen enseñándonos cómo encajan las piezas. La prescripción establece sus supuestos ópticos. El modelo poblacional indica cuánto, y de qué manera conjunta, hemos permitido que varíen.
+
+## Referencias
+
+- Escudero-Sanz I, Navarro R. **Off-axis aberrations of a wide-angle schematic eye model.** *JOSA A* 16, 1881–1891 (1999). [Prescripción: tabla 1](https://doi.org/10.1364/JOSAA.16.001881).
+- Atchison DA. **Optical models for human myopic eyes.** *Vision Research* 46, 2236–2250 (2006). [Versiones centrada y descentrada](https://doi.org/10.1016/j.visres.2006.01.004).
+- Atchison DA, Thibos LN. **Optical models of the human eye.** *Clinical and Experimental Optometry* 99, 99–106 (2016). [Alcance y parámetros dependientes de la refracción](https://doi.org/10.1111/cxo.12352).
+- Rozema JJ, Atchison DA, Tassignon MJ. **Statistical eye model for normal eyes.** *IOVS* 52, 4525–4533 (2011). [Medias y covarianzas: apéndice A1/A2](https://doi.org/10.1167/iovs.10-6705).
+- Rozema JJ, Rodriguez P, Navarro R, Tassignon MJ. **SyntEyes: A higher-order statistical eye model for healthy eyes.** *IOVS* 57, 683–691 (2016). [Más allá de una gaussiana](https://doi.org/10.1167/iovs.15-18067).

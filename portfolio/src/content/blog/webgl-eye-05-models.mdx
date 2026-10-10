@@ -1,0 +1,180 @@
+---
+title: "Modelling the eye V: One eye is not a population"
+description: "Compare our WebGL eye with Navarro and Atchison, then build synthetic eyes from normal distributions and published covariances."
+date: 2026-10-10
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "schematic eye", "statistics"]
+lang: "en"
+image: "/images/blog/eye-models-banner.png"
+---
+
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import { modelSources } from '../../components/eye/models/modelSources';
+import ModelComparison from '../../components/eye/models/ModelComparison';
+import NormalVariation from '../../components/eye/models/NormalVariation';
+import PopulationVariation from '../../components/eye/models/PopulationVariation';
+
+We have a [cornea](/blog/webgl-eye-01-cornea), a [pupil](/blog/webgl-eye-02-pupil), a [lens](/blog/webgl-eye-03-lens) and a [retina](/blog/webgl-eye-04-retina). They fit together. The model rotates nicely. Now comes the awkward question: **which eye have we built?**
+
+It is a teaching eye. Its geometry makes structures and construction steps visible. Some dimensions come from familiar schematic values; others are drawing choices. That is useful, but it does not make the assembly an optical model of a particular person—or an average of every person.
+
+This time, we will put it beside two published schematic eyes, then turn one set of measurements into many. First one normal distribution. Then relationships between measurements. Finally, a small synthetic population that we can inspect in WebGL.
+
+## Give a model a job
+
+A model can answer a question only if it contains the things that matter to that question. A mesh can show where the lens sits without calculating where it focuses light. An optical prescription can predict aberrations without drawing a single muscle fibre.
+
+“The Navarro eye” and “the Atchison eye” also need a date and a version. Both names refer to more than one construction. For this comparison, we will use:
+
+| Model | What we are comparing | What the published optical model adds |
+| :--- | :--- | :--- |
+| Our Parts I–IV assembly | Relaxed teaching geometry | No coupled, validated whole-eye optical solver |
+| Escudero-Sanz & Navarro, 1999 | Four refracting surfaces and a spherical image surface | Wavelength-dependent indices and a homogeneous equivalent-index lens; wide-angle ray tracing |
+| Atchison, 2006, centred version | A refraction-dependent geometry with a biconic retina | A gradient-index lens and an optical prescription intended to model emmetropic/myopic eyes |
+
+The [1999 Navarro paper](https://doi.org/10.1364/JOSAA.16.001881) examines off-axis aberrations. The [2006 Atchison paper](https://doi.org/10.1016/j.visres.2006.01.004) links several dimensions to spectacle refraction. Neither was designed to win a contest for the most photorealistic render. Their usefulness comes from the optical questions they were built and evaluated to address.
+
+## Put them on the same ruler
+
+Before making meshes, fix the units and endpoints. Here, **CCT** is central corneal thickness, **ACD** is the *internal* anterior chamber depth—from the back of the cornea to the front of the lens—and **LT** is lens thickness. All distances are in millimetres.
+
+ACD deserves that extra word. Some datasets measure anterior chamber depth from the front of the cornea instead. Combining the two definitions without subtracting CCT would move the lens by roughly a corneal thickness.
+
+| Axial dimension | Our assembly | Navarro 1999 | Atchison 2006, SR = 0 D |
+| :--- | ---: | ---: | ---: |
+| CCT | 0.55 | 0.55 | 0.55 |
+| Internal ACD | 3.52 | 3.05 | 3.15 |
+| LT | 3.60 | 4.00 | 3.60 |
+| Corneal apex to declared posterior endpoint | 24.30 | 23.9203 | 23.58 |
+
+That last row needs care. Our Part IV endpoint is an **RPE proxy**. The optical prescriptions specify an **image surface**, which does not by itself identify a histological layer. Clinical axial-length measurements also have instrument-specific reference conventions. We can compare these declared distances without pretending their endpoints are interchangeable.
+
+<InteractiveViewer>
+  <div slot="preview"><ModelComparison client:visible /></div>
+  <div slot="code"><SourceFiles files={modelSources.comparison} /></div>
+</InteractiveViewer>
+
+Choose **Side view** and switch models. The camera scale stays fixed. We show the same drawing windows through each prescription: central corneal and lens patches, plus a posterior cap. These are open surfaces, not complete anatomical envelopes. Colours identify structures; they do not represent measured tissue colour or optical performance.
+
+Our lens also reveals an earlier shortcut. Its two asymmetric ellipsoidal halves are easy to construct, but their central curvatures are not the Navarro or Atchison lens surfaces. Matching thickness alone does not make two lenses optically equivalent. Nor does giving a Three.js material an attractive glass appearance implement the lens's internal refractive-index distribution.
+
+### Change a prescription, not just a scale
+
+In the centred Atchison model, spectacle refraction $SR$ changes several parameters together. Two of its relations are:
+
+$$
+R_{\mathrm{cornea}} = 7.77 + 0.022\,SR,
+\qquad
+VCD = 16.28 - 0.299\,SR.
+$$
+
+Here $SR$ is in dioptres, while radius and vitreous chamber depth are in millimetres. Moving towards a more negative prescription lengthens the vitreous chamber in this model; retinal curvature and asphericity also change. The demo exposes $-10$ to $0\ \mathrm{D}$ and uses the centred prescription summarised by [Atchison & Thibos (2016)](https://doi.org/10.1111/cxo.12352).
+
+This is a relation **within that model family**, not a general rule for converting somebody's axial length into spectacle power. We are also not exercising its GRIN optics here. The comparison renders geometry; calculating retinal image quality would require a consistent ray tracer, refractive indices, wavelength, pupil, object distance and image-surface definition.
+
+## First approximation: Vary one number
+
+Suppose we want more than one eye. The tempting starting point is to add a little random noise to each slider. We can do better by giving that noise a meaning.
+
+A normal—or Gaussian—distribution has a mean $\mu$ and a standard deviation $\sigma$. Draw a standard normal value $z$, then:
+
+$$x = \mu + \sigma z, \qquad z \sim \mathcal{N}(0,1).$$
+
+The mean chooses the centre; the standard deviation controls the spread. A finite batch will not land exactly on either target. The bell curve describes the distribution we draw from, not a promise that every batch will reproduce it perfectly.
+
+For a concrete example, we take five entries from the right-eye statistical model in [Rozema, Atchison & Tassignon (2011)](https://doi.org/10.1167/iovs.10-6705), Appendix Tables A1 and A2:
+
+| Variable | Published model mean | SD from the covariance diagonal |
+| :--- | ---: | ---: |
+| Anterior keratometric power, K | 43.294 D | 1.355 D |
+| CCT | 0.545 mm | 0.032 mm |
+| Internal ACD | 2.870 mm | 0.378 mm |
+| LT | 4.070 mm | 0.437 mm |
+| Axial length, AL | 23.667 mm | 1.110 mm |
+
+These are **parameters of a published statistical model**, not universal normal ranges. Its matrix combined biometric and lens data from separate datasets. We use a five-variable subset; we do not reproduce the full model or its subsequent refraction filtering.
+
+<InteractiveViewer>
+  <div slot="preview"><NormalVariation client:visible /></div>
+  <div slot="code"><SourceFiles files={modelSources.normal} /></div>
+</InteractiveViewer>
+
+Start at **1×** to use the published spread. Try **0×**: every draw collapses to the mean. Then increase the spread or request a new batch. The seed makes each batch repeatable, useful when a geometry bug appears in “random eye number 173”.
+
+The implementation uses Box–Muller to turn uniform random numbers into normal ones. Its logarithm needs an input strictly greater than zero. Our seeded generator returns values inside the open interval $(0,1)$, so that edge case cannot produce an infinite coordinate.
+
+K also deserves its name. It is **keratometric power**, not the true power of both corneal surfaces. To draw a radius from it, we use the conventional keratometric index $1.3375$:
+
+```ts
+const anteriorRadiusMm = 337.5 / keratometricPowerD;
+```
+
+This conversion is nonlinear. A Gaussian K does **not** become an exactly Gaussian radius, and transforming the mean is not generally the same as averaging transformed samples.
+
+## The measurements belong to the same eye
+
+Now imagine drawing ACD and lens thickness independently. Each histogram could look convincing while the combinations are wrong. In the selected published matrix, those two measurements are negatively correlated: thicker lenses tend to accompany shallower chambers in that modelled population. That association is not a rule that forces every thick lens into a shallow chamber, nor does correlation alone establish a mechanism.
+
+We need a **covariance matrix** $\Sigma$. Its diagonal contains variances; its off-diagonal terms describe how pairs vary together. Covariance carries units: an entry involving K and AL is in D·mm, while an ACD–LT entry is in mm². Parameter order matters as much as units.
+
+Cholesky factorisation gives us a lower-triangular matrix $L$ such that $\Sigma = LL^{\mathsf T}$. Then:
+
+$$
+\mathbf{x} = \boldsymbol\mu + L\mathbf{z},
+\qquad z_i \overset{\mathrm{ind}}{\sim} \mathcal{N}(0,1).
+$$
+
+In plain terms: draw independent normal numbers, mix them in the proportions encoded by $L$, then add the means. The five-variable covariance used here is symmetric and positive definite; the code checks those conditions instead of silently repairing a broken matrix.
+
+```ts
+// Order: K, CCT, internal ACD, LT, AL.
+const factor = cholesky(covariance);
+const z = mean.map(() => standardNormal());
+const sample = mean.map((mu, i) =>
+  mu + factor[i].reduce((sum, lij, j) => sum + lij * z[j], 0)
+);
+```
+
+<InteractiveViewer>
+  <div slot="preview"><PopulationVariation client:visible /></div>
+  <div slot="code"><SourceFiles files={modelSources.population} /></div>
+</InteractiveViewer>
+
+Switch **Independent** to **Published covariance**. Both start from the same seeded stream of normal draws. Before drawing guards, the marginal target distributions stay the same; their combinations change. The ACD–LT target correlation is about $-0.55$. Try AL against K as well: the selected matrix has a negative association there, about $-0.39$.
+
+Move **Inspect eye** to connect a dot with its geometry. Corneal thickness, lens position, lens thickness and the posterior endpoint now come from the selected vector. The anterior corneal radius comes from K. The remaining shapes—including Q—stay fixed as a drawing scaffold based on Navarro's surfaces. This is a five-parameter construction exercise, not a population of fully personalised optical prescriptions.
+
+## Keep the pieces attached
+
+Axial length is a total, not another free gap to place after all the others. Once we have CCT, internal ACD, LT and AL, the remaining axial span is:
+
+```ts
+const vitreousSpan = axialLength - cct - internalACD - lensThickness;
+```
+
+We place the drawing's posterior surface at that AL endpoint. This closure keeps the chosen dimensions consistent; it does not resolve the different retinal reference conventions mentioned earlier.
+
+A Gaussian also has unbounded tails. Our drawing accepts K from 35–52 D, CCT from 0.35–0.80 mm, internal ACD from 1.5–5.0 mm, LT from 2.5–5.8 mm and AL from 19–30.5 mm, with a remaining span above 10 mm. These are **broad rendering guards chosen for this demo**, not diagnostic limits. The conic surfaces are checked over their displayed apertures as well.
+
+If a candidate fails, discard the **whole vector** and draw again. Clamping each measurement to a boundary would create artificial piles of identical values and change relationships between measurements. Rejection changes the distribution too: the demo reports discarded candidates, and its realised correlation can differ from the original target. It also caps attempts, so an impossible configuration cannot trap the page in a loop.
+
+**Download JSON** saves the vectors with their units, seed, covariance, source and rejection counts. Reproducibility needs that context, not just a list of five anonymous numbers.
+
+## When one bell curve is not enough
+
+“Normal eyes” in a paper title does not mean that every measurement follows one normal distribution. Age, refractive-error range, accommodation and the population sampled affect which statistical model is appropriate. We have not conditioned our subset on those factors.
+
+The later [SyntEyes model (Rozema et al., 2016)](https://doi.org/10.1167/iovs.15-18067) goes further: it reduces detailed corneal shape to fewer variables and uses a **mixture of two multivariate Gaussian distributions**. A mixture first chooses a component, then draws from that component's mean and covariance. It can describe structure that one elliptical cloud misses. Our demo implements the earlier five-variable subset, not SyntEyes.
+
+For a research population, the next step is to check generated measurements, correlations and optical outputs against appropriate held-out data. For a person's eye, start with that person's measurements. A plausible render cannot substitute for either validation.
+
+We can now build one eye, state which prescription it follows, and generate controlled variation around published statistics. The meshes still teach us how the parts fit. The prescription tells us which optical assumptions belong with them. The population model tells us how much—and how jointly—we have allowed those parts to vary.
+
+## References
+
+- Escudero-Sanz I, Navarro R. **Off-axis aberrations of a wide-angle schematic eye model.** *JOSA A* 16, 1881–1891 (1999). [Prescription: Table 1](https://doi.org/10.1364/JOSAA.16.001881).
+- Atchison DA. **Optical models for human myopic eyes.** *Vision Research* 46, 2236–2250 (2006). [Centred and decentered versions](https://doi.org/10.1016/j.visres.2006.01.004).
+- Atchison DA, Thibos LN. **Optical models of the human eye.** *Clinical and Experimental Optometry* 99, 99–106 (2016). [Model scope and refraction-dependent parameters](https://doi.org/10.1111/cxo.12352).
+- Rozema JJ, Atchison DA, Tassignon MJ. **Statistical eye model for normal eyes.** *IOVS* 52, 4525–4533 (2011). [Means and covariances: Appendix A1/A2](https://doi.org/10.1167/iovs.10-6705).
+- Rozema JJ, Rodriguez P, Navarro R, Tassignon MJ. **SyntEyes: A higher-order statistical eye model for healthy eyes.** *IOVS* 57, 683–691 (2016). [Beyond one Gaussian](https://doi.org/10.1167/iovs.15-18067).
