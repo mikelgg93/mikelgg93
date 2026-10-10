@@ -48,9 +48,7 @@ test("every construction stage reuses finite geometry at timeline endpoints and 
 test("the foveal slide omits collapsed faces and restores flat bands without replacing indices", () => {
 	const scene = new THREE.Scene();
 	const model = createRetinaConstruction(scene);
-	const layers = scene.children.find(
-		(object) => object instanceof THREE.Group,
-	)!;
+	const layers = scene.getObjectByName("retina-construction-bands")!;
 	const bands = layers.children as THREE.Mesh<THREE.BoxGeometry>[];
 	const indices = bands.map((band) => band.geometry.index);
 	model.update(18, 1);

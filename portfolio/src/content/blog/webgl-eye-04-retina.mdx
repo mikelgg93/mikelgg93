@@ -127,12 +127,20 @@ Our meshes show where some of these structures belong. They do not implement pho
 
 We can now place the cup behind the cornea, iris and lens from the earlier articles. Their coordinate systems must agree. In this assembly the corneal apex is at $z=5.6\ \text{mm}$ and the posterior retinal pole at $z=-18.4\ \text{mm}$: a chosen $24\ \text{mm}$ separation for the illustration.
 
+The receiving surface needs a supporting wall. Outside the retina and RPE sits the **choroid**, a vascular coat that supplies the outer retina, including the photoreceptors (Kolb). Outside that is the **sclera**, the opaque, collagen-rich coat that gives the globe mechanical support and meets the cornea at the limbus (Watson & Young, 2004).
+
+The **optic nerve** is the exit route. Ganglion-cell axons converge at the **optic disc**, nasal to the fovea, then pass through the scleral canal. The disc has no rods or cones: this is the anatomical basis of the blind spot. It is not the fovea, and the nerve should not emerge from the centre of our foveal drawing.
+
+For the model, build nested walls with a shared, offset opening and attach a short nerve segment. Each wall has an inner surface, an outer surface and edges joining them. We cache both the closed and sectioned meshes, including the cut faces, so switching views does not rebuild geometry.
+
 <InteractiveViewer>
   <div slot="preview"><RetinaAssembly client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.assembly} /></div>
 </InteractiveViewer>
 
-Open the **Section** to look inside, or hide the anterior structures to inspect the cup. We retain only the posterior retinal surface; its full anterior extent, vessels, optic nerve, choroid and sclera are omitted. The layer diagram and receptor mosaic are separate magnified views, not millimetre-sized cells added to this eye.
+Open the **Section** to look inside, then switch **Choroid**, **Sclera** and **Optic nerve** on or off to inspect their relationships. Pink marks the retina, dark red the choroid, ivory the sclera and gold the nerve within a simplified sheath. Rotate the closed view to see where the nerve leaves the back of the eye.
+
+For this visualisation, wall thicknesses, colours, the disc offset and the short nerve segment are drawing parameters. The scleral rim meets the earlier corneal mesh; the anterior joins are schematic. We retain only the posterior retina and omit vessels, the detailed lamina cribrosa, individual axons and meningeal layers. The layer diagram and receptor mosaic remain separate magnified views, not millimetre-sized cells added to this eye.
 
 We now have the main anatomical pieces of an eye model. Putting them in one scene does not yet make a complete optical or neural simulation. To predict a retinal image we would have to couple and validate the surfaces, refractive indices and distances; to predict vision we would need to model what the retina and brain do with that image too.
 
@@ -148,3 +156,5 @@ For now, the construction has reached a useful milestone: light has a surface to
 6. **Stockman, A., & Sharpe, L. T. (2000).** [*The spectral sensitivities of the middle- and long-wavelength-sensitive cones derived from measurements in observers of known genotype*](https://pubmed.ncbi.nlm.nih.gov/10814758/). Vision Research, 40, 1711–1737.
 7. **Williams, D. R. (1985).** [*Aliasing in human foveal vision*](https://pubmed.ncbi.nlm.nih.gov/4013088/). Vision Research, 25, 195–205.
 8. **Kolb, H.** [*How the Retina Works*](https://www.ncbi.nlm.nih.gov/books/NBK610611/). Webvision, NCBI Bookshelf.
+
+9. **Watson, P. G., & Young, R. D. (2004).** [*Scleral structure, organisation and disease. A review*](https://pubmed.ncbi.nlm.nih.gov/15106941/). Experimental Eye Research, 78, 609–623.

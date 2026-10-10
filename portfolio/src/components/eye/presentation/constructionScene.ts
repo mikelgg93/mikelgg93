@@ -283,7 +283,7 @@ export function createConstructionScene(
 		[15, 10, 20],
 		[15, 10, 20],
 		[13, 8, 20],
-		[31, 28, 35],
+		[34, 35, 34],
 	];
 	let previousStep = -1;
 	return {
@@ -388,7 +388,7 @@ export function createConstructionScene(
 				step === 16
 					? -12
 					: wholeEye
-						? -6
+						? -8
 						: step === 1
 							? 10
 							: step === 3

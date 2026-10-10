@@ -127,12 +127,20 @@ Nuestras mallas muestran dónde pertenecen algunas de estas estructuras. No impl
 
 Ya podemos situar la copa detrás de la córnea, el iris y el cristalino de los artículos anteriores. Sus sistemas de coordenadas deben coincidir. En esta composición, el vértice corneal está en $z=5,6\ \text{mm}$ y el polo retiniano posterior en $z=-18,4\ \text{mm}$: una separación elegida de $24\ \text{mm}$ para la ilustración.
 
+La superficie receptora necesita una pared de soporte. Por fuera de la retina y el EPR está la **coroides**, una capa vascular que nutre la retina externa, incluidos los fotorreceptores (Kolb). Por fuera queda la **esclerótica**, la cubierta opaca y rica en colágeno que da soporte mecánico al globo y se une a la córnea en el limbo (Watson y Young, 2004).
+
+El **nervio óptico** es la vía de salida. Los axones ganglionares convergen en la **papila óptica**, situada en el lado nasal respecto a la fóvea, y atraviesan el canal escleral. La papila no tiene conos ni bastones: esta es la base anatómica del punto ciego. No es la fóvea, y el nervio no debe salir del centro de nuestro dibujo foveal.
+
+Para el modelo, construimos paredes anidadas con una abertura común desplazada y añadimos un tramo corto de nervio. Cada pared tiene una superficie interna, otra externa y bordes que las unen. Guardamos las mallas completas y seccionadas, incluidas las caras del corte, para que cambiar de vista no reconstruya la geometría.
+
 <InteractiveViewer lang="es">
   <div slot="preview"><RetinaAssembly lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.assembly} lang="es" /></div>
 </InteractiveViewer>
 
-Abre la **Sección** para mirar dentro, u oculta las estructuras anteriores para inspeccionar la copa. Conservamos solo la superficie retiniana posterior: omitimos su extensión anterior completa, los vasos, el nervio óptico, la coroides y la esclerótica. El esquema de capas y el mosaico de receptores son vistas ampliadas separadas, no células de tamaño milimétrico añadidas a este ojo.
+Abre la **Sección** para mirar dentro y activa o desactiva **Coroides**, **Esclerótica** y **Nervio óptico** para inspeccionar sus relaciones. El rosa identifica la retina; el rojo oscuro, la coroides; el marfil, la esclerótica; y el dorado, el nervio dentro de una vaina simplificada. Gira la vista cerrada para ver por dónde sale el nervio de la parte posterior del ojo.
+
+Para esta visualización, los espesores, colores, el desplazamiento de la papila y el tramo corto de nervio son parámetros de dibujo. El borde escleral se une a la malla corneal anterior; las uniones anteriores son esquemáticas. Conservamos solo la retina posterior y omitimos los vasos, el detalle de la lámina cribosa, los axones individuales y las capas meníngeas. El esquema de capas y el mosaico de receptores siguen siendo vistas ampliadas separadas, no células de tamaño milimétrico añadidas a este ojo.
 
 Tenemos las principales piezas anatómicas del modelo. Colocarlas en una escena todavía no crea una simulación óptica o neural completa. Para predecir una imagen retiniana tendríamos que acoplar y validar las superficies, los índices de refracción y las distancias; para predecir la visión también habría que modelar qué hacen la retina y el cerebro con esa imagen.
 
@@ -148,3 +156,5 @@ Por ahora, la construcción alcanza un punto útil: la luz tiene una superficie 
 6. **Stockman, A., & Sharpe, L. T. (2000).** [*The spectral sensitivities of the middle- and long-wavelength-sensitive cones derived from measurements in observers of known genotype*](https://pubmed.ncbi.nlm.nih.gov/10814758/). Vision Research, 40, 1711–1737.
 7. **Williams, D. R. (1985).** [*Aliasing in human foveal vision*](https://pubmed.ncbi.nlm.nih.gov/4013088/). Vision Research, 25, 195–205.
 8. **Kolb, H.** [*How the Retina Works*](https://www.ncbi.nlm.nih.gov/books/NBK610611/). Webvision, NCBI Bookshelf.
+
+9. **Watson, P. G., & Young, R. D. (2004).** [*Scleral structure, organisation and disease. A review*](https://pubmed.ncbi.nlm.nih.gov/15106941/). Experimental Eye Research, 78, 609–623.

@@ -1,4 +1,5 @@
 import { lensSources } from "../lens/lensSources";
+import posterior from "./posteriorEye.ts?raw";
 import assembly from "./RetinaAssembly.tsx?raw";
 import cup from "./RetinaCup.tsx?raw";
 import layers from "./RetinaLayers.tsx?raw";
@@ -38,7 +39,7 @@ export const retinaSources = {
 	sampling: [file("RetinaSampling.tsx", sampling), ...shared, ...styles],
 	assembly: [
 		file("RetinaAssembly.tsx", assembly),
-		file("retinaGeometry.ts", geometry),
+		file("posteriorEye.ts", posterior),
 		...shared,
 		...lensSources.assembly.filter(
 			(f) =>

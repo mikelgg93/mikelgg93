@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createPosteriorEye } from "../retina/posteriorEye";
 import {
 	createRetinalCup,
 	retinalMaterial,
@@ -14,8 +15,10 @@ import {
 export function createRetinaConstruction(scene: THREE.Scene) {
 	const cup = new THREE.Mesh(createRetinalCup(), retinalMaterial());
 	scene.add(cup);
-	const section = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
+	const posterior = createPosteriorEye();
+	scene.add(posterior.group);
 	const layers = new THREE.Group();
+	layers.name = "retina-construction-bands";
 	scene.add(layers);
 	const bands = retinalLayers.map((layer) => {
 		const geometry = new THREE.BoxGeometry(10, 3, 1, 64, 1, 1);
@@ -40,17 +43,12 @@ export function createRetinaConstruction(scene: THREE.Scene) {
 	);
 	scene.add(cells);
 	const transform = new THREE.Object3D();
-	let previousSection = false;
 	return {
 		update(stage: number, t: number) {
-			cup.visible = stage === 16 || stage === 20;
-			if (cup.visible) updateRetinalCup(cup.geometry, stage === 16 ? t : 1);
-			const cut = stage === 20;
-			if (cut !== previousSection) {
-				cup.material.clippingPlanes = cut ? section : [];
-				cup.material.needsUpdate = true;
-				previousSection = cut;
-			}
+			cup.visible = stage === 16;
+			if (cup.visible) updateRetinalCup(cup.geometry, t);
+			posterior.group.visible = stage === 20;
+			posterior.update(true);
 			layers.visible = stage === 17 || stage === 18;
 			if (layers.visible)
 				for (let i = 0; i < bands.length; i++) {

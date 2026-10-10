@@ -9,7 +9,7 @@ import {
 } from "../lens/anteriorEyeGeometry";
 import { createCiliaryApparatus } from "../lens/ciliaryApparatus";
 import { createLensScene } from "../lens/lensScene";
-import { createRetinalCup, retinalMaterial } from "./retinaGeometry";
+import { createPosteriorEye, eyeCoats } from "./posteriorEye";
 
 export default function RetinaAssembly({
 	lang = "en",
@@ -21,12 +21,15 @@ export default function RetinaAssembly({
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [section, setSection] = useState(true),
 		[anterior, setAnterior] = useState(true),
+		[choroid, setChoroid] = useState(true),
+		[sclera, setSclera] = useState(true),
+		[nerve, setNerve] = useState(true),
 		[error, setError] = useState(false);
-	const params = useRef({ section, anterior });
+	const params = useRef({ section, anterior, choroid, sclera, nerve });
 	useEffect(() => {
-		params.current = { section, anterior };
+		params.current = { section, anterior, choroid, sclera, nerve };
 		viewRef.current?.invalidate();
-	}, [section, anterior]);
+	}, [section, anterior, choroid, sclera, nerve]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
@@ -37,10 +40,10 @@ export default function RetinaAssembly({
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(31, 28, 35);
-		view.controls.target.set(0, 0, -6);
-		const cup = new THREE.Mesh(createRetinalCup(), retinalMaterial());
-		view.scene.add(cup);
+		view.camera.position.set(34, 35, 34);
+		view.controls.target.set(0, 0, -8);
+		const posterior = createPosteriorEye();
+		view.scene.add(posterior.group);
 		const front = new THREE.Group();
 		view.scene.add(front);
 		const anatomy = createCiliaryApparatus();
@@ -65,9 +68,10 @@ export default function RetinaAssembly({
 		view.start(() => {
 			const p = params.current;
 			front.visible = p.anterior;
+			posterior.update(p.section, p);
 			anatomy.update(0, p.section, false);
 			if (p.section !== previous) {
-				for (const material of [cup.material, iris.material, cornea.material]) {
+				for (const material of [iris.material, cornea.material]) {
 					material.clippingPlanes = p.section ? cut : [];
 					material.needsUpdate = true;
 				}
@@ -78,6 +82,9 @@ export default function RetinaAssembly({
 					model: "Anatomical assembly, no coupled ray tracing",
 					section: p.section,
 					anterior: p.anterior,
+					choroid: p.choroid,
+					sclera: p.sclera,
+					nerve: p.nerve,
 					cornealApexZ: 5.6,
 					retinalPoleZ: -18.4,
 				},
@@ -106,8 +113,8 @@ export default function RetinaAssembly({
 				role="img"
 				aria-label={
 					es
-						? "Copa retiniana detrás de la córnea, el iris y el cristalino"
-						: "Retinal cup behind the cornea, iris and lens"
+						? "Ojo seccionado con retina, coroides, esclerótica y nervio óptico detrás de la córnea, el iris y el cristalino"
+						: "Sectioned eye with retina, choroid, sclera and optic nerve behind the cornea, iris and lens"
 				}
 			>
 				{error && (
@@ -117,10 +124,25 @@ export default function RetinaAssembly({
 				)}
 				<p className="retina-camera">
 					{es
-						? "Delante: córnea · detrás: copa retiniana"
-						: "Front: cornea · back: retinal cup"}
+						? "Delante: córnea · detrás: salida del nervio óptico"
+						: "Front: cornea · back: optic nerve exit"}
 				</p>
 			</div>
+			<ul
+				className="retina-bands retina-coat-key"
+				aria-label={es ? "Clave de colores" : "Colour key"}
+			>
+				{eyeCoats.map((coat) => (
+					<li key={coat.key}>
+						<span className="retina-dot" style={{ background: coat.color }} />
+						{es ? coat.es : coat.en}
+					</li>
+				))}
+				<li>
+					<span className="retina-dot" style={{ background: "#e4bc79" }} />
+					{es ? "Nervio óptico" : "Optic nerve"}
+				</li>
+			</ul>
 			<div className="lens-controls">
 				<div className="lens-buttons">
 					<button
@@ -129,6 +151,27 @@ export default function RetinaAssembly({
 						onClick={() => setSection(!section)}
 					>
 						{es ? "Sección" : "Section"}
+					</button>
+					<button
+						type="button"
+						aria-pressed={choroid}
+						onClick={() => setChoroid(!choroid)}
+					>
+						{es ? "Coroides" : "Choroid"}
+					</button>
+					<button
+						type="button"
+						aria-pressed={sclera}
+						onClick={() => setSclera(!sclera)}
+					>
+						{es ? "Esclerótica" : "Sclera"}
+					</button>
+					<button
+						type="button"
+						aria-pressed={nerve}
+						onClick={() => setNerve(!nerve)}
+					>
+						{es ? "Nervio óptico" : "Optic nerve"}
 					</button>
 					<button
 						type="button"
@@ -143,7 +186,7 @@ export default function RetinaAssembly({
 							const view = viewRef.current;
 							if (!view) return;
 							view.setView("reset");
-							view.controls.target.set(0, 0, -6);
+							view.controls.target.set(0, 0, -8);
 							view.controls.update();
 							view.invalidate();
 						}}
@@ -153,8 +196,8 @@ export default function RetinaAssembly({
 				</div>
 				<p className="lens-note">
 					{es
-						? "Se omiten la retina anterior, los vasos, el nervio óptico, la coroides y la esclerótica. Los detalles celulares requieren una escala aparte."
-						: "Anterior retina, vessels, optic nerve, choroid and sclera are omitted. Cellular detail belongs at a separate scale."}
+						? "De dentro a fuera: retina → coroides → esclerótica. La papila se desplaza hacia el lado nasal. Espesores, colores y tramo del nervio ilustrativos; se omiten los vasos y la retina anterior."
+						: "Inside out: retina → choroid → sclera. The disc is offset towards the nasal side. Thicknesses, colours and nerve length are illustrative; vessels and anterior retina are omitted."}
 				</p>
 			</div>
 		</div>

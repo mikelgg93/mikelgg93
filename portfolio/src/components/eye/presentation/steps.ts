@@ -245,9 +245,9 @@ steps.push(
 		stage: 20,
 		chapter: "THE COMPLETE ASSEMBLY",
 		title: "Meet at the back of the eye.",
-		text: "Return to millimetres and put the retinal cup behind the earlier parts. A section opens the view without changing the underlying meshes.",
-		code: "scene.add(cornea, iris, anatomy.group, retina);\n// Corneal apex: z = 5.6 mm.\n// Posterior retinal pole: z = -18.4 mm.\nrenderer.render(scene, camera);",
+		text: "Wrap the retina in choroid and sclera. Leave an offset canal for the optic nerve, then add the anterior parts and open a section.",
+		code: "const posterior = createPosteriorEye();\nposterior.update(true); // use the cached cutaway meshes\nscene.add(cornea, iris, anatomy.group, posterior.group);\nrenderer.render(scene, camera);",
 		value: "chosen axial separation 24 mm",
-		note: "One anatomical scene, with separate magnified tissue lessons. A predictive eye still needs coupled, validated optical and neural models.",
+		note: "Pink retina, dark red choroid, ivory sclera and gold optic nerve. Wall thicknesses, the nasal disc offset and short nerve segment are drawing choices, not fitted anatomy.",
 	},
 );
