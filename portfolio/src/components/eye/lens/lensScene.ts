@@ -2,10 +2,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { disposeThree } from "../disposeThree";
+import { LENS_BACK_FACTOR, LENS_FRONT_FACTOR } from "../eyeDimensions";
 import { observeThreeResize } from "../threeResize";
 
 export type LensView = "front" | "side" | "back" | "section" | "reset";
-type FrameState = { state: object; animating?: boolean };
+type FrameState = {
+	state: object;
+	animating?: boolean;
+	afterRender?: () => void;
+};
 
 // Islands draw on demand, including while easing or orbit damping is active.
 export function createLensScene(
@@ -90,6 +95,7 @@ export function createLensScene(
 		const result = update(dt, reducedMotion.matches);
 		const cameraChanged = controls.update();
 		renderer.render(scene, camera);
+		result.afterRender?.();
 		const facing = camera.position.z / camera.position.length();
 		orientation.textContent =
 			lang === "es"
@@ -116,6 +122,53 @@ export function createLensScene(
 		rendering = false;
 		if (result.animating || cameraChanged) invalidate();
 	}
+	// Focus the canvas to orbit without a pointer. The deck's slide shortcuts
+	// do not receive these events; elsewhere arrow keys retain page scrolling.
+	renderer.domElement.tabIndex = 0;
+	renderer.domElement.setAttribute(
+		"aria-label",
+		lang === "es"
+			? "Vista 3D. Usa las flechas para girar."
+			: "3D view. Use arrow keys to rotate.",
+	);
+	function keyboardOrbit(event: KeyboardEvent) {
+		if (!controls.enabled || event.altKey || event.ctrlKey || event.metaKey)
+			return;
+		const directions: Record<string, [number, number]> = {
+			ArrowLeft: [-0.12, 0],
+			ArrowRight: [0.12, 0],
+			ArrowUp: [0, -0.12],
+			ArrowDown: [0, 0.12],
+		};
+		const delta = directions[event.key];
+		if (!delta) return;
+		event.preventDefault();
+		event.stopPropagation();
+		const damping = controls.enableDamping;
+		controls.enableDamping = false;
+		controls.update();
+		const basis = new THREE.Quaternion().setFromUnitVectors(
+			camera.up,
+			new THREE.Vector3(0, 1, 0),
+		);
+		const offset = camera.position
+			.clone()
+			.sub(controls.target)
+			.applyQuaternion(basis);
+		const spherical = new THREE.Spherical().setFromVector3(offset);
+		spherical.theta += delta[0];
+		spherical.phi = THREE.MathUtils.clamp(
+			spherical.phi + delta[1],
+			0.05,
+			Math.PI - 0.05,
+		);
+		offset.setFromSpherical(spherical).applyQuaternion(basis.invert());
+		camera.position.copy(controls.target).add(offset);
+		controls.update();
+		controls.enableDamping = damping;
+		invalidate();
+	}
+	renderer.domElement.addEventListener("keydown", keyboardOrbit);
 	const resize = observeThreeResize(container, renderer, camera, invalidate);
 	const observer = new IntersectionObserver(([entry]) => {
 		visible = entry?.isIntersecting ?? false;
@@ -192,6 +245,7 @@ export function createLensScene(
 				"webglcontextrestored",
 				restoreEnvironment,
 			);
+			renderer.domElement.removeEventListener("keydown", keyboardOrbit);
 			controls.dispose();
 			disposeThree(scene);
 			scene.environment = null;
@@ -209,7 +263,7 @@ export function createLensGeometry() {
 	const positions = geometry.getAttribute("position");
 	for (let i = 0; i < positions.count; i++) {
 		const z = positions.getZ(i);
-		positions.setZ(i, z * (z > 0 ? 0.85 : 1.15));
+		positions.setZ(i, z * (z > 0 ? LENS_FRONT_FACTOR : LENS_BACK_FACTOR));
 	}
 	geometry.computeVertexNormals();
 	return geometry;

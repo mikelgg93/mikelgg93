@@ -6,6 +6,7 @@ import layers from "./RetinaLayers.tsx?raw";
 import mosaic from "./RetinaMosaic.tsx?raw";
 import sampling from "./RetinaSampling.tsx?raw";
 import css from "./retina.css?raw";
+import anatomy from "./retinaAnatomy.ts?raw";
 import geometry from "./retinaGeometry.ts?raw";
 import model from "./retinaModel.ts?raw";
 
@@ -20,6 +21,7 @@ function file(path: string, code: string) {
 const shared = [file("retinaModel.ts", model), file("retina.css", css)];
 const common3D = lensSources.assembly.filter((f) =>
 	[
+		"eye/eyeDimensions.ts",
 		"eye/lens/lensScene.ts",
 		"eye/lens/lens.css",
 		"eye/disposeThree.ts",
@@ -40,6 +42,7 @@ export const retinaSources = {
 	assembly: [
 		file("RetinaAssembly.tsx", assembly),
 		file("posteriorEye.ts", posterior),
+		file("retinaAnatomy.ts", anatomy),
 		...shared,
 		...lensSources.assembly.filter(
 			(f) =>

@@ -50,13 +50,29 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 					{es ? "Vítreo / lado de la luz" : "Vitreous / light side"}
 				</text>
 				{retinalLayers.map((layer, i) => (
-					<path
-						key={layer.en}
-						d={bandPath(i)}
-						fill={layer.color}
-						stroke="#061e20"
-						strokeWidth="1"
-					/>
+					<g key={layer.en}>
+						<path
+							d={bandPath(i)}
+							fill={layer.color}
+							stroke="#061e20"
+							strokeWidth="1"
+						/>
+						<text
+							x="93"
+							y={
+								(layerBounds(-0.95, pit, separate)[i]!.top +
+									layerBounds(-0.95, pit, separate)[i]!.bottom) /
+									2 +
+								41
+							}
+							dominantBaseline="middle"
+							fill={i === 6 ? "#ffffff" : "#061e20"}
+							fontSize="18"
+							fontWeight="bold"
+						>
+							{i + 1}
+						</text>
+					</g>
 				))}
 				<path
 					d="M40 80V320m-9-13 9 13 9-13"

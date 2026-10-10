@@ -1,3 +1,4 @@
+import { RELAXED_LENS_THICKNESS } from "../eyeDimensions";
 // All dimensions here are illustrative model parameters, not fitted biometry.
 export const MAX_ACCOMMODATION = 8;
 export const DISTANCE_POWER = 60; // D, equivalent power of the whole reduced eye
@@ -12,12 +13,12 @@ export function boundedAccommodation(value: number): number {
 
 export function lensShape(accommodation: number) {
 	const fraction = boundedAccommodation(accommodation) / MAX_ACCOMMODATION;
-	const thickness = 3.6 + 0.6 * fraction;
+	const thickness = RELAXED_LENS_THICKNESS + 0.6 * fraction;
 	return {
 		// A smaller ciliary ring reduces the representative zonular span.
 		ringRadius: 6 - 0.5 * fraction,
 		// Preserve the volume of this ellipsoidal model while it rounds up.
-		lensRadius: 4.6 * Math.sqrt(3.6 / thickness),
+		lensRadius: 4.6 * Math.sqrt(RELAXED_LENS_THICKNESS / thickness),
 		thickness,
 		fraction,
 	};

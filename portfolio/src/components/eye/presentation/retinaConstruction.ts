@@ -1,11 +1,14 @@
 import * as THREE from "three";
 import { createPosteriorEye } from "../retina/posteriorEye";
+import { CANAL_ANGLE, DISC_ANGLE } from "../retina/retinaAnatomy";
 import {
 	createRetinalCup,
 	retinalMaterial,
 	updateRetinalCup,
 } from "../retina/retinaGeometry";
 import {
+	CUP_CENTRE_Z,
+	CUP_RADIUS,
 	layerBounds,
 	receptorMosaic,
 	retinalLayers,
@@ -17,6 +20,21 @@ export function createRetinaConstruction(scene: THREE.Scene) {
 	scene.add(cup);
 	const posterior = createPosteriorEye();
 	scene.add(posterior.group);
+	const opening = new THREE.Mesh(
+		new THREE.TorusGeometry(CUP_RADIUS * Math.sin(CANAL_ANGLE), 0.045, 6, 64),
+		new THREE.MeshBasicMaterial({ color: 0xe5b773 }),
+	);
+	const axis = new THREE.Vector3(
+		Math.sin(DISC_ANGLE),
+		0,
+		-Math.cos(DISC_ANGLE),
+	);
+	opening.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), axis);
+	opening.position
+		.copy(axis)
+		.multiplyScalar(CUP_RADIUS * Math.cos(CANAL_ANGLE) - 0.03)
+		.add(new THREE.Vector3(0, 0, CUP_CENTRE_Z));
+	scene.add(opening);
 	const layers = new THREE.Group();
 	layers.name = "retina-construction-bands";
 	scene.add(layers);
@@ -44,11 +62,21 @@ export function createRetinaConstruction(scene: THREE.Scene) {
 	scene.add(cells);
 	const transform = new THREE.Object3D();
 	return {
-		update(stage: number, t: number) {
+		update(stage: number, t: number, detail = "") {
 			cup.visible = stage === 16;
 			if (cup.visible) updateRetinalCup(cup.geometry, t);
 			posterior.group.visible = stage === 20;
-			posterior.update(true);
+			const localView = detail === "landmarks" || detail === "canal";
+			posterior.update(
+				!localView,
+				{
+					choroid: !localView,
+					sclera: !localView && (detail !== "coats" || t > 0.5),
+					nerve: detail === "nerve" || detail === "landmarks" || !detail,
+				},
+				detail === "landmarks" || !detail,
+			);
+			opening.visible = stage === 20 && detail === "canal";
 			layers.visible = stage === 17 || stage === 18;
 			if (layers.visible)
 				for (let i = 0; i < bands.length; i++) {

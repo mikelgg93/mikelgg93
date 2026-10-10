@@ -61,6 +61,7 @@
 	color: var(--muted-foreground);
 }
 .retina-demo .retina-camera {
+	z-index: 1;
 	position: absolute;
 	bottom: 10px;
 	left: 12px;
@@ -80,4 +81,21 @@
 	.retina-demo .retina-camera {
 		font-size: 11px;
 	}
+}
+
+.retina-landmark {
+	z-index: 1;
+	position: absolute;
+	transform: translate(-50%, -130%);
+	border-bottom: 1px solid #fff;
+	padding: 1px 5px;
+	border-radius: 3px;
+	background: #062323dc;
+	color: #fff;
+	font: 12px monospace;
+	pointer-events: none;
+}
+.lens-scene canvas:focus-visible {
+	outline: 2px solid #e5b773;
+	outline-offset: -3px;
 }

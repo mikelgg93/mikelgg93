@@ -2,6 +2,7 @@ import "../lens/lens.css";
 import "./retina.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { CORNEAL_APEX_Z } from "../eyeDimensions";
 import {
 	assemblyIrisMaterial,
 	createAssemblyCornea,
@@ -10,6 +11,8 @@ import {
 import { createCiliaryApparatus } from "../lens/ciliaryApparatus";
 import { createLensScene } from "../lens/lensScene";
 import { createPosteriorEye, eyeCoats } from "./posteriorEye";
+import { biometry, retinalLandmarks } from "./retinaAnatomy";
+import { CUP_CENTRE_Z, CUP_RADIUS } from "./retinaModel";
 
 export default function RetinaAssembly({
 	lang = "en",
@@ -18,6 +21,7 @@ export default function RetinaAssembly({
 }) {
 	const es = lang === "es",
 		mount = useRef<HTMLDivElement>(null),
+		markers = useRef<(HTMLSpanElement | null)[]>([]),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [section, setSection] = useState(true),
 		[anterior, setAnterior] = useState(true),
@@ -78,6 +82,24 @@ export default function RetinaAssembly({
 				previous = p.section;
 			}
 			return {
+				afterRender() {
+					retinalLandmarks.forEach((landmark, i) => {
+						const marker = markers.current[i];
+						if (!marker) return;
+						const v = landmark.point.clone().project(view.camera);
+						const show =
+							!p.anterior &&
+							!p.section &&
+							!p.sclera &&
+							view.camera.position.z > CUP_CENTRE_Z &&
+							Math.abs(v.x) < 0.94 &&
+							Math.abs(v.y) < 0.9 &&
+							Math.abs(v.z) < 1;
+						marker.hidden = !show;
+						marker.style.left = `${(v.x + 1) * 50}%`;
+						marker.style.top = `${(1 - v.y) * 50}%`;
+					});
+				},
 				state: {
 					model: "Anatomical assembly, no coupled ray tracing",
 					section: p.section,
@@ -85,8 +107,9 @@ export default function RetinaAssembly({
 					choroid: p.choroid,
 					sclera: p.sclera,
 					nerve: p.nerve,
-					cornealApexZ: 5.6,
-					retinalPoleZ: -18.4,
+					cornealApexZ: CORNEAL_APEX_Z,
+					retinalPoleZ: CUP_CENTRE_Z - CUP_RADIUS,
+					biometry,
 				},
 			};
 		});
@@ -113,8 +136,8 @@ export default function RetinaAssembly({
 				role="img"
 				aria-label={
 					es
-						? "Ojo seccionado con retina, coroides, esclerótica y nervio óptico detrás de la córnea, el iris y el cristalino"
-						: "Sectioned eye with retina, choroid, sclera and optic nerve behind the cornea, iris and lens"
+						? "Ojo esquemático con fóvea, mácula, vasos retinianos, coroides, esclerótica y nervio óptico"
+						: "Schematic eye with fovea, macula, retinal vessels, choroid, sclera and optic nerve"
 				}
 			>
 				{error && (
@@ -122,10 +145,23 @@ export default function RetinaAssembly({
 						{es ? "WebGL no está disponible." : "WebGL is unavailable."}
 					</p>
 				)}
+				{retinalLandmarks.map((landmark, i) => (
+					<span
+						key={landmark.en}
+						ref={(node) => {
+							markers.current[i] = node;
+						}}
+						className="retina-landmark"
+						hidden
+						aria-hidden="true"
+					>
+						{i + 1}
+					</span>
+				))}
 				<p className="retina-camera">
 					{es
-						? "Delante: córnea · detrás: salida del nervio óptico"
-						: "Front: cornea · back: optic nerve exit"}
+						? "Arrastra o enfoca el lienzo y usa las flechas para girar"
+						: "Drag, or focus the canvas and use arrow keys to rotate"}
 				</p>
 			</div>
 			<ul
@@ -143,8 +179,41 @@ export default function RetinaAssembly({
 					{es ? "Nervio óptico" : "Optic nerve"}
 				</li>
 			</ul>
+			<p className="retina-reading">
+				{retinalLandmarks
+					.map((landmark, i) => `${i + 1}. ${es ? landmark.es : landmark.en}`)
+					.join(" · ")}
+			</p>
+			<div
+				className="retina-readouts"
+				role="group"
+				aria-label={es ? "Dimensiones del modelo" : "Model dimensions"}
+			>
+				<span>CCT {biometry.cct.toFixed(2)} mm</span>
+				<span>ACD {biometry.acd.toFixed(2)} mm</span>
+				<span>LT {biometry.lt.toFixed(2)} mm</span>
+				<span>AXL → RPE {biometry.axl.toFixed(2)} mm</span>
+			</div>
 			<div className="lens-controls">
 				<div className="lens-buttons">
+					<button
+						type="button"
+						onClick={() => {
+							setSection(false);
+							setAnterior(false);
+							setChoroid(false);
+							setSclera(false);
+							const view = viewRef.current;
+							if (!view) return;
+							view.setView("front");
+							view.camera.position.set(0, 0, 40);
+							view.controls.target.set(0, 0, -12);
+							view.controls.update();
+							view.invalidate();
+						}}
+					>
+						{es ? "Ver retina" : "Retinal view"}
+					</button>
 					<button
 						type="button"
 						aria-pressed={section}
@@ -185,6 +254,11 @@ export default function RetinaAssembly({
 						onClick={() => {
 							const view = viewRef.current;
 							if (!view) return;
+							setSection(true);
+							setAnterior(true);
+							setChoroid(true);
+							setSclera(true);
+							setNerve(true);
 							view.setView("reset");
 							view.controls.target.set(0, 0, -8);
 							view.controls.update();
@@ -196,8 +270,8 @@ export default function RetinaAssembly({
 				</div>
 				<p className="lens-note">
 					{es
-						? "De dentro a fuera: retina → coroides → esclerótica. La papila se desplaza hacia el lado nasal. Espesores, colores y tramo del nervio ilustrativos; se omiten los vasos y la retina anterior."
-						: "Inside out: retina → choroid → sclera. The disc is offset towards the nasal side. Thicknesses, colours and nerve length are illustrative; vessels and anterior retina are omitted."}
+						? "Ver retina muestra los puntos numerados: fóvea en el centro de la mácula y papila hacia nasal. Relieve foveal en la malla; vasos principales estilizados. ACD interno, cristalino relajado; AXL hasta el límite que representa el EPR. No es biometría clínica."
+						: "Retinal view shows the numbered landmarks: fovea within the macula, disc towards nasal. The pit deforms the mesh; major vessels are stylised. Internal ACD, relaxed lens; AXL ends at the boundary representing the RPE. These are model dimensions, not clinical biometry."}
 				</p>
 			</div>
 		</div>

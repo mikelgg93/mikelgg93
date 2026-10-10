@@ -69,9 +69,13 @@ export default function RetinaSampling({
 					/>
 				))}
 				<text x="20" y="214" fill="#dce9e7" fontSize="26">
-					{es
-						? "Patrón de baja frecuencia compatible"
-						: "Matching low-frequency pattern"}
+					{aliases
+						? es
+							? "Patrón de baja frecuencia compatible"
+							: "Matching low-frequency pattern"
+						: es
+							? "Misma frecuencia, mismas muestras"
+							: "Same frequency, same samples"}
 				</text>
 				{strips(model.alternative, 230)}
 			</svg>

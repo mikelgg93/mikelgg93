@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { conicSag } from "../cornea/conic";
+import { CORNEAL_APEX_Z, POSTERIOR_CORNEAL_APEX_Z } from "../eyeDimensions";
 import { finiteClamp } from "./lensOptics";
 
 // Reuse Part I's conic surface in an illustrative anterior-eye assembly (mm).
@@ -7,11 +8,18 @@ export function createAssemblyCornea() {
 	const profile: THREE.Vector2[] = [];
 	for (let i = 0; i <= 64; i++) {
 		const r = (5.8 * i) / 64;
-		profile.push(new THREE.Vector2(r, 5.6 - conicSag(r, 0, 7.8, 7.8, -0.26)));
+		profile.push(
+			new THREE.Vector2(r, CORNEAL_APEX_Z - conicSag(r, 0, 7.8, 7.8, -0.26)),
+		);
 	}
 	for (let i = 64; i >= 0; i--) {
 		const r = (5.8 * i) / 64;
-		profile.push(new THREE.Vector2(r, 5.05 - conicSag(r, 0, 6.5, 6.5, -0.4)));
+		profile.push(
+			new THREE.Vector2(
+				r,
+				POSTERIOR_CORNEAL_APEX_Z - conicSag(r, 0, 6.5, 6.5, -0.4),
+			),
+		);
 	}
 	const geometry = new THREE.LatheGeometry(profile, 96);
 	geometry.rotateX(Math.PI / 2);

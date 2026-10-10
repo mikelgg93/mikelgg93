@@ -1,13 +1,13 @@
 # Eye construction presentation
 
-Route: `/presentations/webgl-eye/`. One WebGL canvas, 25 construction steps, a black background and original procedural scenes. No external image assets.
+Route: `/presentations/webgl-eye/`. One WebGL canvas, 29 construction steps, a black background and original procedural scenes. No external image assets.
 
-The lesson follows the implementation: scene → camera → sphere → clipping → vertex buffers → triangle indices → normals → conic sag → corneal shell → iris aperture → deformation → opposed lens caps → material and generated reflections → GRIN ray paths → muscle and zonules → accommodation → assembly → IOL → retinal cup → layer bands → foveal profile → instanced cones → anatomical assembly with choroid, sclera and an offset optic nerve. Three.js manages WebGL; snippets show the operation being taught, not complete standalone programs. The source link exposes the full loops and helpers.
+The lesson follows the implementation: scene → camera → sphere → clipping → vertex buffers → triangle indices → normals → conic sag → corneal shell → iris aperture → deformation → opposed lens caps → material and generated reflections → GRIN ray paths → muscle and zonules → accommodation → assembly → IOL → retinal cup → layer bands → foveal profile → instanced cones → nested coats and winding → shared nasal canal → fitted nerve → pit, macula and surface-following vessels → anatomical assembly. Three.js manages WebGL; snippets show the operation being taught, not complete standalone programs. The source link exposes the full loops and helpers.
 
 - Fullscreen uses the browser API where available. On iPhone browsers without it, the button explains Safari’s Share → Add to Home Screen route.
 - Previous / Next change slides. Pause / Replay controls each short animation.
 - Left / Right and Page Up / Page Down change slides; Home / End jump to the ends.
-- Space pauses or resumes; R restarts the current step. Drag the stopped scene to orbit.
+- Space pauses or resumes; R restarts the current step. Drag the stopped scene to orbit, or focus its canvas and use the arrow keys.
 - Reduced-motion mode shows each final state immediately.
 - On phones, the figure appears before the code and navigation returns to the new heading.
 

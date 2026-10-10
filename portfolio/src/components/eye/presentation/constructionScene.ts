@@ -285,13 +285,13 @@ export function createConstructionScene(
 		[13, 8, 20],
 		[34, 35, 34],
 	];
-	let previousStep = -1;
+	let previousSection: boolean | undefined;
 	return {
 		update(step: number, progress: number, detail = "") {
 			const t = ease(THREE.MathUtils.clamp(progress, 0, 1));
-			const wholeEye = step === 20,
+			const wholeEye = step === 20 && !detail,
 				sectionView = step === 15 || wholeEye;
-			retinal.update(step, t);
+			retinal.update(step, t, detail);
 			normals.visible = detail === "normals";
 			scene.environmentIntensity = 0.45 * (detail === "lighting" ? t : 1);
 			for (const { light, intensity } of lights)
@@ -372,14 +372,18 @@ export function createConstructionScene(
 			iol.group.visible = step === 15;
 			iol.group.scale.setScalar(step === 15 ? mix(0.01, 1, t) : 1);
 			iol.setSection(step === 15);
-			if (step !== previousStep) {
+			if (sectionView !== previousSection) {
 				for (const material of [cornea.material, iris.material]) {
 					material.clippingPlanes = sectionView ? section : [];
 					material.needsUpdate = true;
 				}
-				previousStep = step;
+				previousSection = sectionView;
 			}
-			const end = new THREE.Vector3(...cameras[step]!);
+			const localRetina =
+				step === 20 && (detail === "landmarks" || detail === "canal");
+			const end = localRetina
+				? new THREE.Vector3(0, 0, 40)
+				: new THREE.Vector3(...cameras[step]!);
 			// Deterministic camera motion makes replay and direct slide jumps repeatable.
 			const start = step === 0 ? end : new THREE.Vector3(...cameras[step - 1]!);
 			camera.up.set(0, 1, 0);
@@ -387,8 +391,10 @@ export function createConstructionScene(
 			const targetZ =
 				step === 16
 					? -12
-					: wholeEye
-						? -8
+					: step === 20
+						? localRetina
+							? -12
+							: -8
 						: step === 1
 							? 10
 							: step === 3
