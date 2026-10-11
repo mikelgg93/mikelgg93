@@ -1,6 +1,7 @@
 import "../lens/lens.css";
 import "./models.css";
 import { useMemo, useState } from "react";
+import { useViewerDebug } from "../useViewerDebug";
 import type { ParameterIndex } from "./populationModel";
 import {
 	COVARIANCE,
@@ -29,6 +30,18 @@ export default function NormalVariation({
 		sd = referenceSD * spread;
 	const values = normals.map((z) => mean + sd * z),
 		stats = statistics(values);
+	const root = useViewerDebug({
+		model: "One normally distributed variable; unbounded draws",
+		parameter: PARAMETERS[parameter],
+		unit: UNITS[parameter],
+		seed,
+		spreadMultiplier: spread,
+		targetMean: mean,
+		targetSD: sd,
+		count: values.length,
+		sampleMean: stats.mean,
+		sampleSD: stats.sd,
+	});
 	// Cover every draw, including tails. Keep a nonzero horizontal span at sigma=0.
 	const half =
 		referenceSD *
@@ -55,7 +68,11 @@ export default function NormalVariation({
 		return `${i ? "L" : "M"}${x(v)},${y(densityCount(v))}`;
 	}).join(" ");
 	return (
-		<div className="lens-demo models-demo" data-demo="normal-variation">
+		<div
+			ref={root}
+			className="lens-demo models-demo"
+			data-demo="normal-variation"
+		>
 			<div className="lens-heading">
 				<strong>
 					{es ? "Una variable, muchas muestras" : "One variable, many samples"}

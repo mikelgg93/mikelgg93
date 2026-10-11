@@ -221,53 +221,62 @@ export default function RetinaAssembly({
 					>
 						{es ? "Sección" : "Section"}
 					</button>
-					<button
-						type="button"
-						aria-pressed={choroid}
-						onClick={() => setChoroid(!choroid)}
-					>
-						{es ? "Coroides" : "Choroid"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={sclera}
-						onClick={() => setSclera(!sclera)}
-					>
-						{es ? "Esclerótica" : "Sclera"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={nerve}
-						onClick={() => setNerve(!nerve)}
-					>
-						{es ? "Nervio óptico" : "Optic nerve"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={anterior}
-						onClick={() => setAnterior(!anterior)}
-					>
-						{es ? "Córnea, iris y cristalino" : "Cornea, iris and lens"}
-					</button>
-					<button
-						type="button"
-						onClick={() => {
-							const view = viewRef.current;
-							if (!view) return;
-							setSection(true);
-							setAnterior(true);
-							setChoroid(true);
-							setSclera(true);
-							setNerve(true);
-							view.setView("reset");
-							view.controls.target.set(0, 0, -8);
-							view.controls.update();
-							view.invalidate();
-						}}
-					>
-						{es ? "Restablecer vista" : "Reset view"}
-					</button>
 				</div>
+				<details className="lens-display-options">
+					<summary>{es ? "Capas y restablecer" : "Layers and reset"}</summary>
+					<div className="lens-options">
+						<label>
+							<input
+								type="checkbox"
+								checked={choroid}
+								onChange={(e) => setChoroid(e.target.checked)}
+							/>
+							{es ? "Coroides" : "Choroid"}
+						</label>
+						<label>
+							<input
+								type="checkbox"
+								checked={sclera}
+								onChange={(e) => setSclera(e.target.checked)}
+							/>
+							{es ? "Esclerótica" : "Sclera"}
+						</label>
+						<label>
+							<input
+								type="checkbox"
+								checked={nerve}
+								onChange={(e) => setNerve(e.target.checked)}
+							/>
+							{es ? "Nervio óptico" : "Optic nerve"}
+						</label>
+						<label>
+							<input
+								type="checkbox"
+								checked={anterior}
+								onChange={(e) => setAnterior(e.target.checked)}
+							/>
+							{es ? "Córnea, iris y cristalino" : "Cornea, iris and lens"}
+						</label>
+						<button
+							type="button"
+							onClick={() => {
+								const view = viewRef.current;
+								if (!view) return;
+								setSection(true);
+								setAnterior(true);
+								setChoroid(true);
+								setSclera(true);
+								setNerve(true);
+								view.setView("reset");
+								view.controls.target.set(0, 0, -8);
+								view.controls.update();
+								view.invalidate();
+							}}
+						>
+							{es ? "Restablecer vista" : "Reset view"}
+						</button>
+					</div>
+				</details>
 				<p className="lens-note">
 					{es
 						? "Ver retina muestra los puntos numerados: fóvea en el centro de la mácula y papila hacia nasal. Relieve foveal en la malla; vasos principales estilizados. ACD interno, cristalino relajado; AXL hasta el límite que representa el EPR. No es biometría clínica."

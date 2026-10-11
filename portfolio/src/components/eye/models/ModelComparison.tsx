@@ -65,22 +65,16 @@ export default function ModelComparison({
 				</span>
 			</div>
 			<div className="lens-controls">
-				<div className="lens-buttons">
-					{[
-						["teaching", es ? "Nuestro modelo" : "Our assembly"],
-						["navarro", "Navarro · 1999"],
-						["atchison", "Atchison · 2006"],
-					].map(([id, label]) => (
-						<button
-							type="button"
-							key={id}
-							aria-pressed={model === id}
-							onClick={() => setModel(id!)}
-						>
-							{label}
-						</button>
-					))}
-				</div>
+				<label>
+					{es ? "Modelo" : "Model"}
+					<select value={model} onChange={(e) => setModel(e.target.value)}>
+						<option value="teaching">
+							{es ? "Nuestro modelo" : "Our assembly"}
+						</option>
+						<option value="navarro">Navarro · 1999</option>
+						<option value="atchison">Atchison · 2006</option>
+					</select>
+				</label>
 				{model === "atchison" && (
 					<label>
 						<span className="lens-value">
@@ -103,7 +97,14 @@ export default function ModelComparison({
 					</label>
 				)}
 			</div>
-			<ModelScene eye={eye} lang={lang} />
+			<ModelScene
+				eye={eye}
+				lang={lang}
+				diagnostics={{
+					spectacleRefractionD: model === "atchison" ? sr : null,
+					prescription: eye,
+				}}
+			/>
 			<Dimensions eye={eye} lang={lang} />
 			<div className="lens-controls">
 				<p className="lens-note">

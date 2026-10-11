@@ -105,22 +105,20 @@ export default function PopulationVariation({
 				</span>
 			</div>
 			<div className="lens-controls">
-				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={!correlated}
-						onClick={() => setCorrelated(false)}
+				<label>
+					{es ? "Muestreo" : "Sampling"}
+					<select
+						value={correlated ? "correlated" : "independent"}
+						onChange={(e) => setCorrelated(e.target.value === "correlated")}
 					>
-						{es ? "Independientes" : "Independent"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={correlated}
-						onClick={() => setCorrelated(true)}
-					>
-						{es ? "Covarianza publicada" : "Published covariance"}
-					</button>
-				</div>
+						<option value="independent">
+							{es ? "Independientes" : "Independent"}
+						</option>
+						<option value="correlated">
+							{es ? "Covarianza publicada" : "Published covariance"}
+						</option>
+					</select>
+				</label>
 				<label>
 					{es ? "Comparar medidas" : "Compare measurements"}
 					<select
@@ -214,7 +212,21 @@ export default function PopulationVariation({
 					/>
 				</label>
 			</div>
-			<ModelScene eye={eye} lang={lang} />
+			<ModelScene
+				eye={eye}
+				lang={lang}
+				diagnostics={{
+					seed,
+					correlated,
+					selectedEye: selected + 1,
+					parameters: PARAMETERS,
+					units: UNITS,
+					values: result.samples[selected],
+					rejected: result.rejected,
+					attempted: result.attempted,
+					source: SOURCE,
+				}}
+			/>
 			<Dimensions eye={eye} lang={lang} />
 			<div className="lens-controls">
 				<p className="models-equation">

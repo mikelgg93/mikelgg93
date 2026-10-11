@@ -184,24 +184,23 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 					lang={lang}
 					onView={(view) => viewRef.current?.setView(view)}
 				/>
-				<div className="lens-buttons">
-					{(["nuclear", "cortical", "posterior"] as const).map((value) => (
-						<button
-							key={value}
-							type="button"
-							aria-pressed={type === value}
-							onClick={() => setType(value)}
-						>
-							{value === "nuclear"
-								? "Nuclear"
-								: value === "cortical"
-									? "Cortical"
-									: es
-										? "Subcapsular posterior"
-										: "Posterior subcapsular"}
-						</button>
-					))}
-				</div>
+				<label>
+					{es ? "Patrón de opacidad" : "Opacity pattern"}
+					<select
+						value={type}
+						onChange={(e) => {
+							const next = e.target.value as typeof type;
+							setType(next);
+							viewRef.current?.setView(next === "posterior" ? "back" : "front");
+						}}
+					>
+						<option value="nuclear">Nuclear</option>
+						<option value="cortical">Cortical</option>
+						<option value="posterior">
+							{es ? "Subcapsular posterior" : "Posterior subcapsular"}
+						</option>
+					</select>
+				</label>
 				<p className="lens-note" aria-live="polite">
 					{descriptions[type]}
 				</p>
@@ -234,14 +233,6 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 							: es
 								? "Comparar con transparente"
 								: "Compare with clear"}
-					</button>
-					<button
-						type="button"
-						onClick={() =>
-							viewRef.current?.setView(type === "posterior" ? "back" : "front")
-						}
-					>
-						{es ? "Ver la zona afectada" : "Face the affected region"}
 					</button>
 				</div>
 				<p className="lens-note">

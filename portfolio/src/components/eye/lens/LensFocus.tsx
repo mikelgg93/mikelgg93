@@ -163,18 +163,6 @@ export default function LensFocus({
 						onChange={(e) => setDemand(Number(e.target.value))}
 					/>
 				</label>
-				<div className="lens-buttons">
-					{[0, 2, 4].map((value) => (
-						<button
-							key={value}
-							type="button"
-							aria-pressed={demand === value}
-							onClick={() => setDemand(value)}
-						>
-							{value === 0 ? (es ? "Lejos" : "Distance") : `${100 / value} cm`}
-						</button>
-					))}
-				</div>
 				{showReserve && (
 					<label>
 						<span className="lens-value">

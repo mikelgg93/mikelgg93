@@ -1,4 +1,5 @@
 import { lensSources } from "../lens/lensSources";
+import debug from "../useViewerDebug.ts?raw";
 import models from "./eyeModels.ts?raw";
 import comparison from "./ModelComparison.tsx?raw";
 import scene from "./ModelScene.tsx?raw";
@@ -20,6 +21,7 @@ const shared = lensSources.assembly.filter((f) =>
 	[
 		"eye/eyeDimensions.ts",
 		"eye/lens/lensScene.ts",
+		"eye/lens/LensViews.tsx",
 		"eye/lens/lens.css",
 		"eye/disposeThree.ts",
 		"eye/threeResize.ts",
@@ -40,9 +42,12 @@ export const modelSources = {
 	comparison: [file("ModelComparison.tsx", comparison), ...common],
 	normal: [
 		file("NormalVariation.tsx", normal),
+		{ path: "eye/useViewerDebug.ts", code: debug, lang: "ts" as const },
 		...maths,
 		file("models.css", css),
-		...shared.filter((f) => f.lang === "css"),
+		...shared.filter(
+			(f) => f.lang === "css" || f.path === "eye/eyeDimensions.ts",
+		),
 	],
 	population: [
 		file("PopulationVariation.tsx", population),

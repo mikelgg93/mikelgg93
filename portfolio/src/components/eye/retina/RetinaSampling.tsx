@@ -1,6 +1,7 @@
 import "../lens/lens.css";
 import "./retina.css";
 import { useMemo, useState } from "react";
+import { useViewerDebug } from "../useViewerDebug";
 import { samplingModel } from "./retinaModel";
 
 const grey = (value: number) =>
@@ -30,8 +31,17 @@ export default function RetinaSampling({
 			/>
 		));
 	const aliases = frequency > model.nyquist;
+	const root = useViewerDebug({
+		model: "Uniform 1D point sampling; frequencies in cycles/panel",
+		frequency: model.f,
+		count: model.n,
+		phaseRadians: shift ? Math.PI / 2 : 0,
+		nyquist: model.nyquist,
+		foldedFrequency: model.alias,
+		samples: model.samples,
+	});
 	return (
-		<div className="lens-demo retina-demo">
+		<div ref={root} className="lens-demo retina-demo">
 			<div className="lens-heading">
 				<strong>
 					{es ? "Una imagen, muestras finitas" : "One image, finite samples"}

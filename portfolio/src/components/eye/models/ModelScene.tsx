@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import LensViews from "../lens/LensViews";
 import { createLensScene } from "../lens/lensScene";
 import type { EyePrescription } from "./eyeModels";
 import { createPatch, PATCHES, updatePatch } from "./modelGeometry";
@@ -7,19 +8,21 @@ import { createPatch, PATCHES, updatePatch } from "./modelGeometry";
 export default function ModelScene({
 	eye,
 	lang = "en",
+	diagnostics,
 }: {
 	eye: EyePrescription;
 	lang?: "en" | "es";
+	diagnostics?: object;
 }) {
 	const mount = useRef<HTMLDivElement>(null),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [section, setSection] = useState(true),
 		[error, setError] = useState(false);
-	const params = useRef({ eye, section });
+	const params = useRef({ eye, section, diagnostics });
 	useEffect(() => {
-		params.current = { eye, section };
+		params.current = { eye, section, diagnostics };
 		viewRef.current?.invalidate();
-	}, [eye, section]);
+	}, [eye, section, diagnostics]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
@@ -84,6 +87,7 @@ export default function ModelScene({
 			}
 			return {
 				state: {
+					...p.diagnostics,
 					model: p.eye.id,
 					cct: p.eye.cct,
 					internalACD: p.eye.acd,
@@ -140,33 +144,19 @@ export default function ModelScene({
 					>
 						{es ? "Sección" : "Section"}
 					</button>
-					<button
-						type="button"
-						onClick={() => {
-							const v = viewRef.current;
-							if (v) {
-								v.setView("side");
-								v.invalidate();
-							}
-						}}
-					>
-						{es ? "Vista lateral" : "Side view"}
-					</button>
-					<button
-						type="button"
-						onClick={() => {
-							const v = viewRef.current;
-							if (v) {
-								v.setView("reset");
-								v.camera.position.set(45, 17, 31);
-								v.controls.update();
-								v.invalidate();
-							}
-						}}
-					>
-						{es ? "Restablecer" : "Reset view"}
-					</button>
 				</div>
+				<LensViews
+					lang={lang}
+					section={section}
+					onView={(name) => {
+						const view = viewRef.current;
+						if (!view) return;
+						view.setView(name);
+						if (name === "reset") view.camera.position.set(45, 17, 31);
+						view.controls.update();
+						view.invalidate();
+					}}
+				/>
 			</div>
 		</>
 	);

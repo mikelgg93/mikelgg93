@@ -70,6 +70,41 @@
 	gap: 4px;
 	min-width: 0;
 }
+.lens-demo select {
+	width: 100%;
+	min-height: 44px;
+	padding: 8px 12px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: #163935;
+	color: #edf4f2;
+	font: inherit;
+}
+.lens-demo select:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 3px;
+}
+.lens-demo .lens-display-options summary {
+	min-height: 44px;
+	padding: 10px 0;
+	cursor: pointer;
+}
+.lens-demo .lens-options {
+	display: grid;
+	gap: 8px;
+}
+.lens-demo .lens-options label:has(input[type="checkbox"]) {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 44px;
+	cursor: pointer;
+}
+.lens-demo input[type="checkbox"] {
+	width: 18px;
+	height: 18px;
+	accent-color: var(--primary);
+}
 .lens-demo .lens-value {
 	display: flex;
 	flex-wrap: wrap;

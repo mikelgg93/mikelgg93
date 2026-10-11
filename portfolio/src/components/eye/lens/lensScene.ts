@@ -66,15 +66,34 @@ export function createLensScene(
 	orientation.setAttribute("aria-hidden", "true");
 	container.appendChild(orientation);
 	const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-	const debug = container
-		.closest(".interactive-viewer")
-		?.querySelector(".debug-output");
+	const viewer = container.closest(".interactive-viewer");
+	const debug = viewer?.querySelector(".debug-output");
 	let visible = true,
 		disposed = false,
 		rendering = false,
 		frame = 0;
 	let lastTime = performance.now();
 	let update: ((dt: number, reducedMotion: boolean) => FrameState) | undefined;
+	function publishDebug(state: object, snapshot = "rendered-frame") {
+		if (debug)
+			debug.textContent = JSON.stringify(
+				{
+					snapshot,
+					...state,
+					camera: camera.position.toArray(),
+					geometries: renderer.info.memory.geometries,
+				},
+				null,
+				2,
+			);
+	}
+	function inspect() {
+		if (disposed || !update) return;
+		// Controls may be below an offscreen canvas. Evaluate their settled state
+		// once for Debug, without a GPU render or an offscreen animation loop.
+		publishDebug(update(0, true).state, "settled-controls");
+	}
+	viewer?.addEventListener("eye:inspect", inspect);
 	function invalidate() {
 		if (
 			!disposed &&
@@ -109,16 +128,7 @@ export function createLensScene(
 					: facing < -0.35
 						? "From the back · retinal side"
 						: "Side view";
-		if (debug)
-			debug.textContent = JSON.stringify(
-				{
-					...result.state,
-					camera: camera.position.toArray(),
-					geometries: renderer.info.memory.geometries,
-				},
-				null,
-				2,
-			);
+		publishDebug(result.state);
 		rendering = false;
 		if (result.animating || cameraChanged) invalidate();
 	}
@@ -235,6 +245,7 @@ export function createLensScene(
 		},
 		dispose() {
 			disposed = true;
+			viewer?.removeEventListener("eye:inspect", inspect);
 			cancelAnimationFrame(frame);
 			observer.disconnect();
 			resize.disconnect();

@@ -163,40 +163,40 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 								? "Ocultar músculo y zónulas"
 								: "Hide muscle & zonules"}
 					</button>
-					<button
-						type="button"
-						aria-pressed={!implant}
-						onClick={() => setImplant(false)}
-					>
-						{es ? "Cristalino natural" : "Natural lens"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={implant}
-						onClick={() => {
-							setImplant(true);
-							changeMode("section");
+				</div>
+				<label>
+					{es ? "Tipo de lente" : "Lens type"}
+					<select
+						value={implant ? "iol" : "natural"}
+						onChange={(e) => {
+							const useImplant = e.target.value === "iol";
+							setImplant(useImplant);
+							if (useImplant) changeMode("section");
 						}}
 					>
-						{es ? "LIO y cápsula" : "IOL + capsule"}
-					</button>
-				</div>
-				<div className="lens-buttons">
-					{(["assembled", "section", "exploded"] as const).map((value, i) => (
-						<button
-							key={value}
-							type="button"
-							aria-pressed={mode === value}
-							onClick={() => changeMode(value)}
-						>
-							{
-								(es
-									? ["Juntas", "Abrir el ojo", "Separar las piezas"]
-									: ["Assembled", "Open the eye", "Separate the parts"])[i]
-							}
-						</button>
-					))}
-				</div>
+						<option value="natural">
+							{es ? "Cristalino natural" : "Natural lens"}
+						</option>
+						<option value="iol">
+							{es ? "LIO y cápsula" : "IOL + capsule"}
+						</option>
+					</select>
+				</label>
+				<label>
+					{es ? "Disposición" : "Assembly view"}
+					<select
+						value={mode}
+						onChange={(e) => changeMode(e.target.value as typeof mode)}
+					>
+						<option value="assembled">{es ? "Juntas" : "Assembled"}</option>
+						<option value="section">
+							{es ? "Abrir el ojo" : "Open the eye"}
+						</option>
+						<option value="exploded">
+							{es ? "Separar las piezas" : "Separate the parts"}
+						</option>
+					</select>
+				</label>
 				<LensViews
 					lang={lang}
 					section={mode === "section"}

@@ -1,12 +1,19 @@
 import "../lens/lens.css";
 import "./retina.css";
 import { useState } from "react";
+import { useViewerDebug } from "../useViewerDebug";
 import { layerBounds, retinalLayers } from "./retinaModel";
 
 export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
 		[pit, setPit] = useState(false),
 		[separate, setSeparate] = useState(false);
+	const root = useViewerDebug({
+		model: "Grouped retinal layers; illustrative drawing units",
+		fovea: pit,
+		separated: separate,
+		centralBands: layerBounds(0, pit, separate),
+	});
 	const xs = Array.from({ length: 121 }, (_, i) => -1 + i / 60);
 	const bandPath = (index: number) =>
 		xs
@@ -25,7 +32,7 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 			.join(" ") +
 		" Z";
 	return (
-		<div className="lens-demo retina-demo">
+		<div ref={root} className="lens-demo retina-demo">
 			<div className="lens-heading">
 				<strong>
 					{es ? "Una sección, varias tareas" : "One section, several jobs"}

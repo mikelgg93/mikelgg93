@@ -144,21 +144,21 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				</span>
 			</div>
 			<div className="lens-controls">
+				<label>
+					{es ? "Región" : "Region"}
+					<select
+						value={central ? "central" : "peripheral"}
+						onChange={(e) => setCentral(e.target.value === "central")}
+					>
+						<option value="central">
+							{es ? "Centro foveal" : "Foveal centre"}
+						</option>
+						<option value="peripheral">
+							{es ? "Fuera del centro" : "Away from centre"}
+						</option>
+					</select>
+				</label>
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={central}
-						onClick={() => setCentral(true)}
-					>
-						{es ? "Centro foveal" : "Foveal centre"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={!central}
-						onClick={() => setCentral(false)}
-					>
-						{es ? "Fuera del centro" : "Away from centre"}
-					</button>
 					<button type="button" aria-pressed={top} onClick={() => setTop(!top)}>
 						{es ? "Vista del mosaico" : "Mosaic view"}
 					</button>

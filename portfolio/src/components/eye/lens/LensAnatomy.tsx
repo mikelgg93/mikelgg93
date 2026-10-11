@@ -119,21 +119,11 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 						onChange={(e) => setAccommodation(Number(e.target.value))}
 					/>
 				</label>
+				<div className="lens-value lens-note">
+					<span>{es ? "Lejos" : "Distance"}</span>
+					<span>{es ? "Cerca" : "Near"}</span>
+				</div>
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={accommodation === 0}
-						onClick={() => setAccommodation(0)}
-					>
-						{es ? "Lejos" : "Distance"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={accommodation === 8}
-						onClick={() => setAccommodation(8)}
-					>
-						{es ? "Cerca" : "Near"}
-					</button>
 					<button
 						type="button"
 						aria-pressed={cutaway}

@@ -13,31 +13,31 @@ export default function LensViews({
 	return (
 		<details className="lens-camera-views">
 			<summary>{es ? "Vistas de cámara" : "Camera views"}</summary>
-			<div
-				className="lens-buttons"
-				role="group"
-				aria-label={es ? "Vistas de cámara" : "Camera views"}
-			>
-				{section && (
-					<button type="button" onClick={() => onView("section")}>
-						{es ? "Ver el corte" : "Face the section"}
-					</button>
-				)}
-				{(["front", "side", "back", "reset"] as const).map((view, i) => (
-					<button type="button" key={view} onClick={() => onView(view)}>
-						{
-							(es
-								? [
-										"Vista anterior",
-										"Vista lateral",
-										"Vista posterior",
-										"Restablecer vista",
-									]
-								: ["Front view", "Side view", "Back view", "Reset view"])[i]
-						}
-					</button>
-				))}
-			</div>
+			<label>
+				<span className="sr-only">{es ? "Elegir vista" : "Choose view"}</span>
+				<select
+					defaultValue=""
+					onChange={(e) => {
+						onView(e.target.value as LensView);
+						e.target.value = ""; // Repeatable camera actions after orbiting.
+					}}
+				>
+					<option value="" disabled>
+						{es ? "Elegir vista…" : "Choose view…"}
+					</option>
+					{section && (
+						<option value="section">
+							{es ? "Ver el corte" : "Face the section"}
+						</option>
+					)}
+					<option value="front">{es ? "Vista anterior" : "Front view"}</option>
+					<option value="side">{es ? "Vista lateral" : "Side view"}</option>
+					<option value="back">{es ? "Vista posterior" : "Back view"}</option>
+					<option value="reset">
+						{es ? "Restablecer vista" : "Reset view"}
+					</option>
+				</select>
+			</label>
 			<p className="lens-note">
 				{es
 					? "Anterior: hacia la córnea · Posterior: hacia la retina."
