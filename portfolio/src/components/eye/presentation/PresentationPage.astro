@@ -1,0 +1,22 @@
+---
+import EyeConstruction from './EyeConstruction';
+import '@fontsource/geist-sans/400.css';
+import '@fontsource/old-standard-tt/400-italic.css';
+import '@fontsource/geist-mono/400.css';
+import { getVisiblePosts, includeUnpublished } from '@/lib/blog';
+const availableArticles = (await getVisiblePosts()).filter(post => post.data.lang !== 'es').map(post => post.id);
+---
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8" />
+  {includeUnpublished && <meta name="robots" content="noindex, nofollow" />}
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="An animated WebGL lesson: build an eye from camera and sphere to cornea, iris, crystalline lens and IOL." />
+  <title>Building an eye · WebGL construction notes</title>
+ </head>
+ <body><EyeConstruction availableArticles={availableArticles} client:load /></body>
+</html>

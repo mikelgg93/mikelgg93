@@ -1,7 +1,10 @@
+import "./cornea.css";
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 
 const vertexShader = `
@@ -100,7 +103,12 @@ void main() {
 }
 `;
 
-export default function CorneaTearFilm() {
+export default function CorneaTearFilm({
+	lang = "en",
+}: {
+	lang?: "en" | "es";
+}) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -111,7 +119,7 @@ export default function CorneaTearFilm() {
 		camera.position.set(0, 0, 3.5);
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setClearColor(0x000000, 0);
 		mountRef.current.appendChild(renderer.domElement);
 
@@ -146,48 +154,25 @@ export default function CorneaTearFilm() {
 		corneaMesh.rotation.x = Math.PI / 2;
 		scene.add(corneaMesh);
 
-		let animationFrameId: number;
-		const clock = new THREE.Clock();
-
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-			material.uniforms.uTime!.value = clock.getElapsedTime();
-
-			// Gentle rotation to show off the interference pattern
-			corneaMesh.rotation.y = Math.sin(clock.getElapsedTime() * 0.5) * 0.2;
-			corneaMesh.rotation.z = Math.cos(clock.getElapsedTime() * 0.3) * 0.1;
-
-			orbit.update();
-			renderer.render(scene, camera);
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: Number(camera.position.x.toFixed(3)),
-							y: Number(camera.position.y.toFixed(3)),
-							z: Number(camera.position.z.toFixed(3)),
-						},
-						rotation: {
-							x: Number(camera.rotation.x.toFixed(3)),
-							y: Number(camera.rotation.y.toFixed(3)),
-							z: Number(camera.rotation.z.toFixed(3)),
-						},
-						zoom: Number(camera.zoom.toFixed(3)),
-					},
-					target: {
-						x: Number(orbit.target.x.toFixed(3)),
-						y: Number(orbit.target.y.toFixed(3)),
-						z: Number(orbit.target.z.toFixed(3)),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
+		const loop = createDemoLoop(mountRef.current, {
+			controls: orbit,
+			continuous: (reducedMotion) => !reducedMotion,
+			draw: (_dt, elapsed, reducedMotion) => {
+				const t = reducedMotion ? 0 : elapsed;
+				material.uniforms.uTime!.value = t;
+				corneaMesh.rotation.y = Math.sin(t * 0.5) * 0.2;
+				corneaMesh.rotation.z = Math.cos(t * 0.3) * 0.1;
+				renderer.render(scene, camera);
+				return false;
+			},
+			inspect: () => ({
+				model: "Simplified RGB interference",
+				lipidRangeNm: [40, 100],
+				fullSpectralCalculation: false,
+				camera: camera.position.toArray(),
+				target: orbit.target.toArray(),
+			}),
+		});
 
 		const resizeObserver = observeThreeResize(
 			mountRef.current,
@@ -196,7 +181,7 @@ export default function CorneaTearFilm() {
 		);
 
 		return () => {
-			cancelAnimationFrame(animationFrameId);
+			loop.dispose();
 			resizeObserver.disconnect();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
@@ -208,21 +193,21 @@ export default function CorneaTearFilm() {
 	}, []);
 
 	return (
-		<div className="relative w-full h-[500px] bg-transparent overflow-hidden rounded-lg group">
-			<div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
+		<div className="cornea-demo relative w-full h-[500px] bg-transparent overflow-hidden rounded-lg group">
+			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
-					Tear Film: Thin Film Interference
+					{t("Tear Film: Thin Film Interference")}
 				</span>
 				<div className="text-xs text-foreground max-w-[200px]">
-					A wafer-thin oil layer floating on the watery tears. As its thickness
-					drifts, different colors cancel and reinforce, giving the faint
-					oil-slick sheen.
+					{t(
+						"A wafer-thin oil layer floating on the watery tears. As its thickness drifts, different colors cancel and reinforce, giving the faint oil-slick sheen.",
+					)}
 				</div>
 			</div>
 
 			<div
 				ref={mountRef}
-				className="absolute inset-0 cursor-grab active:cursor-grabbing"
+				className="cornea-scene absolute inset-0 cursor-grab active:cursor-grabbing"
 			/>
 		</div>
 	);

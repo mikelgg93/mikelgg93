@@ -1,3 +1,4 @@
+import { eyeText } from "../earlyText";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -5,7 +6,8 @@ import { createIrisScene, type IrisScene } from "./irisScene";
 // The pupillary light reflex, paired with an oscilloscope: the dashed line is
 // the target diameter the reflex is chasing, the solid line is where the pupil
 // actually is, showing the 220 ms delay and the fast-close / slow-open asymmetry.
-export default function PupilStep2() {
+export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
@@ -39,8 +41,15 @@ export default function PupilStep2() {
 			return Math.min(8, Math.max(2, 4.9 - 3.0 * Math.tanh(0.4 * logL + 0.4)));
 		};
 
-		s.setOnFrame((dt) => {
-			const now = performance.now() / 1000;
+		s.setDebug(() => ({
+			model: "First-order PLR",
+			pupilDiameterMm: +currentD.toFixed(3),
+			targetLuminanceCdM2: paramsRef.current.targetLuminance,
+			latencySeconds: paramsRef.current.latencyActive ? 0.22 : 0,
+			constrictionTauSeconds: 0.12,
+			dilationTauSeconds: 0.65,
+		}));
+		s.setOnFrame((dt, now) => {
 			const p = paramsRef.current;
 			const targetD = pupilFromLuminance(p.targetLuminance);
 
@@ -103,21 +112,6 @@ export default function PupilStep2() {
 					plot("actualD", "#06b6d4", 2.5, []);
 				}
 			}
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				(debugEl as HTMLElement).innerText = JSON.stringify(
-					{
-						pupilDiameter: +currentD.toFixed(2),
-						targetLuminance: p.targetLuminance,
-						latencyActive: p.latencyActive,
-					},
-					null,
-					2,
-				);
-			}
 		});
 
 		const canvasResize = new ResizeObserver(() => {
@@ -145,50 +139,52 @@ export default function PupilStep2() {
 						className="absolute inset-0 cursor-grab active:cursor-grabbing"
 					/>
 					<div className="absolute top-2 left-2 z-10 bg-card/80 border border-border text-[10px] px-2 py-1 rounded text-primary font-bold">
-						3D pupil
+						{t("3D pupil")}
 					</div>
 				</div>
 
 				<div className="relative w-full h-[200px] md:h-full rounded-xl overflow-hidden bg-card/60 border border-border p-3 flex flex-col justify-between">
 					<div className="flex flex-wrap gap-2 justify-between items-center text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						<span>Reflex over time</span>
+						<span>{t("Reflex over time")}</span>
 						<div className="flex items-center gap-3">
-							<span className="text-amber-500">- - target</span>
-							<span className="text-cyan-500">— actual</span>
+							<span className="text-amber-500">{t("- - target")}</span>
+							<span className="text-cyan-500">{t("— actual")}</span>
 						</div>
 					</div>
 					<div className="w-full my-auto">
 						<canvas ref={canvasRef} className="w-full h-[140px]" />
 					</div>
 					<div className="flex justify-between text-[10px] text-muted-foreground font-mono">
-						<span>4s ago</span>
+						<span>{t("4s ago")}</span>
 						<span>2s</span>
-						<span>now</span>
+						<span>{t("now")}</span>
 					</div>
 				</div>
 			</div>
 
 			<div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-card/70 border border-border p-3 rounded-xl">
 				<div className="flex items-center gap-2">
-					<span className="text-xs font-semibold text-foreground">Light:</span>
+					<span className="text-xs font-semibold text-foreground">
+						{t("Light:")}
+					</span>
 					<button
 						onClick={() => setLumLevel("dark")}
 						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${lumLevel === "dark" ? "bg-indigo-600 text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
 					>
-						Dark
+						{t("Dark")}
 					</button>
 					<button
 						onClick={() => setLumLevel("bright")}
 						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${lumLevel === "bright" ? "bg-amber-400 text-black" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
 					>
-						Bright
+						{t("Bright")}
 					</button>
 				</div>
 				<button
 					onClick={() => setLatencyActive(!latencyActive)}
 					className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${latencyActive ? "bg-emerald-500 text-white" : "bg-secondary text-muted-foreground"}`}
 				>
-					{latencyActive ? "220 ms delay: on" : "220 ms delay: off"}
+					{latencyActive ? t("220 ms delay: on") : t("220 ms delay: off")}
 				</button>
 			</div>
 		</div>

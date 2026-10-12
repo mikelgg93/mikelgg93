@@ -1,8 +1,11 @@
+import "./cornea.css";
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
+import { createDemoLoop } from "../demoLoop";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 
 // Average anatomical values (mm). Built at true scale, framed by the camera.
@@ -92,7 +95,12 @@ function thicknessMap() {
 	return new THREE.CanvasTexture(big);
 }
 
-export default function CorneaRealistic() {
+export default function CorneaRealistic({
+	lang = "en",
+}: {
+	lang?: "en" | "es";
+}) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -181,43 +189,28 @@ export default function CorneaRealistic() {
 		cornea.rotation.x = -Math.PI / 2; // axis toward the camera (+Z)
 		scene.add(cornea);
 
-		let animationFrameId: number;
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-
-			// Slowly drift the tear-film thickness so the sheen moves like tears
-			// spreading across the surface after a blink.
-			filmMap.offset.x += 0.0006;
-			filmMap.offset.y += 0.0003;
-
-			controls.update();
-			renderer.render(scene, camera);
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: +camera.position.x.toFixed(3),
-							y: +camera.position.y.toFixed(3),
-							z: +camera.position.z.toFixed(3),
-						},
-					},
-					target: {
-						x: +controls.target.x.toFixed(3),
-						y: +controls.target.y.toFixed(3),
-						z: +controls.target.z.toFixed(3),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
+		const loop = createDemoLoop(mountRef.current, {
+			controls: controls,
+			continuous: (reducedMotion) => !reducedMotion,
+			draw: (dt, _elapsed, reducedMotion) => {
+				if (!reducedMotion) {
+					filmMap.offset.x += dt * 0.036;
+					filmMap.offset.y += dt * 0.018;
+				}
+				renderer.render(scene, camera);
+				return false;
+			},
+			inspect: () => ({
+				model: "Illustrative physical material",
+				iridescenceRangeNm: [80, 420],
+				physiologicalThinFilm: false,
+				camera: camera.position.toArray(),
+				target: controls.target.toArray(),
+			}),
+		});
 
 		return () => {
-			cancelAnimationFrame(animationFrameId);
+			loop.dispose();
 			resizeObserver.disconnect();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
@@ -236,20 +229,22 @@ export default function CorneaRealistic() {
 	}, []);
 
 	return (
-		<div className="relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
-			<div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
+		<div className="cornea-demo relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
+			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
-					Hyperrealistic Cornea
+					{t("Hyperrealistic Cornea")}
 				</span>
 				<div className="text-[10px] text-muted-foreground max-w-[220px] leading-relaxed">
-					Built to average anatomy: R<sub>ant</sub> 7.8 mm, R<sub>post</sub> 6.5
-					mm, Q −0.26, thickness 0.55 mm. Glassy transmission with dispersion, a
-					drifting tear-film sheen, and reflections. Drag to orbit.
+					{t("Built to average anatomy: R")}
+					<sub>ant</sub> 7.8 mm, R<sub>post</sub>{" "}
+					{t(
+						"6.5 mm, Q −0.26, thickness 0.55 mm. Glassy transmission with dispersion, a drifting tear-film sheen, and reflections. Drag to orbit.",
+					)}
 				</div>
 			</div>
 			<div
 				ref={mountRef}
-				className="w-full h-full cursor-grab active:cursor-grabbing"
+				className="cornea-scene w-full h-full cursor-grab active:cursor-grabbing"
 			/>
 		</div>
 	);

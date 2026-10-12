@@ -1,5 +1,6 @@
 ---
 title: "Modelando el ojo: La córnea"
+published: true
 description: "Empezamos por la parte más anterior del ojo. ¿Qué forma tiene la córnea, por qué no es una simple esfera y cómo podemos construirla en WebGL?"
 date: 2026-07-27
 author: "Miguel García"
@@ -8,7 +9,10 @@ lang: "es"
 image: "/images/blog/cornea-banner.png"
 ---
 
-import { Code } from 'astro:components';
+import PublishedPost from "@/components/blog/PublishedPost.astro";
+
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import { corneaSources } from '../../components/eye/earlySources';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
 import CorneaStep1 from '../../components/eye/cornea/CorneaStep1';
 import CorneaAspheric from '../../components/eye/cornea/CorneaAspheric';
@@ -20,27 +24,22 @@ import CorneaKeratoconus from '../../components/eye/cornea/CorneaKeratoconus';
 import CorneaPlacido from '../../components/eye/cornea/CorneaPlacido';
 import CorneaRealistic from '../../components/eye/cornea/CorneaRealistic';
 
-import CorneaStep1Code from '../../components/eye/cornea/CorneaStep1.tsx?raw';
-import CorneaAsphericCode from '../../components/eye/cornea/CorneaAspheric.tsx?raw';
-import CorneaAstigmatismCode from '../../components/eye/cornea/CorneaAstigmatism.tsx?raw';
-import CorneaLayeredCode from '../../components/eye/cornea/CorneaLayered.tsx?raw';
-import CorneaTearFilmCode from '../../components/eye/cornea/CorneaTearFilm.tsx?raw';
-import CorneaMasterCode from '../../components/eye/cornea/CorneaMaster.tsx?raw';
-import CorneaKeratoconusCode from '../../components/eye/cornea/CorneaKeratoconus.tsx?raw';
-import CorneaPlacidoCode from '../../components/eye/cornea/CorneaPlacido.tsx?raw';
-import CorneaRealisticCode from '../../components/eye/cornea/CorneaRealistic.tsx?raw';
 
 Pídele a un programador gráfico que modele un ojo y su primer instinto será, casi siempre, usar una esfera de cristal. Se renderiza rápido y tiene un aspecto limpio. El problema es que, una córnea esférica añadiría aberración esférica, extendiendo la imagen de una farola nocturna.
 
-La cúpula transparente de la parte frontal del ojo, la **córnea**, tiene una forma mucho más interesante que una esfera, y es la responsable de la mayor parte del enfoque. De las aproximadamente 60 dioptrías de potencia óptica que tiene el ojo, la córnea aporta unas 43. El famoso cristalino en el interior se encarga del resto y realiza el ajuste fino. Pero, ¿cómo sabemos que no es simplemente una cúpula sólida de cristal biológico? Cuando Antonie van Leeuwenhoek observó por primera vez tejido corneal a través de sus microscopios caseros en la década de 1680, descubrió que no era cristal en absoluto, sino un tejido densamente entrelazado de fibras vivas.
+La cúpula transparente de la parte frontal del ojo, la **córnea**, tiene una forma mucho más interesante que una esfera, y es la responsable de la mayor parte del enfoque. De las aproximadamente 60 dioptrías de potencia óptica que tiene el ojo, la córnea aporta unas 43. El cristalino añade potencia de enfoque ajustable; las potencias de estos componentes separados no se suman directamente. Pero, ¿cómo sabemos que no es simplemente una cúpula sólida de cristal biológico? Cuando Antonie van Leeuwenhoek observó por primera vez tejido corneal a través de sus microscopios caseros en la década de 1680, descubrió que no era cristal en absoluto, sino un tejido densamente entrelazado de fibras vivas.
 
 En esta serie vamos a construir el ojo pieza a pieza en WebGL. Cada sección a continuación cuenta con una vista interactiva en 3D y una pestaña de **Código (Code)** con el código fuente completo. Empecemos por la parte frontal.
+
+¿Quieres construirlo desde cero? [Descarga el proyecto inicial](/downloads/eye-starter.zip), descomprímelo y ejecuta `bun install` y `bun run dev` (también admite npm). En un solo archivo, `main.js`, pasamos por cámara → esfera → cúpula → Q → espesor → material → conjunto. Su README indica qué editar y qué observar en cada paso. Las pestañas **Código** de este artículo incluyen además los módulos y estilos de las demos completas.
 
 ## El casquete esférico: una primera aproximación
 
 Antes de que existieran los escáneres hospitalarios, la gente medía el ojo con trucos ingeniosos. En 1619, Christoph Scheiner describió cómo estimar la curvatura corneal comparando sus reflejos con los de esferas de cristal de curvatura conocida. Era un método comparativo temprano, no una queratometría cuantitativa moderna. Hoy, un valor típico útil es: la parte frontal de la córnea tiene un radio de curvatura de aproximadamente $R \approx 7.8\ \text{mm}$.
 
 La córnea visible es una ventana ligeramente ovalada, de unos $11.7\ \text{mm}$ de ancho y $10.6\ \text{mm}$ de alto, debido a que el blanco del ojo la solapa por arriba y por abajo. Para un primer modelo en WebGL, ignoraremos esto y cortaremos un casquete limpio de una esfera.
+
+En esta primera cúpula, **1 unidad de escena representa 7,8 mm**: normalizamos su radio a 1. Las demos cónicas posteriores usan **1 unidad = 1 mm**, de modo que los radios se introducen directamente. Cambiar la escala no altera la forma, pero las distancias de cámara deben usar las mismas unidades.
 
 En Three.js, una esfera ya sabe cómo dibujarse a sí misma. Solo tenemos que decirle que se quede con la parte frontal limitando el ángulo de barrido vertical:
 
@@ -57,10 +56,10 @@ const geometry = new THREE.SphereGeometry(
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaStep1 client:visible />
+    <CorneaStep1 lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaStep1Code} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.step1} lang="es" />
   </div>
 </InteractiveViewer>
 
@@ -92,14 +91,14 @@ for (let r = 0; r <= validR; r += step) {
 }
 ```
 
-Usa los botones a continuación para cambiar entre una córnea humana típica, una córnea esférica y un ejemplo oblato / post-LASIK miópico. El color va desde el verde en el centro hasta el color de la forma en el borde, para que puedas ver dónde curva la luz cada una de manera diferente.
+Usa los botones a continuación para cambiar entre una córnea humana típica, una córnea esférica y un ejemplo oblato / post-LASIK miópico. El color va desde el verde en el centro hasta el color de la forma en el borde, para comparar las formas; estos colores no calculan la refracción.
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaAspheric client:visible />
+    <CorneaAspheric lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaAsphericCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.aspheric} lang="es" />
   </div>
 </InteractiveViewer>
 
@@ -120,16 +119,16 @@ Las dos direcciones de máxima y mínima curvatura se denominan **meridianos**. 
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaAstigmatism client:visible />
+    <CorneaAstigmatism lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaAstigmatismCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.astigmatism} lang="es" />
   </div>
 </InteractiveViewer>
 
-## Dentro de la córnea: seis capas
+## Dentro de la córnea: capas de tejido
 
-De cerca, la córnea no es una única lámina transparente, sino seis capas superpuestas, todas concentradas en aproximadamente medio milímetro (el espesor central típico es de unos $500$–$550\ \mu\text{m}$, con variación entre ojos y métodos de medida). Los espesores siguientes son valores ilustrativos del modelo que suman $540\ \mu\text{m}$:
+La córnea suele describirse en cinco capas. Aquí también distinguimos la capa pre-Descemet propuesta (de Dua) del estroma posterior, una clasificación aún debatida. Todas caben en aproximadamente medio milímetro (el espesor central típico es de unos $500$–$550\ \mu\text{m}$, con variación entre ojos y métodos de medida). Los espesores siguientes son valores ilustrativos del modelo que suman $540\ \mu\text{m}$:
 
 | Capa | Espesor | Función |
 | :--- | :---: | :--- |
@@ -148,10 +147,10 @@ El modelo a continuación es una **sección transversal esquemática con espesor
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaLayered client:visible />
+    <CorneaLayered lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaLayeredCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.layered} lang="es" />
   </div>
 </InteractiveViewer>
 
@@ -167,10 +166,10 @@ donde $n$ es el índice de refracción del aceite, $d$ su espesor, $\theta$ el �
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaTearFilm client:visible />
+    <CorneaTearFilm lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaTearFilmCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.tearFilm} lang="es" />
   </div>
 </InteractiveViewer>
 
@@ -190,10 +189,10 @@ El efecto en la visión es peor que la simple miopía. El cono no es simétrico,
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaKeratoconus client:visible />
+    <CorneaKeratoconus lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaKeratoconusCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.keratoconus} lang="es" />
   </div>
 </InteractiveViewer>
 
@@ -205,10 +204,10 @@ En esta visualización, los anillos son una aproximación basada en la curvatura
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaPlacido client:visible />
+    <CorneaPlacido lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaPlacidoCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.placido} lang="es" />
   </div>
 </InteractiveViewer>
 
@@ -220,10 +219,10 @@ En combinaciones extremas de los controles, la apertura representada se reduce p
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaMaster client:visible />
+    <CorneaMaster lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaMasterCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.master} lang="es" />
   </div>
 </InteractiveViewer>
 
@@ -233,14 +232,20 @@ Los modelos anteriores están construidos para explicar, por lo que priman los c
 
 <InteractiveViewer>
   <div slot="preview">
-    <CorneaRealistic client:visible />
+    <CorneaRealistic lang="es" client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaRealisticCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.realistic} lang="es" />
   </div>
 </InteractiveViewer>
 
 Eso nos da una superficie frontal sólida para el ojo.
+
+<PublishedPost id="webgl-eye-02-pupil-es">
+
+Continúa con la [Parte 2: La pupila](/es/blog/webgl-eye-02-pupil), donde añadimos una apertura ajustable.
+
+</PublishedPost>
 
 ## Referencias
 

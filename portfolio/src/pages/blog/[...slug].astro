@@ -1,20 +1,26 @@
 ---
-import { getCollection, render } from "astro:content";
+import { render } from "astro:content";
+import BlogLink from "@/components/blog/BlogLink.astro";
+import { getVisiblePosts } from "@/lib/blog";
 import BlogLayout from "@/layouts/BlogLayout.astro";
 
 export async function getStaticPaths() {
-	const posts = (await getCollection("blog"))
+	const posts = (await getVisiblePosts())
 		.filter((p) => !p.data.lang || p.data.lang === "en")
-		.sort((a, b) => a.data.date.valueOf() - b.data.date.valueOf());
+		.sort((a, b) => new Date(a.data.date || 0).valueOf() - new Date(b.data.date || 0).valueOf());
 
-	return posts.map((post, i) => ({
-		params: { slug: post.id },
-		props: {
-			post,
-			prevUrl: i > 0 ? `/blog/${posts[i - 1].id}` : null,
-			nextUrl: i < posts.length - 1 ? `/blog/${posts[i + 1].id}` : null,
-		},
-	}));
+	return posts.map((post, i) => {
+		const previous = posts[i - 1];
+		const next = posts[i + 1];
+		return {
+			params: { slug: post.id },
+			props: {
+				post,
+				prevUrl: previous ? `/blog/${previous.id}` : null,
+				nextUrl: next ? `/blog/${next.id}` : null,
+			},
+		};
+	});
 }
 
 const { post, prevUrl, nextUrl } = Astro.props;
@@ -22,5 +28,5 @@ const { Content } = await render(post);
 ---
 
 <BlogLayout frontmatter={post.data} prevUrl={prevUrl} nextUrl={nextUrl} id={post.id}>
-  <Content />
+  <Content components={{ a: BlogLink }} />
 </BlogLayout>

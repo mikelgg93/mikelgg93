@@ -1,7 +1,10 @@
+import "./cornea.css";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 
 // Illustrative layer thicknesses (µm), totaling 540 µm. The collapsed slabs
@@ -13,7 +16,7 @@ const LAYERS = [
 		um: 50,
 		color: 0x38bdf8,
 		detail: "cells",
-		desc: "Renewing cell layer (5-7 day turnover) with a smooth tear surface.",
+		desc: "Renewing outer cells; smooth support for tears.",
 	},
 	{
 		id: "bowman",
@@ -33,11 +36,11 @@ const LAYERS = [
 	},
 	{
 		id: "dua",
-		name: "4. Dua's Layer",
+		name: "4. Pre-Descemet (proposed)",
 		um: 15,
 		color: 0xfbbf24,
 		detail: "solid",
-		desc: "Thin, very strong pre-Descemet layer (Dua, 2013).",
+		desc: "Proposed pre-Descemet layer; classification is debated.",
 	},
 	{
 		id: "descemet",
@@ -135,7 +138,8 @@ function cellDots(y: number, color: number) {
 	return group;
 }
 
-export default function CorneaLayered() {
+export default function CorneaLayered({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const [exploded, setExploded] = useState(false);
 	const [active, setActive] = useState<string | null>(null);
@@ -157,7 +161,7 @@ export default function CorneaLayered() {
 		scene.add(dirLight);
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setClearColor(0x000000, 0);
 		mountRef.current.appendChild(renderer.domElement);
 
@@ -239,57 +243,46 @@ export default function CorneaLayered() {
 		});
 
 		let explodeT = 0;
-		let animationFrameId: number;
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-
-			const target = explodedRef.current ? 1 : 0;
-			explodeT += (target - explodeT) * 0.08;
-			const gap = 0.95;
-			const DISPLAY_H = 0.5;
-			layerGroups.forEach(({ group, slab, index, baseY, trueH, solid }) => {
-				// Collapsed: layers sit at true relative scale (stroma dominates).
-				// Exploded: each layer compresses to a uniform thin plate and fans out
-				// to an evenly spaced, ordered position, so nothing overlaps. The µm
-				// labels in the panel carry the real thickness.
-				const explodedY = (2.5 - index) * gap;
-				group.position.y = baseY * (1 - explodeT) + explodedY * explodeT;
-				group.scale.y = 1 - explodeT + (DISPLAY_H / trueH) * explodeT;
-				const isActive = activeRef.current === LAYERS[index]!.id;
-				const mat = slab.material as THREE.MeshStandardMaterial;
-				const dim = activeRef.current && !isActive;
-				mat.opacity = solid ? (dim ? 0.25 : 1.0) : dim ? 0.12 : 0.35;
-				mat.emissive.setHex(isActive ? 0x444444 : 0x000000);
-			});
-
-			controls.update();
-			renderer.render(scene, camera);
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: +camera.position.x.toFixed(3),
-							y: +camera.position.y.toFixed(3),
-							z: +camera.position.z.toFixed(3),
-						},
-					},
-					target: {
-						x: +controls.target.x.toFixed(3),
-						y: +controls.target.y.toFixed(3),
-						z: +controls.target.z.toFixed(3),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
+		const loop = createDemoLoop(mountRef.current, {
+			controls: controls,
+			draw: (dt, _elapsed, reducedMotion) => {
+				const target = explodedRef.current ? 1 : 0;
+				explodeT = reducedMotion
+					? target
+					: explodeT + (target - explodeT) * (1 - Math.exp(-dt / 0.2));
+				if (Math.abs(target - explodeT) < 0.001) explodeT = target;
+				const gap = 0.95;
+				const DISPLAY_H = 0.5;
+				layerGroups.forEach(({ group, slab, index, baseY, trueH, solid }) => {
+					// Collapsed: layers sit at true relative scale (stroma dominates).
+					// Exploded: each layer compresses to a uniform thin plate and fans out
+					// to an evenly spaced, ordered position, so nothing overlaps. The µm
+					// labels in the panel carry the real thickness.
+					const explodedY = (2.5 - index) * gap;
+					group.position.y = baseY * (1 - explodeT) + explodedY * explodeT;
+					group.scale.y = 1 - explodeT + (DISPLAY_H / trueH) * explodeT;
+					const isActive = activeRef.current === LAYERS[index]!.id;
+					const mat = slab.material as THREE.MeshStandardMaterial;
+					const dim = activeRef.current && !isActive;
+					mat.opacity = solid ? (dim ? 0.25 : 1.0) : dim ? 0.12 : 0.35;
+					mat.emissive.setHex(isActive ? 0x444444 : 0x000000);
+				});
+				renderer.render(scene, camera);
+				return explodeT !== target;
+			},
+			inspect: () => ({
+				model: "Layer schematic",
+				thicknessUm: 540,
+				layers: LAYERS.map(({ id, um }) => ({ id, um })),
+				exploded: explodedRef.current,
+				selectedLayer: activeRef.current,
+				camera: camera.position.toArray(),
+				target: controls.target.toArray(),
+			}),
+		});
 
 		return () => {
-			cancelAnimationFrame(animationFrameId);
+			loop.dispose();
 			resizeObserver.disconnect();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
@@ -301,10 +294,10 @@ export default function CorneaLayered() {
 	}, []);
 
 	return (
-		<div className="relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
-			<div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1 bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[260px]">
+		<div className="cornea-demo relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
+			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[260px]">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
-					Corneal layers (model)
+					{t("Corneal layers (model)")}
 				</span>
 				<div className="flex flex-col gap-1 w-full text-xs">
 					{LAYERS.map((l) => (
@@ -321,7 +314,7 @@ export default function CorneaLayered() {
 									}}
 								></span>
 								<span className="font-semibold text-foreground text-[11px]">
-									{l.name}
+									{t(l.name)}
 								</span>
 							</div>
 							<span className="font-mono text-[10px] text-muted-foreground font-bold ml-2">
@@ -332,21 +325,21 @@ export default function CorneaLayered() {
 				</div>
 				{active && (
 					<p className="text-[10px] text-muted-foreground leading-relaxed mt-1 pt-1 border-t border-border/40">
-						{LAYERS.find((l) => l.id === active)?.desc}
+						{t(LAYERS.find((l) => l.id === active)?.desc ?? "")}
 					</p>
 				)}
 			</div>
 
 			<button
 				onClick={() => setExploded((e) => !e)}
-				className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-5 py-2 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-xl hover:opacity-90 transition-opacity"
+				className="cornea-actions absolute bottom-4 md:left-1/2 md:-translate-x-1/2 z-20 px-5 py-2 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-xl hover:opacity-90 transition-opacity"
 			>
-				{exploded ? "Collapse layers" : "Explode layers"}
+				{exploded ? t("Collapse layers") : t("Explode layers")}
 			</button>
 
 			<div
 				ref={mountRef}
-				className="w-full h-full cursor-grab active:cursor-grabbing"
+				className="cornea-scene w-full h-full cursor-grab active:cursor-grabbing"
 			/>
 		</div>
 	);

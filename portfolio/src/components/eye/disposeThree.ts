@@ -6,6 +6,7 @@ export function disposeThree(root: THREE.Object3D) {
 	const geometries = new Set<THREE.BufferGeometry>();
 	const materials = new Set<THREE.Material>();
 	root.traverse((object) => {
+		if (object instanceof THREE.InstancedMesh) object.dispose();
 		if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
 			geometries.add(object.geometry);
 			for (const material of [object.material].flat()) materials.add(material);

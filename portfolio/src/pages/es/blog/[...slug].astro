@@ -1,9 +1,11 @@
 ---
-import { getCollection, render } from "astro:content";
+import { render } from "astro:content";
+import BlogLink from "@/components/blog/BlogLink.astro";
+import { getVisiblePosts } from "@/lib/blog";
 import BlogLayout from "@/layouts/BlogLayout.astro";
 
 export async function getStaticPaths() {
-	const posts = await getCollection("blog");
+	const posts = await getVisiblePosts();
 	return posts
 		.filter((p) => p.data.lang === "es")
 		.map((post) => ({
@@ -17,5 +19,5 @@ const { Content } = await render(post);
 ---
 
 <BlogLayout frontmatter={post.data} id={post.id}>
-  <Content />
+  <Content components={{ a: BlogLink }} />
 </BlogLayout>

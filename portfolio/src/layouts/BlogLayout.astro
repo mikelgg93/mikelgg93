@@ -3,14 +3,16 @@ import { Image } from "astro:assets";
 import BlogFeatures from "@/components/BlogFeatures";
 import BlogToc from "@/components/BlogToc.astro";
 import PretextText from "@/components/PretextText";
+import EyeSeriesNav from "@/components/eye/EyeSeriesNav.astro";
 import Layout from "@/layouts/Layout.astro";
 import "katex/dist/katex.min.css";
 
 const { frontmatter, prevUrl = null, nextUrl = null, id } = Astro.props;
 const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
 const isSpanish = Astro.url.pathname.startsWith("/es/");
-const isPupilArticle = Astro.url.pathname.includes("webgl-eye-02-pupil");
-const mobileHint = isPupilArticle
+const hasMobileModelControls = ["webgl-eye-02-pupil", "webgl-eye-03-lens"]
+  .some(slug => Astro.url.pathname.includes(slug));
+const mobileHint = hasMobileModelControls
   ? (isSpanish
     ? "Desliza lateralmente sobre los modelos para girarlos. Los controles están debajo."
     : "Swipe sideways on the models to rotate them. Use the controls below.")
@@ -20,7 +22,7 @@ const mobileHint = isPupilArticle
 ---
 
 <Layout title={frontmatter.title} description={frontmatter.description} image={ogImage}>
-  <BlogFeatures client:load />
+  <BlogFeatures lang={isSpanish ? 'es' : 'en'} client:load />
 
   <div class="md:hidden relative h-0 z-40">
     <div class="absolute top-[60px] inset-x-0 bg-amber-500/10 backdrop-blur-md border-y border-amber-500/20 text-amber-600 dark:text-amber-400 px-4 py-2.5 text-xs font-medium text-center">
@@ -52,6 +54,7 @@ const mobileHint = isPupilArticle
   >
     <BlogToc />
 
+    {!frontmatter.published && <p class="not-prose text-sm text-muted-foreground mb-4" data-unpublished-preview>{isSpanish ? 'Vista previa · Sin publicar' : 'Preview · Unpublished'}</p>}
     <div class="mb-4">
       <PretextText
         client:load
@@ -74,6 +77,7 @@ const mobileHint = isPupilArticle
         />
       )
     }
+    {Astro.url.pathname.includes('/webgl-eye-0') && <EyeSeriesNav />}
     <div class="h-[1px] w-full bg-border opacity-50 mb-8"></div>
     <div class="font-sans leading-relaxed">
       <slot />

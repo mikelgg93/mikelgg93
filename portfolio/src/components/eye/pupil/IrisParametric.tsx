@@ -1,3 +1,4 @@
+import { eyeText } from "../earlyText";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -5,7 +6,12 @@ import { createIrisScene, type IrisScene } from "./irisScene";
 // Parametric iris: drive the pupil and scene brightness by hand and read the
 // light that reaches the retina (geometric area, trolands, and the effective
 // area once the Stiles-Crawford edge falloff is included).
-export default function IrisParametric() {
+export default function IrisParametric({
+	lang = "en",
+}: {
+	lang?: "en" | "es";
+}) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
 
@@ -71,7 +77,7 @@ export default function IrisParametric() {
 			<div className="pupil-metrics absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-3 gap-2 pointer-events-none">
 				<div className="bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Pupil area (A)
+						{t("Pupil area (A)")}
 					</div>
 					<div className="text-lg font-extrabold text-foreground">
 						{area.toFixed(1)}{" "}
@@ -83,8 +89,8 @@ export default function IrisParametric() {
 				<div className="bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						{stilesCrawford
-							? "SCE-weighted illuminance"
-							: "Retinal illuminance"}
+							? t("SCE-weighted illuminance")
+							: t("Retinal illuminance")}
 					</div>
 					<div className="text-lg font-extrabold text-amber-500">
 						{fmt(stilesCrawford ? effTrolands : trolands)}{" "}
@@ -95,7 +101,7 @@ export default function IrisParametric() {
 				</div>
 				<div className="col-span-2 md:col-span-1 bg-card/80 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						SCE-weighted area / area
+						{t("SCE-weighted area / area")}
 					</div>
 					<div className="text-lg font-extrabold text-emerald-500">
 						{(scEff * 100).toFixed(0)}
@@ -110,14 +116,14 @@ export default function IrisParametric() {
 			<div className="pupil-controls absolute bottom-4 left-1/2 md:-translate-x-1/2 z-20 flex flex-col gap-2.5 bg-card/80 backdrop-blur-md border border-border p-3.5 rounded-2xl shadow-xl w-11/12 max-w-lg">
 				<div className="flex items-center gap-3">
 					<span className="text-xs font-semibold text-foreground min-w-[92px]">
-						Pupil{" "}
+						{t("Pupil")}{" "}
 						<span className="font-mono text-primary font-bold">
 							{diameter.toFixed(1)} mm
 						</span>
 					</span>
 					<input
 						type="range"
-						aria-label="Pupil diameter"
+						aria-label={t("Pupil diameter")}
 						min="2"
 						max="8"
 						step="0.1"
@@ -128,12 +134,12 @@ export default function IrisParametric() {
 				</div>
 				<div className="flex items-center gap-3">
 					<span className="text-xs font-semibold text-foreground min-w-[92px]">
-						Light{" "}
+						{t("Light")}{" "}
 						<span className="font-mono text-amber-500 font-bold">{fmt(L)}</span>
 					</span>
 					<input
 						type="range"
-						aria-label="Scene luminance"
+						aria-label={t("Scene luminance")}
 						min="-2"
 						max="4"
 						step="0.05"
@@ -147,18 +153,18 @@ export default function IrisParametric() {
 						onClick={() => setStilesCrawford(!stilesCrawford)}
 						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${stilesCrawford ? "bg-emerald-500 text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
 					>
-						Stiles-Crawford {stilesCrawford ? "on" : "off"}
+						Stiles-Crawford {stilesCrawford ? t("on") : t("off")}
 					</button>
 					<select
-						aria-label="Iris pigment"
+						aria-label={t("Iris pigment")}
 						value={pigment}
 						onChange={(e) => setPigment(parseInt(e.target.value, 10))}
 						className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
 					>
-						<option value={0}>Brown</option>
-						<option value={1}>Hazel</option>
-						<option value={2}>Blue</option>
-						<option value={3}>Albino</option>
+						<option value={0}>{t("Brown")}</option>
+						<option value={1}>{t("Hazel")}</option>
+						<option value={2}>{t("Blue")}</option>
+						<option value={3}>{t("Albino")}</option>
 					</select>
 				</div>
 			</div>

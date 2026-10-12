@@ -1,7 +1,10 @@
+import "./cornea.css";
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 
 // A shared curvature proxy drives the colors and ring spacing.
@@ -123,7 +126,8 @@ function buildCornea() {
 	return geometry;
 }
 
-export default function CorneaPlacido() {
+export default function CorneaPlacido({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -135,7 +139,7 @@ export default function CorneaPlacido() {
 		camera.position.set(-16, 0, 0.2); // looking straight down the optical axis
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setClearColor(0x000000, 0);
 		mountRef.current.appendChild(renderer.domElement);
 
@@ -174,34 +178,19 @@ export default function CorneaPlacido() {
 
 		if (canvasRef.current) drawPlacido(canvasRef.current);
 
-		let animationFrameId: number;
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-			orbit.update();
-			renderer.render(scene, camera);
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: Number(camera.position.x.toFixed(3)),
-							y: Number(camera.position.y.toFixed(3)),
-							z: Number(camera.position.z.toFixed(3)),
-						},
-					},
-					target: {
-						x: Number(orbit.target.x.toFixed(3)),
-						y: Number(orbit.target.y.toFixed(3)),
-						z: Number(orbit.target.z.toFixed(3)),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
+		const loop = createDemoLoop(mountRef.current, {
+			controls: orbit,
+			draw: () => {
+				renderer.render(scene, camera);
+				return false;
+			},
+			inspect: () => ({
+				model: "Curvature-based Placido approximation",
+				geometricalReflection: false,
+				camera: camera.position.toArray(),
+				target: orbit.target.toArray(),
+			}),
+		});
 
 		const resizeObserver = observeThreeResize(
 			mountRef.current,
@@ -211,7 +200,7 @@ export default function CorneaPlacido() {
 
 		return () => {
 			resizeObserver.disconnect();
-			cancelAnimationFrame(animationFrameId);
+			loop.dispose();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
 			}
@@ -222,27 +211,28 @@ export default function CorneaPlacido() {
 	}, []);
 
 	return (
-		<div className="relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
-			<div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
+		<div className="cornea-demo relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
+			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
-					Topography
+					{t("Topography")}
 				</span>
 				<div className="flex items-center gap-2 text-xs font-bold text-foreground">
 					<span
 						className="w-3 h-3 rounded-full border-2 border-foreground"
 						style={{ background: "linear-gradient(to right, blue, red)" }}
 					></span>{" "}
-					Steeper = redder
+					{t("Steeper = redder")}
 				</div>
 				<div className="text-[10px] text-muted-foreground max-w-[200px] mt-1">
-					The rings approximate curvature changes. Red marks steeper regions in
-					this demo’s color key; no reflected rays are traced.
+					{t(
+						"The rings approximate curvature changes. Red marks steeper regions in this demo’s color key; no reflected rays are traced.",
+					)}
 				</div>
 			</div>
 
-			<div className="absolute top-4 right-4 z-20 flex flex-col items-center bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg pointer-events-none">
+			<div className="cornea-inset absolute top-4 right-4 z-20 flex flex-col items-center bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg pointer-events-none">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/50 pb-1 w-full text-center mb-2">
-					Placido approximation
+					{t("Placido approximation")}
 				</span>
 				<div className="relative bg-black rounded-full overflow-hidden border border-border/50 shadow-inner w-[130px] h-[130px]">
 					<canvas
@@ -256,7 +246,7 @@ export default function CorneaPlacido() {
 
 			<div
 				ref={mountRef}
-				className="absolute inset-0 cursor-grab active:cursor-grabbing"
+				className="cornea-scene absolute inset-0 cursor-grab active:cursor-grabbing"
 			/>
 		</div>
 	);

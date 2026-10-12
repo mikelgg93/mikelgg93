@@ -1,6 +1,6 @@
 ---
 import { Image } from "astro:assets";
-import { getCollection } from "astro:content";
+import { getVisiblePosts } from "@/lib/blog";
 import { Clock } from "lucide-react";
 import CitationsData from "public/citations.json";
 import Resume from "public/resume.json";
@@ -9,7 +9,7 @@ import Layout from "@/layouts/Layout.astro";
 
 const { name, summary } = Resume.basics;
 
-const posts = await getCollection("blog");
+const posts = await getVisiblePosts();
 const sortedPosts = posts
 	.filter((p) => !p.data.lang || p.data.lang === "en")
 	.sort(

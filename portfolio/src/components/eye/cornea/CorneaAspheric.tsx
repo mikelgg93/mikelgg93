@@ -1,7 +1,10 @@
+import "./cornea.css";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 import { conicAperture, conicSag } from "./conic";
 
@@ -90,7 +93,12 @@ function sphereProfile(planeYZ: boolean) {
 	return new THREE.BufferGeometry().setFromPoints(pts);
 }
 
-export default function CorneaAspheric() {
+export default function CorneaAspheric({
+	lang = "en",
+}: {
+	lang?: "en" | "es";
+}) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const [preset, setPreset] = useState(PRESETS[0]!);
 	const updateRef = useRef<((q: number, hex: number) => void) | null>(null);
@@ -100,7 +108,7 @@ export default function CorneaAspheric() {
 
 		const scene = new THREE.Scene();
 		const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-		camera.position.set(6, 4, 18); // three-quarter view that shows the edge profile
+		camera.position.set(15, 3, 8); // oblique profile exposes the change in sag
 
 		scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 		const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -108,14 +116,14 @@ export default function CorneaAspheric() {
 		scene.add(dirLight);
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setClearColor(0x000000, 0);
 		mountRef.current.appendChild(renderer.domElement);
 
 		const controls = new OrbitControls(camera, renderer.domElement);
 		controls.enableDamping = true;
 		controls.dampingFactor = 0.05;
-		controls.target.set(0, 0, 0);
+		controls.target.set(0, 0, 1);
 
 		const resizeObserver = observeThreeResize(
 			mountRef.current,
@@ -146,9 +154,10 @@ export default function CorneaAspheric() {
 
 		// Fixed dashed reference: where a sphere (Q = 0) would sit.
 		const refMat = new THREE.LineDashedMaterial({
-			color: 0xffffff,
+			color: 0xb77925,
 			transparent: true,
-			opacity: 0.5,
+			opacity: 0.95,
+			depthTest: false,
 			dashSize: 0.25,
 			gapSize: 0.15,
 		});
@@ -158,44 +167,34 @@ export default function CorneaAspheric() {
 			scene.add(line);
 		});
 
+		let currentQ = preset.q;
 		updateRef.current = (q: number, hex: number) => {
+			currentQ = q;
 			const newGeo = buildGeometry(q, hex);
 			mesh.geometry.dispose();
 			mesh.geometry = newGeo;
 			wire.geometry = newGeo; // mesh wireframe shares the surface geometry
+			loop.invalidate();
 		};
 
-		let animationFrameId: number;
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-			controls.update();
-			renderer.render(scene, camera);
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: +camera.position.x.toFixed(3),
-							y: +camera.position.y.toFixed(3),
-							z: +camera.position.z.toFixed(3),
-						},
-					},
-					target: {
-						x: +controls.target.x.toFixed(3),
-						y: +controls.target.y.toFixed(3),
-						z: +controls.target.z.toFixed(3),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
+		const loop = createDemoLoop(mountRef.current, {
+			controls: controls,
+			draw: () => {
+				renderer.render(scene, camera);
+				return false;
+			},
+			inspect: () => ({
+				model: "Conic surface",
+				radiusMm: R,
+				q: currentQ,
+				apertureMm: conicAperture(MAX_R, R, R, currentQ),
+				camera: camera.position.toArray(),
+				target: controls.target.toArray(),
+			}),
+		});
 
 		return () => {
-			cancelAnimationFrame(animationFrameId);
+			loop.dispose();
 			resizeObserver.disconnect();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
@@ -213,13 +212,13 @@ export default function CorneaAspheric() {
 	}, [preset]);
 
 	return (
-		<div className="relative w-full h-[450px] md:h-[550px] bg-transparent overflow-hidden rounded-lg group">
-			<div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[240px]">
+		<div className="cornea-demo relative w-full h-[450px] md:h-[550px] bg-transparent overflow-hidden rounded-lg group">
+			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[240px]">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/50 pb-1 w-full text-center mb-1">
-					Asphericity (Q)
+					{t("Asphericity (Q)")}
 				</span>
 				<div className="flex justify-between w-full text-xs">
-					<span className="font-bold">Conic constant Q</span>
+					<span className="font-bold">{t("Conic constant Q")}</span>
 					<span
 						className="font-mono font-bold"
 						style={{ color: `#${preset.hex.toString(16)}` }}
@@ -228,15 +227,15 @@ export default function CorneaAspheric() {
 					</span>
 				</div>
 				<div className="text-[10px] text-muted-foreground mt-1">
-					{preset.note}
+					{t(preset.note)}
 				</div>
 				<div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border/40 w-full">
-					<span className="w-4 border-t border-dashed border-white/70 inline-block"></span>{" "}
-					sphere reference
+					<span className="w-4 border-t border-dashed border-[#b77925] inline-block"></span>{" "}
+					{t("sphere reference")}
 				</div>
 			</div>
 
-			<div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2 bg-card/80 backdrop-blur-md border border-border p-2 rounded-2xl shadow-xl">
+			<div className="cornea-actions absolute bottom-4 md:left-1/2 md:-translate-x-1/2 z-20 flex gap-2 bg-card/80 backdrop-blur-md border border-border p-2 rounded-2xl shadow-xl">
 				{PRESETS.map((p) => (
 					<button
 						key={p.id}
@@ -248,14 +247,14 @@ export default function CorneaAspheric() {
 								: undefined
 						}
 					>
-						{p.label}
+						{t(p.label)}
 					</button>
 				))}
 			</div>
 
 			<div
 				ref={mountRef}
-				className="w-full h-full cursor-grab active:cursor-grabbing"
+				className="cornea-scene w-full h-full cursor-grab active:cursor-grabbing"
 			/>
 		</div>
 	);

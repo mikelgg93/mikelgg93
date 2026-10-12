@@ -1,5 +1,6 @@
 ---
 title: "Modelling the eye II: The pupil"
+published: true
 description: "Part 2 of the WebGL eye series. We build a dynamic pupil, program the light reflex, and connect real eye-tracking hardware."
 date: 2026-08-10
 author: "Miguel García"
@@ -8,21 +9,18 @@ lang: "en"
 image: "/images/blog/pupil-banner.gif"
 ---
 
-import { Code } from 'astro:components';
+import PublishedPost from "@/components/blog/PublishedPost.astro";
+
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import { pupilSources } from '../../components/eye/earlySources';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
 import PupilStep1 from '../../components/eye/pupil/PupilStep1';
 import IrisParametric from '../../components/eye/pupil/IrisParametric';
 import PupilStep2 from '../../components/eye/pupil/PupilStep2';
 import PupilReflex from '../../components/eye/pupil/PupilReflex';
 
-import PupilStep1Code from '../../components/eye/pupil/PupilStep1.tsx?raw';
-import IrisParametricCode from '../../components/eye/pupil/IrisParametric.tsx?raw';
-import PupilStep2Code from '../../components/eye/pupil/PupilStep2.tsx?raw';
-import PupilReflexCode from '../../components/eye/pupil/PupilReflex.tsx?raw';
 import PupilHardwareSync from '../../components/eye/pupil/PupilHardwareSync';
-import PupilHardwareSyncCode from '../../components/eye/pupil/PupilHardwareSync.tsx?raw';
 import NervePathway from '../../components/eye/pupil/NervePathway';
-import NervePathwayCode from '../../components/eye/pupil/NervePathway.tsx?raw';
 
 In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, the fixed front lens of the eye. But a camera needs more than a lens: it needs an aperture, an adjustable hole that controls how much light gets in. In the eye that hole is the **pupil**, and the colored ring around it, the **iris**, is the muscle that opens and closes it.
 
@@ -58,7 +56,7 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
     <PupilStep1 client:visible />
   </div>
   <div slot="code">
-    <Code code={PupilStep1Code} lang="tsx" theme="github-dark" />
+    <SourceFiles files={pupilSources.step1} />
   </div>
 </InteractiveViewer>
 
@@ -66,7 +64,7 @@ Drag the diameter slider to open and close the pupil, turn on the muscle map to 
 
 Why does pupil size matter so much? Because the amount of light reaching the retina depends on the *area* of the hole. Small changes in pupil size have a big effect: going from a $2\ \text{mm}$ pupil in sunlight to an $8\ \text{mm}$ pupil in the dark is a 4x change in diameter, but a 16x change in area. However, area is not the whole story. The **Stiles-Crawford effect of the first kind (SCE-I)** shows that light entering through the *edge* of a wide pupil is less effective than light entering through the center, so the *effective* pupil area grows more slowly than the geometric area. This happens because the retina is not a flat, uniform sensor array; its cones act like tiny fiber optics pointed toward the pupil center. The Stiles-Crawford effect (Stiles & Crawford, 1933) is primarily associated with cone-mediated vision, so its influence is much less relevant under fully scotopic, rod-dominated conditions.
 
-Beyond just letting light in, the pupil acts as the eye's aperture for sharpness. The optical quality of the eye is governed by its Point Spread Function (PSF) and Modulation Transfer Function (MTF), both of which are tightly coupled to pupil diameter. If the pupil is too small, diffraction blurs the image; if it is too large, peripheral optical aberrations from the cornea and lens ruin the focus. Pupil diameters around 3 to 4 mm often offer a useful balance between diffraction and aberrations, but the optimum depends on the eye and the visual task; resting size is not fixed.
+Beyond just letting light in, the pupil acts as the eye's aperture for sharpness. The **point spread function (PSF)** describes how a point of light spreads into an image; the **modulation transfer function (MTF)** describes how much contrast survives at different detail sizes. Both depend on pupil diameter. If the pupil is too small, diffraction blurs the image; if it is too large, peripheral optical aberrations from the cornea and lens ruin the focus. Pupil diameters around 3 to 4 mm often offer a useful balance between diffraction and aberrations, but the optimum depends on the eye and the visual task; resting size is not fixed.
 
 > [!NOTE] 
 > **Does iris color affect how much light enters?** 
@@ -93,7 +91,7 @@ In the model below you set the pupil size and the scene brightness by hand and r
     <IrisParametric client:visible />
   </div>
   <div slot="code">
-    <Code code={IrisParametricCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={pupilSources.parametric} />
   </div>
 </InteractiveViewer>
 
@@ -110,7 +108,7 @@ The loop is a feedback controller, and like any real controller it is not instan
     <NervePathway client:visible />
   </div>
   <div slot="code">
-    <Code code={NervePathwayCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={pupilSources.pathway} />
   </div>
 </InteractiveViewer>
 
@@ -135,7 +133,7 @@ The model below pairs the pupil with an oscilloscope. The dashed line is the tar
     <PupilStep2 client:visible />
   </div>
   <div slot="code">
-    <Code code={PupilStep2Code} lang="tsx" theme="github-dark" />
+    <SourceFiles files={pupilSources.step2} />
   </div>
 </InteractiveViewer>
 
@@ -156,7 +154,7 @@ While the light reflex is the strongest driver of the pupil, it is not the only 
 
 Pupils often dilate during demanding cognitive tasks. Both sympathetic activity and reduced parasympathetic drive can contribute, with response size and timing depending on arousal, visual conditions, baseline pupil size and task structure (Beatty, 1982).
 
-UI designers, psychologists, and researchers use eye trackers to study pupil responses associated with cognitive demand. While some have proposed using pupillometry to monitor **workplace fatigue** or **cognitive overload** in high-stakes environments like surgical theaters or air traffic control, the reality is incredibly messy. The pupil light reflex is overwhelmingly stronger than cognitive responses. Separating tiny, task-evoked dilations (often just a fraction of a millimeter) from the massive fluctuations caused by ambient lighting changes, blinks, and screen glare in a real-world environment is exceptionally difficult. In controlled laboratory settings, however, by keeping lighting strictly constant and establishing a rigorous baseline, researchers can still reliably measure these subtle markers of mental effort. Despite these hurdles, advances in machine learning and robust signal processing are opening exciting new avenues, giving researchers optimism that reliable real-world cognitive monitoring may soon be within reach.
+UI designers, psychologists, and researchers use eye trackers to study pupil responses associated with cognitive demand. While some have proposed using pupillometry to monitor **workplace fatigue** or **cognitive overload** in high-stakes environments like surgical theaters or air traffic control, the reality is incredibly messy. The pupil light reflex is overwhelmingly stronger than cognitive responses. Separating tiny, task-evoked dilations (often just a fraction of a millimeter) from the massive fluctuations caused by ambient lighting changes, blinks, and screen glare in a real-world environment is exceptionally difficult. In controlled laboratory settings, however, by keeping lighting strictly constant and establishing a rigorous baseline, researchers can still reliably measure these subtle markers of mental effort.
 
 The pupil also changes size when you focus on something close to your face. This is called the **near triad**: your eyes converge (turn inward), your lenses accommodate (bulge to focus), and your pupils constrict. The neural pathway for this bypasses the pretectal nucleus, traveling from the visual cortex to the supraoculomotor area. Constricting the pupil when looking at something close increases your depth of field, exactly like stopping down a macro lens on a camera.
 
@@ -169,7 +167,7 @@ Here is everything together. Slide the scene brightness and watch the reflex fir
     <PupilReflex client:visible />
   </div>
   <div slot="code">
-    <Code code={PupilReflexCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={pupilSources.reflex} />
   </div>
 </InteractiveViewer>
 
@@ -194,17 +192,23 @@ Make sure your computer or iPad is on the same Wi-Fi network as your eye tracker
     <PupilHardwareSync client:visible />
   </div>
   <div slot="code">
-    <Code code={PupilHardwareSyncCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={pupilSources.neon} />
   </div>
 </InteractiveViewer>
 
+<PublishedPost id="webgl-eye-03-lens">
+
+Continue with [Part 3: The lens](/blog/webgl-eye-03-lens), where the ciliary muscle and crystalline lens bring near objects into focus.
+
+</PublishedPost>
+
 ## References
 
-1. **Moon, P., & Spencer, D. (1944)**. *On the Stiles-Crawford effect and the design of telescopes*. Journal of the Optical Society of America, 34(6), 319-329. [DOI: 10.1364/JOSA.34.000319](https://doi.org/10.1364/JOSA.34.000319)
+1. **Moon, P., & Spencer, D. (1944)**. *On the Stiles-Crawford Effect*. Journal of the Optical Society of America, 34(6), 319-329. [DOI: 10.1364/JOSA.34.000319](https://doi.org/10.1364/JOSA.34.000319)
 2. **Watson, A. B., & Yellott, J. I. (2012)**. *A unified formula for light-adapted pupil size*. Journal of Vision, 12(10):12, 1-16. [DOI: 10.1167/12.10.12](https://doi.org/10.1167/12.10.12)
 3. **Stiles, W. S., & Crawford, B. H. (1933)**. *The luminous efficiency of rays entering the eye pupil at different points*. Proceedings of the Royal Society of London B, 112(778), 428-450. [DOI: 10.1098/rspb.1933.0019](https://doi.org/10.1098/rspb.1933.0019)
 4. **Loewenfeld, I. E. (1993)**. *The Pupil: Anatomy, Physiology, and Clinical Applications*. Wayne State University Press. A foundational medical text on autonomic tone and pupillary reflex pathways.
-5. **Stark, L. (1959)**. *Stability, oscillations, and noise in the human pupil servomechanism*. Proceedings of the IRE, 47(11), 1925-1939. [DOI: 10.1109/JRPROC.1959.287136](https://doi.org/10.1109/JRPROC.1959.287136). The seminal work on the non-linear dynamics and feedback control models of the pupillary light reflex.
+5. **Stark, L. (1959)**. *Stability, oscillations, and noise in the human pupil servomechanism*. Proceedings of the IRE, 47(11), 1925-1939. [DOI: 10.1109/JRPROC.1959.287206](https://doi.org/10.1109/JRPROC.1959.287206). The seminal work on the non-linear dynamics and feedback control models of the pupillary light reflex.
 6. **Beatty, J. (1982)**. *Task-evoked pupillary responses, processing load, and the structure of information processing*. Psychological Bulletin, 91(2), 276-292. [DOI: 10.1037/0033-2909.91.2.276](https://doi.org/10.1037/0033-2909.91.2.276). A rigorous review of pupillometry for measuring cognitive workload and stress.
 7. **Troland, L. T. (1917)**. *On the measurement of visual stimulation intensities*. Journal of Experimental Psychology, 2(1), 1-33. [DOI: 10.1037/h0071652](https://doi.org/10.1037/h0071652)
 8. **McDougal & Gamlin (2015)**. [*Autonomic control of the eye*](https://pmc.ncbi.nlm.nih.gov/articles/PMC4919817/).

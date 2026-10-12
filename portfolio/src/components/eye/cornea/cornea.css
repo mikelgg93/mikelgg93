@@ -1,0 +1,25 @@
+/* Preserve desktop overlays; give the geometry its own space on phones. */
+@media (max-width: 767px) {
+	.cornea-demo { display: flex; flex-direction: column; height: auto; min-width: 0; }
+	.cornea-demo > .cornea-metrics,
+	.cornea-demo > .cornea-actions,
+	.cornea-demo > .cornea-inset,
+	.cornea-demo > .cornea-toggle,
+	.cornea-demo > .cornea-panel {
+		position: relative; inset: auto; transform: none; translate: none;
+		width: calc(100% - 24px); max-width: none; margin: 12px;
+	}
+	.cornea-metrics { order: 0; }
+	.cornea-demo > .cornea-scene {
+		position: relative; inset: auto; order: 1; flex: none;
+		width: 100%; height: auto; aspect-ratio: 1; min-height: 260px; max-height: 360px;
+	}
+	.cornea-inset { order: 2; }
+	.cornea-actions, .cornea-toggle { order: 3; }
+	.cornea-panel { order: 4; }
+	.cornea-panel[data-open="false"] { display: none; }
+	.cornea-actions { flex-wrap: wrap; justify-content: center; }
+	.cornea-demo button, .cornea-toggle { min-height: 44px; }
+	.cornea-demo input[type="range"] { min-height: 24px; }
+	.cornea-demo canvas { touch-action: pan-y !important; }
+}

@@ -1,13 +1,15 @@
+import { eyeText } from "../earlyText";
 import "./pupil.css";
 import { Html, OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
 
-function PathwayScene() {
-	const { scene } = useThree();
+function PathwayScene({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
+	const { scene, camera, gl, invalidate } = useThree();
 	const uniformsListRef = useRef<any[]>([]);
 
 	useEffect(() => {
@@ -184,19 +186,31 @@ function PathwayScene() {
 		createTract([ganglionL, eyeL], colMotor, 0.04, -0.8);
 		createTract([ganglionR, eyeR], colMotor, 0.04, -0.8);
 
+		const loop = createDemoLoop(gl.domElement, {
+			continuous: (reducedMotion) => !reducedMotion,
+			draw: (_dt, elapsed, reducedMotion) => {
+				for (const u of uniformsListRef.current)
+					u.uTime.value = reducedMotion ? 0 : elapsed;
+				invalidate();
+				return false;
+			},
+			inspect: () => ({
+				model: "Schematic pupillary light reflex pathway",
+				afferent: "Retina → optic nerve/chiasm/tract → pretectal nuclei",
+				efferent:
+					"Edinger–Westphal → CN III → ciliary ganglion → short ciliary nerves → sphincter",
+				bilateralProjection: true,
+				pulseSpeed: "Illustrative; not measured neural conduction",
+				camera: camera.position.toArray(),
+			}),
+		});
 		return () => {
+			loop.dispose();
 			scene.remove(group);
 			disposeThree(group);
 			uniformsListRef.current = [];
 		};
-	}, [scene]);
-
-	useFrame(({ clock }) => {
-		const t = clock.getElapsedTime();
-		for (const u of uniformsListRef.current) {
-			u.uTime.value = t;
-		}
-	});
+	}, [scene, camera, gl, invalidate]);
 
 	return (
 		<>
@@ -209,61 +223,66 @@ function PathwayScene() {
 			<Html position={[0, 0.4, 2]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
 					<span className="md:hidden">2</span>
-					<span className="hidden md:inline">Optic Chiasm</span>
+					<span className="hidden md:inline">{t("Optic Chiasm")}</span>
 				</div>
 			</Html>
 			<Html position={[-0.8, 0.3, 0]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
 					<span className="md:hidden">3</span>
-					<span className="hidden md:inline">Pretectal Nucleus</span>
+					<span className="hidden md:inline">{t("Pretectal Nucleus")}</span>
 				</div>
 			</Html>
 			<Html position={[-0.4, 0.6, -0.4]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
 					<span className="md:hidden">4</span>
-					<span className="hidden md:inline">Edinger-Westphal Nucleus</span>
+					<span className="hidden md:inline">
+						{t("Edinger-Westphal Nucleus")}
+					</span>
 				</div>
 			</Html>
 			<Html position={[-2.3, -0.3, 3]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
 					<span className="md:hidden">5</span>
-					<span className="hidden md:inline">Ciliary Ganglion</span>
+					<span className="hidden md:inline">{t("Ciliary Ganglion")}</span>
 				</div>
 			</Html>
 		</>
 	);
 }
 
-export default function NervePathway() {
+export default function NervePathway({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	return (
 		<div className="pupil-demo relative w-full h-[400px] bg-transparent overflow-hidden rounded-lg">
 			<div className="pupil-metrics absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-blue-500"></div>
 					<span className="text-xs text-muted-foreground font-medium">
-						Sensory (Optic Nerve)
+						{t("Sensory (Optic Nerve)")}
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-purple-500"></div>
 					<span className="text-xs text-muted-foreground font-medium">
-						Interneurons
+						{t("Interneurons")}
 					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<div className="w-3 h-3 rounded-full bg-emerald-500"></div>
 					<span className="text-xs text-muted-foreground font-medium">
-						Motor (CN III → ganglion → short ciliary nerves)
+						{t("Motor (CN III → ganglion → short ciliary nerves)")}
 					</span>
 				</div>
 			</div>
 
 			<div className="pupil-scene w-full h-full cursor-grab active:cursor-grabbing">
 				<Canvas
+					frameloop="demand"
+					dpr={[1, 2]}
 					className="pupil-canvas"
 					camera={{ position: [0, 8, 10], fov: 35 }}
 				>
-					<PathwayScene />
+					<PathwayScene lang={lang} />
 					<OrbitControls
 						enableDamping
 						dampingFactor={0.05}
@@ -273,13 +292,13 @@ export default function NervePathway() {
 			</div>
 			<ol
 				className="pupil-controls grid grid-cols-2 gap-2 list-none p-0 text-xs text-muted-foreground md:hidden"
-				aria-label="Pathway labels"
+				aria-label={t("Pathway labels")}
 			>
 				<li>1. Retina</li>
-				<li>2. Optic Chiasm</li>
-				<li>3. Pretectal Nucleus</li>
-				<li>4. Edinger-Westphal Nucleus</li>
-				<li>5. Ciliary Ganglion</li>
+				<li>{t("2. Optic Chiasm")}</li>
+				<li>{t("3. Pretectal Nucleus")}</li>
+				<li>{t("4. Edinger-Westphal Nucleus")}</li>
+				<li>{t("5. Ciliary Ganglion")}</li>
 			</ol>
 		</div>
 	);

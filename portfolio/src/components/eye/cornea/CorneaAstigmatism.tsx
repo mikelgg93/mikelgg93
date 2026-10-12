@@ -1,11 +1,19 @@
+import "./cornea.css";
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 import { conicAperture, conicSag } from "./conic";
 
-export default function CorneaAstigmatism() {
+export default function CorneaAstigmatism({
+	lang = "en",
+}: {
+	lang?: "en" | "es";
+}) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -21,7 +29,7 @@ export default function CorneaAstigmatism() {
 		scene.add(dirLight);
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setClearColor(0x000000, 0);
 		mountRef.current.appendChild(renderer.domElement);
 
@@ -120,38 +128,27 @@ export default function CorneaAstigmatism() {
 		// XYZ axes (R = x, G = y, B = z), the notation from the original view.
 		mesh.add(new THREE.AxesHelper(6.5));
 
-		let animationFrameId: number;
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-			mesh.rotation.z += 0.004; // gentle spin so the oval reads clearly
-			controls.update();
-			renderer.render(scene, camera);
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: +camera.position.x.toFixed(3),
-							y: +camera.position.y.toFixed(3),
-							z: +camera.position.z.toFixed(3),
-						},
-					},
-					target: {
-						x: +controls.target.x.toFixed(3),
-						y: +controls.target.y.toFixed(3),
-						z: +controls.target.z.toFixed(3),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
+		const loop = createDemoLoop(mountRef.current, {
+			controls: controls,
+			continuous: (reducedMotion) => !reducedMotion,
+			draw: (dt, _elapsed, reducedMotion) => {
+				if (!reducedMotion) mesh.rotation.z += dt * 0.24;
+				renderer.render(scene, camera);
+				return false;
+			},
+			inspect: () => ({
+				model: "Biconic surface",
+				radiusXmm: Rx,
+				radiusYmm: Ry,
+				q: k,
+				apertureMm: maxR,
+				camera: camera.position.toArray(),
+				target: controls.target.toArray(),
+			}),
+		});
 
 		return () => {
-			cancelAnimationFrame(animationFrameId);
+			loop.dispose();
 			resizeObserver.disconnect();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
@@ -163,39 +160,39 @@ export default function CorneaAstigmatism() {
 	}, []);
 
 	return (
-		<div className="relative w-full h-[450px] md:h-[550px] flex flex-col items-center overflow-hidden rounded-lg group bg-transparent">
-			<div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg text-xs">
+		<div className="cornea-demo relative w-full h-[450px] md:h-[550px] flex flex-col items-center overflow-hidden rounded-lg group bg-transparent">
+			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg text-xs">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/50 pb-1 w-full text-center mb-1">
-					Toric Cornea
+					{t("Toric Cornea")}
 				</span>
 				<div className="flex items-center gap-2">
-					<span className="w-3 h-0.5 bg-red-500 inline-block"></span> X axis:
-					flat meridian (Rx = 7.8 mm)
+					<span className="w-3 h-0.5 bg-red-500 inline-block"></span>
+					{t("X axis: flat meridian (Rx = 7.8 mm)")}
 				</div>
 				<div className="flex items-center gap-2">
-					<span className="w-3 h-0.5 bg-green-500 inline-block"></span> Y axis:
-					steep meridian (Ry = 6.0 mm)
+					<span className="w-3 h-0.5 bg-green-500 inline-block"></span>
+					{t("Y axis: steep meridian (Ry = 6.0 mm)")}
 				</div>
 				<div className="flex items-center gap-2">
-					<span className="w-3 h-0.5 bg-blue-500 inline-block"></span> Z axis:
-					surface height
+					<span className="w-3 h-0.5 bg-blue-500 inline-block"></span>
+					{t("Z axis: surface height")}
 				</div>
 			</div>
 			<div className="absolute top-4 right-4 z-10 flex flex-col items-center gap-2 pointer-events-none bg-card/60 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/50 pb-1 w-full text-center">
-					Curvature
+					{t("Curvature")}
 				</span>
 				<span className="text-[10px] font-bold text-red-500/70 mt-1">
-					Steep
+					{t("Steep")}
 				</span>
 				<div className="w-4 h-24 rounded-full bg-gradient-to-b from-red-500 via-green-500 to-blue-500 shadow-inner ring-1 ring-white/10"></div>
 				<span className="text-[10px] font-bold text-blue-500/70 mb-1">
-					Flat
+					{t("Flat")}
 				</span>
 			</div>
 			<div
 				ref={mountRef}
-				className="w-full h-full cursor-grab active:cursor-grabbing"
+				className="cornea-scene w-full h-full cursor-grab active:cursor-grabbing"
 			/>
 		</div>
 	);

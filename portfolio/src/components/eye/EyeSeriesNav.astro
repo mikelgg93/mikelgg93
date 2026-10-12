@@ -1,0 +1,25 @@
+---
+import { getVisiblePosts } from "@/lib/blog";
+
+const es = Astro.url.pathname.startsWith('/es/');
+const visibleIds = new Set((await getVisiblePosts()).map(post => post.id));
+const parts = [
+  ['01-cornea', 'I · Cornea', 'I · Córnea'],
+  ['02-pupil', 'II · Pupil', 'II · Pupila'],
+  ['03-lens', 'III · Lens', 'III · Cristalino'],
+  ['04-retina', 'IV · Retina', 'IV · Retina'],
+  ['05-models', 'V · Models', 'V · Modelos'],
+] as const;
+const visibleParts = parts.filter(([slug]) => visibleIds.has(`webgl-eye-${slug}${es ? '-es' : ''}`));
+---
+<nav class="eye-series not-prose" aria-label={es ? 'Serie WebGL Eye' : 'WebGL Eye series'}>
+  <ol>
+    {visibleParts.map(([slug, en, spanish]) => <li><a href={`${es ? '/es' : ''}/blog/webgl-eye-${slug}/`} aria-current={Astro.url.pathname.includes(slug) ? 'page' : undefined}>{es ? spanish : en}</a></li>)}
+  </ol>
+</nav>
+<style>
+  .eye-series { margin: 0 0 1.5rem; font: 13px/1.5 var(--font-sans, sans-serif); }
+  ol { display: flex; flex-wrap: wrap; gap: .25rem 1rem; list-style: none; padding: 0; margin: 0; }
+  a { display: inline-block; padding-block: .5rem; color: var(--muted-foreground); text-decoration: underline; text-underline-offset: 4px; }
+  a[aria-current] { color: var(--foreground); font-weight: 700; text-decoration-thickness: 2px; }
+</style>

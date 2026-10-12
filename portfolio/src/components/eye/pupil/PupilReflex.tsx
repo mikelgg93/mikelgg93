@@ -1,3 +1,4 @@
+import { eyeText } from "../earlyText";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -10,7 +11,8 @@ const PIGMENTATION_MAP: Record<PigmentationType, number> = {
 	albino: 3,
 };
 
-export default function PupilReflex() {
+export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
 
@@ -64,7 +66,15 @@ export default function PupilReflex() {
 
 		const queue: { time: number; targetDiameter: number }[] = [];
 		let currentDiameter = 4.5;
-		let lastHud = 0;
+		let lastHud = -Infinity;
+		let debugState: Record<string, unknown> = {};
+		s.setDebug(() => ({
+			model: "First-order PLR",
+			latencySeconds: 0.22,
+			constrictionTauSeconds: 0.12,
+			dilationTauSeconds: 0.65,
+			...debugState,
+		}));
 
 		const pupilFromLuminance = (L: number, offset: number) => {
 			const d =
@@ -72,15 +82,15 @@ export default function PupilReflex() {
 			return Math.min(8, Math.max(2, d + offset));
 		};
 
-		s.setOnFrame((dt, elapsed) => {
+		s.setOnFrame((dt, elapsed, reducedMotion) => {
 			const now = performance.now() / 1000;
 			const p = paramsRef.current;
 			const isFlashing = now < p.flashUntilTime;
 			const L = isFlashing ? 10000 : p.luminance;
 
 			const targetSteadyD = pupilFromLuminance(L, p.baselineOffset);
-			queue.push({ time: now, targetDiameter: targetSteadyD });
-			const targetTime = now - 0.22;
+			queue.push({ time: elapsed, targetDiameter: targetSteadyD });
+			const targetTime = elapsed - 0.22;
 			while (queue.length && queue[0]!.time < targetTime - 0.5) queue.shift();
 			let delayedTargetD = currentDiameter;
 			for (let i = queue.length - 1; i >= 0; i--) {
@@ -103,10 +113,11 @@ export default function PupilReflex() {
 				}
 			}
 
-			const hippus =
-				0.12 * Math.sin(2 * Math.PI * 0.18 * elapsed) +
-				0.07 * Math.sin(2 * Math.PI * 0.35 * elapsed + 1.1) +
-				0.04 * Math.cos(2 * Math.PI * 0.48 * elapsed);
+			const hippus = reducedMotion
+				? 0
+				: 0.12 * Math.sin(2 * Math.PI * 0.18 * elapsed) +
+					0.07 * Math.sin(2 * Math.PI * 0.35 * elapsed + 1.1) +
+					0.04 * Math.cos(2 * Math.PI * 0.48 * elapsed);
 			const actualD = Math.min(8, Math.max(1.8, currentDiameter + hippus));
 
 			const area = (Math.PI * actualD * actualD) / 4;
@@ -133,22 +144,15 @@ export default function PupilReflex() {
 					scEfficiency,
 					kineticState,
 				});
-				const debugEl = mountRef.current
-					?.closest(".interactive-viewer")
-					?.querySelector(".debug-output");
-				if (debugEl)
-					(debugEl as HTMLElement).innerText = JSON.stringify(
-						{
-							actualDiameter: +actualD.toFixed(2),
-							steadyTarget: +targetSteadyD.toFixed(2),
-							luminance: +L.toFixed(1),
-							trolands: +trolands.toFixed(0),
-							effectiveTrolands: +effTrolands.toFixed(0),
-							kineticState,
-						},
-						null,
-						2,
-					);
+				debugState = {
+					actualDiameterMm: +actualD.toFixed(3),
+					steadyTargetMm: +targetSteadyD.toFixed(3),
+					luminanceCdM2: L,
+					trolands,
+					effectiveTrolands: effTrolands,
+					kineticState,
+					illustrativeHippus: !reducedMotion,
+				};
 			}
 		});
 
@@ -172,7 +176,7 @@ export default function PupilReflex() {
 			<div className="pupil-metrics absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 pointer-events-none">
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Pupil diameter
+						{t("Pupil diameter")}
 					</div>
 					<div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
 						<span className="text-xl font-extrabold text-primary">
@@ -181,12 +185,12 @@ export default function PupilReflex() {
 						<span className="text-xs text-muted-foreground">mm</span>
 					</div>
 					<div className="text-[10px] text-muted-foreground mt-0.5">
-						Target: {hud.steadyDiameter.toFixed(2)} mm
+						{t("Target:")} {hud.steadyDiameter.toFixed(2)} mm
 					</div>
 				</div>
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Retinal light
+						{t("Retinal light")}
 					</div>
 					<div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
 						<span className="text-xl font-extrabold text-amber-500">
@@ -199,12 +203,12 @@ export default function PupilReflex() {
 					<div className="text-[10px] text-muted-foreground mt-0.5">
 						{stilesCrawford
 							? `Stiles-Crawford (${(hud.scEfficiency * 100).toFixed(0)}%)`
-							: "Geometric E = L·A"}
+							: t("Geometric E = L·A")}
 					</div>
 				</div>
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Scene luminance
+						{t("Scene luminance")}
 					</div>
 					<div className="flex flex-wrap items-baseline gap-1.5 mt-0.5">
 						<span className="text-xl font-extrabold text-yellow-500">
@@ -215,13 +219,13 @@ export default function PupilReflex() {
 				</div>
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-						Reflex state
+						{t("Reflex state")}
 					</div>
 					<div className="text-sm font-bold text-emerald-500 mt-1 truncate">
-						{hud.kineticState}
+						{t(hud.kineticState)}
 					</div>
 					<div className="text-[10px] text-muted-foreground mt-0.5">
-						Model delay 220 ms
+						{t("Model delay 220 ms")}
 					</div>
 				</div>
 			</div>
@@ -233,7 +237,7 @@ export default function PupilReflex() {
 						<div className="flex flex-wrap gap-1 justify-between items-center text-xs font-semibold">
 							<span className="text-foreground flex items-center gap-1.5">
 								<span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />{" "}
-								Scene luminance (L)
+								{t("Scene luminance (L)")}
 							</span>
 							<span className="font-mono text-yellow-500 font-bold">
 								{luminance.toFixed(1)} cd/m²
@@ -241,7 +245,7 @@ export default function PupilReflex() {
 						</div>
 						<input
 							type="range"
-							aria-label="Scene luminance"
+							aria-label={t("Scene luminance")}
 							min="-2"
 							max="4"
 							step="0.05"
@@ -250,10 +254,10 @@ export default function PupilReflex() {
 							className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-yellow-500"
 						/>
 						<div className="flex justify-between text-[9px] text-muted-foreground font-mono">
-							<span>starlight</span>
-							<span>moonlight</span>
-							<span>indoor</span>
-							<span>sunlight</span>
+							<span>{t("starlight")}</span>
+							<span>{t("moonlight")}</span>
+							<span>{t("indoor")}</span>
+							<span>{t("sunlight")}</span>
 						</div>
 					</div>
 					<button
@@ -261,7 +265,7 @@ export default function PupilReflex() {
 						disabled={isFlashActive}
 						className={`px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${isFlashActive ? "bg-yellow-400 text-black" : "bg-primary text-primary-foreground hover:opacity-90"}`}
 					>
-						{isFlashActive ? "Flashing..." : "Penlight flash"}
+						{isFlashActive ? t("Flashing...") : t("Penlight flash")}
 					</button>
 				</div>
 
@@ -269,7 +273,7 @@ export default function PupilReflex() {
 					<div className="flex flex-col gap-1">
 						<div className="flex justify-between items-center text-xs">
 							<span className="text-muted-foreground text-[11px]">
-								Baseline offset
+								{t("Baseline offset")}
 							</span>
 							<span className="font-mono text-primary font-bold text-[11px]">
 								{baselineOffset >= 0
@@ -280,7 +284,7 @@ export default function PupilReflex() {
 						</div>
 						<input
 							type="range"
-							aria-label="Baseline pupil offset"
+							aria-label={t("Baseline pupil offset")}
 							min="-1"
 							max="1"
 							step="0.1"
@@ -294,7 +298,7 @@ export default function PupilReflex() {
 							Stiles-Crawford
 						</span>
 						<button
-							aria-label="Stiles-Crawford effect"
+							aria-label={t("Stiles-Crawford effect")}
 							aria-pressed={stilesCrawford}
 							onClick={() => setStilesCrawford(!stilesCrawford)}
 							className="inline-flex h-5 w-9 items-center justify-center"
@@ -310,20 +314,20 @@ export default function PupilReflex() {
 					</div>
 					<div className="flex items-center justify-between bg-background/50 p-2 rounded-xl border border-border">
 						<span className="text-[11px] font-medium text-foreground">
-							Iris pigment
+							{t("Iris pigment")}
 						</span>
 						<select
-							aria-label="Iris pigment"
+							aria-label={t("Iris pigment")}
 							value={pigmentation}
 							onChange={(e) =>
 								setPigmentation(e.target.value as PigmentationType)
 							}
 							className="bg-card text-foreground font-semibold text-[11px] px-2 py-1 rounded-lg border border-border focus:outline-none cursor-pointer"
 						>
-							<option value="hazel">Hazel</option>
-							<option value="brown">Brown</option>
-							<option value="blue">Blue</option>
-							<option value="albino">Albino</option>
+							<option value="hazel">{t("Hazel")}</option>
+							<option value="brown">{t("Brown")}</option>
+							<option value="blue">{t("Blue")}</option>
+							<option value="albino">{t("Albino")}</option>
 						</select>
 					</div>
 				</div>

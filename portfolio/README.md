@@ -20,6 +20,34 @@ The following scripts are available in `package.json` to manage the development 
 *   **`bun run build`**: Builds the static site for production to the `dist/` directory.
 *   **`bun run preview`**: Starts a local server to preview the production build.
 
+## Publishing posts
+
+Each post in `src/content/blog/` has a frontmatter flag:
+
+```yaml
+published: false
+```
+
+Set `published: true` when the article is ready. An omitted flag defaults to
+`false`. English and Spanish files each have their own flag.
+
+- `bun run build` includes only published posts in article routes, listings,
+  navigation, social preview images and article source panels.
+- `bun run dev` includes unpublished posts for editing.
+- `bun run build:drafts`, then `bun run preview -- --host 0.0.0.0`, creates a
+  shareable review build including drafts. Draft articles show an unpublished
+  label and review pages request `noindex`. This replaces `dist/`; run the normal
+  `bun run build` again before deploying the public site.
+
+This controls publication of the article pages, not access to the public Git
+repository or static assets. A review server shared through a tunnel includes drafts.
+
+The slides at `/presentations/webgl-eye/` and their article links are preview-only:
+they are included in development and draft builds, and omitted from normal
+production builds even after Part III is published. `bun run build:presentation`
+exports an offline copy to `local-previews/webgl-eye/standalone.html`, outside the
+deployment directory. That local output is ignored by Git.
+
 ## Development Conventions
 
 ### Project Structure
