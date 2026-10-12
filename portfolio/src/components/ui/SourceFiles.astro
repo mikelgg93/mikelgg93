@@ -9,7 +9,6 @@ const es = lang === 'es';
 ---
 <source-files data-loading={es ? "Cargando…" : "Loading…"} data-load-failed={es ? "No se pudo cargar; abre el archivo o vuelve a desplegarlo." : "Could not load; open the file or close and reopen it to retry."} data-copied={es ? 'Copiado' : 'Copied'} data-failed={es ? 'No se pudo copiar; selecciona el código.' : 'Copy failed; select the code instead.'}>
   <p class="source-intro">{es ? 'Cada bloque es un archivo independiente. Conserva estas rutas bajo src/components/; se incluyen los módulos compartidos y los estilos.' : 'Each block is a separate file. Keep these paths under src/components/; shared modules and styles are included.'}</p>
-  <p class="source-intro">{es ? 'Para ejecutar las demos completas, abre portfolio/ en el ' : 'To run the complete demos, open portfolio/ in the '}<a href="https://github.com/mikelgg93/mikelgg93/tree/webgl-eye-05-models/portfolio">{es ? 'repositorio de esta serie' : 'series repository'}</a>{es ? ' y ejecuta bun install y bun run dev. Para empezar con Three.js sin React: ' : ' and run bun install, then bun run dev. To start with plain Three.js: '}<a href="/downloads/eye-starter.zip" download>{es ? 'proyecto inicial con siete pasos' : 'seven-step starter project'}</a>.</p>
   {files.map((file, i) => (
     <details open={i === 0} data-source-url={sourceUrl(file.path)}>
       <summary>{file.path}</summary>
