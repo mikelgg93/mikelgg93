@@ -114,8 +114,10 @@ export default function BlogFeatures({ lang = "en" }: { lang?: "en" | "es" }) {
 
 			<div
 				aria-hidden={!isReading}
-				className={`absolute top-[calc(12px+env(safe-area-inset-top,0px))] left-1/2 -translate-x-1/2 bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-opacity duration-300 motion-reduce:transition-none ${
-					isReading ? "opacity-100" : "opacity-0"
+				className={`absolute bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] right-[max(1.5rem,env(safe-area-inset-right,0px))] md:bottom-[max(2rem,env(safe-area-inset-bottom,0px))] md:right-[max(2rem,env(safe-area-inset-right,0px))] bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-500 motion-reduce:transition-none transform ${
+					isReading
+						? "translate-y-0 opacity-100"
+						: "translate-y-10 opacity-0 pointer-events-none"
 				}`}
 			>
 				<Clock className="w-3.5 h-3.5 text-tertiary-foreground" />
