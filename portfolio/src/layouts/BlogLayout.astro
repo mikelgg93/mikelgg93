@@ -22,7 +22,7 @@ const mobileHint = hasMobileModelControls
 ---
 
 <Layout title={frontmatter.title} description={frontmatter.description} image={ogImage}>
-  <BlogFeatures lang={isSpanish ? 'es' : 'en'} client:load />
+  <BlogFeatures client:load />
 
   <div class="md:hidden relative h-0 z-40">
     <div class="absolute top-[60px] inset-x-0 bg-amber-500/10 backdrop-blur-md border-y border-amber-500/20 text-amber-600 dark:text-amber-400 px-4 py-2.5 text-xs font-medium text-center">
@@ -163,11 +163,6 @@ const mobileHint = hasMobileModelControls
 </script>
 
 <style>
-  :global(.reading-line) { display: none; }
-  @media (max-width: 767px), (hover: none) and (pointer: coarse) {
-    :global(.reading-perimeter) { display: none; }
-    :global(.reading-line) { display: block; }
-  }
   article { min-width: 0; overflow-wrap: break-word; }
   article :global(.katex-display) {
     max-width: 100%;
