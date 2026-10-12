@@ -1,13 +1,27 @@
 import { Clock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-export default function BlogFeatures({ lang = "en" }: { lang?: "en" | "es" }) {
+export default function BlogFeatures() {
 	const viewportRef = useRef<HTMLDivElement>(null);
+	const [isIosSafari, setIsIosSafari] = useState(false);
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [isReading, setIsReading] = useState(false);
 	const [remainingTime, setRemainingTime] = useState(0);
 
 	useEffect(() => {
+		const ua = navigator.userAgent;
+		const isIos =
+			/iPad|iPhone|iPod/.test(ua) ||
+			(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+		// Browser identity matters here: other iOS browsers also use WebKit.
+		const isSafari =
+			/Version\/[\d.]+.*Safari\//.test(ua) &&
+			!/(CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Ddg|GSA|FBAN|FBIOS|Instagram)/i.test(
+				ua,
+			) &&
+			!("brave" in navigator);
+		setIsIosSafari(isIos && isSafari);
+
 		const article = document.querySelector("article")?.cloneNode(true) as
 			| HTMLElement
 			| undefined;
@@ -81,7 +95,7 @@ export default function BlogFeatures({ lang = "en" }: { lang?: "en" | "es" }) {
 		>
 			<svg
 				aria-hidden="true"
-				className="reading-perimeter absolute inset-0 h-full w-full"
+				className={`reading-perimeter absolute inset-0 h-full w-full ${isIosSafari ? "hidden" : ""}`}
 				preserveAspectRatio="none"
 			>
 				<rect
@@ -104,7 +118,7 @@ export default function BlogFeatures({ lang = "en" }: { lang?: "en" | "es" }) {
 
 			<div
 				aria-hidden="true"
-				className="reading-line absolute inset-y-0 right-0 w-[3px]"
+				className={`reading-line absolute inset-y-0 right-0 w-[3px] ${isIosSafari ? "" : "hidden"}`}
 			>
 				<div
 					className="h-full w-full origin-top rounded-full bg-tertiary opacity-80 transition-transform duration-75 ease-out motion-reduce:transition-none"
@@ -114,7 +128,7 @@ export default function BlogFeatures({ lang = "en" }: { lang?: "en" | "es" }) {
 
 			<div
 				aria-hidden={!isReading}
-				className={`absolute bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] right-[max(1.5rem,env(safe-area-inset-right,0px))] md:bottom-[max(2rem,env(safe-area-inset-bottom,0px))] md:right-[max(2rem,env(safe-area-inset-right,0px))] bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-500 motion-reduce:transition-none transform ${
+				className={`absolute bottom-3 right-[max(1.5rem,env(safe-area-inset-right,0px))] md:bottom-4 md:right-[max(2rem,env(safe-area-inset-right,0px))] bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-500 motion-reduce:transition-none transform ${
 					isReading
 						? "translate-y-0 opacity-100"
 						: "translate-y-10 opacity-0 pointer-events-none"
@@ -122,9 +136,7 @@ export default function BlogFeatures({ lang = "en" }: { lang?: "en" | "es" }) {
 			>
 				<Clock className="w-3.5 h-3.5 text-tertiary-foreground" />
 				<span className="text-[11px] font-mono font-semibold tracking-tight text-tertiary-foreground mt-px">
-					{lang === "es"
-						? `${remainingTime} min restantes`
-						: `${remainingTime} min left`}
+					{remainingTime} min
 				</span>
 			</div>
 		</div>
