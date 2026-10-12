@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Build an eye · runnable checkpoints</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #080b0d; color: #edf4f2; font: 16px/1.5 system-ui, sans-serif; }
+      main { max-width: 850px; padding: 24px; margin: auto; }
+      h1 { font: italic 32px Georgia, serif; }
+      select { width: 100%; padding: 12px; background: #183734; color: inherit; border: 1px solid #668680; border-radius: 6px; font: inherit; }
+      #scene { height: min(60vh, 500px); min-height: 280px; margin-top: 20px; }
+      canvas { display: block; width: 100%; height: 100%; }
+      p { color: #c1d5d0; } code { color: #edd18a; } label { display: block; margin-bottom: 8px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Build an eye</h1>
+      <p>One file, seven checkpoints. Edit <code>main.js</code> as you go. Distances are in millimetres; +z faces the viewer and −z goes into the eye.</p>
+      <label for="step">Construction step</label>
+      <select id="step">
+        <option value="0">0 · Place the camera</option>
+        <option value="1">1 · Add a sphere</option>
+        <option value="2">2 · Slice a cap</option>
+        <option value="3">3 · Change Q</option>
+        <option value="4">4 · Add thickness</option>
+        <option value="5">5 · Add a material</option>
+        <option value="6">6 · Place the other parts</option>
+      </select>
+      <div id="scene" role="img" aria-label="Eye construction scene"></div>
+      <p id="lesson" aria-live="polite"></p>
+      <p>Drag horizontally to orbit. The final assembly is a geometry exercise, with chosen dimensions and illustrative materials. It does not trace light through an optical eye.</p>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

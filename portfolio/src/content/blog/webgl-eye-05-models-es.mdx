@@ -1,5 +1,6 @@
 ---
 title: "Modelando el ojo V: Un ojo no es una población"
+published: false
 description: "Comparamos nuestro ojo WebGL con Navarro y Atchison, y construimos ojos sintéticos con distribuciones normales y covarianzas publicadas."
 date: 2026-10-10
 author: "Miguel García"
@@ -73,6 +74,8 @@ $SR$ se expresa en dioptrías; el radio y la profundidad de la cámara vítrea, 
 
 Es una relación **dentro de esa familia de modelos**, no una regla general para convertir la longitud axial de alguien en su graduación. Aquí tampoco calculamos la óptica de su GRIN. La comparación dibuja geometría; calcular la calidad de la imagen retiniana exigiría un trazador de rayos coherente, índices de refracción, longitud de onda, pupila, distancia del objeto y definición de la superficie imagen.
 
+Los valores Δ bajo el modelo muestran la diferencia respecto a nuestro conjunto, en milímetros. Los extremos axiales conservan las convenciones descritas arriba.
+
 ## Primera aproximación: Variar un número
 
 Supongamos que queremos más de un ojo. Lo tentador es añadir un poco de ruido aleatorio a cada control. Podemos hacerlo mejor si le damos significado a ese ruido.
@@ -117,6 +120,8 @@ La conversión no es lineal. Una K gaussiana **no** da un radio exactamente gaus
 Imagina ahora que extraemos ACD y espesor del cristalino de forma independiente. Cada histograma podría parecer convincente aunque las combinaciones fueran incorrectas. En la matriz seleccionada, ambas medidas presentan correlación negativa: los cristalinos más gruesos tienden a acompañarse de cámaras menos profundas en esa población modelada. La asociación no obliga a que ocurra en cada ojo, ni establece por sí sola un mecanismo.
 
 Necesitamos una **matriz de covarianza** $\Sigma$. Su diagonal contiene varianzas; las entradas restantes describen cómo varían juntas las parejas de medidas. La covarianza tiene unidades: K–AL se expresa en D·mm, mientras que ACD–LT se expresa en mm². El orden de los parámetros importa tanto como sus unidades.
+
+En la siguiente gráfica, compara ACD con LT: los sorteos independientes forman una nube sin inclinación sistemática; la covarianza publicada la inclina hacia cámaras más cortas con cristalinos más gruesos. Esta es la relación que queremos conservar al generar cada ojo.
 
 La factorización de Cholesky nos da una matriz triangular inferior $L$ tal que $\Sigma = LL^{\mathsf T}$. Entonces:
 

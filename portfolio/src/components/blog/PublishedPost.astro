@@ -1,0 +1,7 @@
+---
+import { getVisiblePosts } from "@/lib/blog";
+
+interface Props { id: string }
+const visible = (await getVisiblePosts()).some(post => post.id === Astro.props.id);
+---
+{visible && <slot />}

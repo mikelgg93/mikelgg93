@@ -1,12 +1,16 @@
+import "./cornea.css";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
 import { ErrorBoundary } from "../ErrorBoundary";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 import { conicAperture, conicSag } from "./conic";
 
-function CorneaMasterInner() {
+function CorneaMasterInner({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 
 	// State for interactive sliders
@@ -14,6 +18,19 @@ function CorneaMasterInner() {
 	const [k2, setK2] = useState(7.8);
 	const [asphericity, setAsphericity] = useState(-0.26);
 	const [thickness, setThickness] = useState(0.55);
+	const paramsRef = useRef({
+		radiusXmm: k1,
+		radiusYmm: k2,
+		q: asphericity,
+		thicknessMm: thickness,
+	});
+	paramsRef.current = {
+		radiusXmm: k1,
+		radiusYmm: k2,
+		q: asphericity,
+		thicknessMm: thickness,
+	};
+	const invalidateRef = useRef<(() => void) | null>(null);
 
 	const sceneRef = useRef<THREE.Scene | null>(null);
 	const geoRef = useRef<{
@@ -41,7 +58,7 @@ function CorneaMasterInner() {
 		scene.add(dirLight);
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setClearColor(0x000000, 0);
 		mountRef.current.appendChild(renderer.domElement);
 
@@ -128,43 +145,31 @@ function CorneaMasterInner() {
 			rays,
 		};
 
-		let animationFrameId: number;
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-			orbit.update();
-			renderer.render(scene, camera);
+		const loop = createDemoLoop(mountRef.current, {
+			controls: orbit,
+			draw: () => {
+				renderer.render(scene, camera);
+				return false;
+			},
+			inspect: () => ({
+				model: "Illustrative cornea and rays",
+				...paramsRef.current,
+				validApertureMm: conicAperture(
+					5,
+					paramsRef.current.radiusXmm,
+					paramsRef.current.radiusYmm,
+					paramsRef.current.q,
+				),
+				keratometricIndex: 1.3375,
+				camera: camera.position.toArray(),
+				target: orbit.target.toArray(),
+			}),
+		});
 
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: Number(camera.position.x.toFixed(3)),
-							y: Number(camera.position.y.toFixed(3)),
-							z: Number(camera.position.z.toFixed(3)),
-						},
-						rotation: {
-							x: Number(camera.rotation.x.toFixed(3)),
-							y: Number(camera.rotation.y.toFixed(3)),
-							z: Number(camera.rotation.z.toFixed(3)),
-						},
-						zoom: Number(camera.zoom.toFixed(3)),
-					},
-					target: {
-						x: Number(orbit.target.x.toFixed(3)),
-						y: Number(orbit.target.y.toFixed(3)),
-						z: Number(orbit.target.z.toFixed(3)),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
-
+		invalidateRef.current = loop.invalidate;
 		return () => {
-			cancelAnimationFrame(animationFrameId);
+			invalidateRef.current = null;
+			loop.dispose();
 			resizeObserver.disconnect();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
@@ -376,6 +381,7 @@ function CorneaMasterInner() {
 				new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat),
 			);
 		}
+		invalidateRef.current?.();
 	}, [k1, k2, asphericity, thickness]);
 
 	// Illustrative blur: visual parameters, not a retinal PSF or acuity prediction.
@@ -461,16 +467,16 @@ function CorneaMasterInner() {
 	);
 
 	return (
-		<div className="relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
+		<div className="cornea-demo relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
 			<div
 				ref={mountRef}
-				className="absolute inset-0 cursor-grab active:cursor-grabbing"
+				className="cornea-scene absolute inset-0 cursor-grab active:cursor-grabbing"
 			/>
 
 			{/* Illustrative blur Overlay */}
-			<div className="absolute bottom-4 left-4 z-20 flex flex-col items-center bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg pointer-events-none">
+			<div className="cornea-inset absolute bottom-4 left-4 z-20 flex flex-col items-center bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg pointer-events-none">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border-b border-border/50 pb-1 w-full text-center mb-2">
-					Illustrative blur
+					{t("Illustrative blur")}
 				</span>
 				<div className="bg-white p-2 rounded flex items-center justify-center w-16 h-16 relative overflow-hidden">
 					<svg width="0" height="0" className="absolute">
@@ -500,7 +506,7 @@ function CorneaMasterInner() {
 
 			<button
 				onClick={() => setSidebarOpen(!sidebarOpen)}
-				className="absolute top-4 right-4 z-20 px-2 py-1.5 rounded-md bg-transparent hover:bg-background/40 backdrop-blur-sm border border-transparent hover:border-border/30 transition-all text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+				className="cornea-toggle absolute top-4 right-4 z-20 px-2 py-1.5 rounded-md bg-transparent hover:bg-background/40 backdrop-blur-sm border border-transparent hover:border-border/30 transition-all text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -523,26 +529,30 @@ function CorneaMasterInner() {
 					<line x1="9" y1="8" x2="15" y2="8"></line>
 					<line x1="17" y1="16" x2="23" y2="16"></line>
 				</svg>
-				{sidebarOpen ? "Hide" : "Controls"}
+				{sidebarOpen ? t("Hide") : t("Controls")}
 			</button>
 
 			{/* Control Panel: radii are independently adjustable, so neither is always flatter. */}
 			<div
-				className={`absolute top-12 right-4 w-[220px] p-3 border border-border/10 hover:border-border/30 bg-background/30 hover:bg-background/80 backdrop-blur-md rounded-xl shadow-sm hover:shadow-lg flex flex-col gap-3 text-xs z-10 transition-all duration-300 origin-top-right ${sidebarOpen ? "scale-100 opacity-100 pointer-events-auto" : "scale-95 opacity-0 pointer-events-none"}`}
+				data-open={sidebarOpen}
+				className={`cornea-panel absolute top-12 right-4 w-[220px] p-3 border border-border/10 hover:border-border/30 bg-background/30 hover:bg-background/80 backdrop-blur-md rounded-xl shadow-sm hover:shadow-lg flex flex-col gap-3 text-xs z-10 transition-all duration-300 origin-top-right ${sidebarOpen ? "scale-100 opacity-100 pointer-events-auto" : "scale-95 opacity-0 pointer-events-none"}`}
 			>
 				<p className="text-[10px] text-muted-foreground">
-					D: keratometric power (index 1.3375).
+					{t("D: keratometric power (index 1.3375).")}
 					{conicAperture(5, k1, k2, asphericity) < 5 &&
-						` Surface radius limited to ${conicAperture(5, k1, k2, asphericity).toFixed(2)} mm for this conic.`}
+						(lang === "es"
+							? ` Radio de apertura limitado a ${conicAperture(5, k1, k2, asphericity).toFixed(2)} mm para esta cónica.`
+							: ` Surface radius limited to ${conicAperture(5, k1, k2, asphericity).toFixed(2)} mm for this conic.`)}
 				</p>
 				<div>
 					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>Radius X</span>
+						<span>{t("Radius X")}</span>
 						<span className="text-muted-foreground">
 							{k1.toFixed(1)} mm / {(337.5 / k1).toFixed(1)} D
 						</span>
 					</label>
 					<input
+						aria-label={t("Radius X")}
 						type="range"
 						min="6.0"
 						max="9.0"
@@ -554,12 +564,13 @@ function CorneaMasterInner() {
 				</div>
 				<div>
 					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>Radius Y</span>
+						<span>{t("Radius Y")}</span>
 						<span className="text-muted-foreground">
 							{k2.toFixed(1)} mm / {(337.5 / k2).toFixed(1)} D
 						</span>
 					</label>
 					<input
+						aria-label={t("Radius Y")}
 						type="range"
 						min="6.0"
 						max="9.0"
@@ -571,12 +582,13 @@ function CorneaMasterInner() {
 				</div>
 				<div>
 					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>Asphericity (Q)</span>
+						<span>{t("Asphericity (Q)")}</span>
 						<span className="text-muted-foreground">
 							{asphericity.toFixed(2)}
 						</span>
 					</label>
 					<input
+						aria-label={t("Asphericity (Q)")}
 						type="range"
 						min="-1.0"
 						max="1.0"
@@ -588,12 +600,13 @@ function CorneaMasterInner() {
 				</div>
 				<div>
 					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>Thickness</span>
+						<span>{t("Thickness")}</span>
 						<span className="text-muted-foreground">
 							{Math.round(thickness * 1000)} µm
 						</span>
 					</label>
 					<input
+						aria-label={t("Thickness")}
 						type="range"
 						min="0.4"
 						max="0.7"
@@ -608,10 +621,11 @@ function CorneaMasterInner() {
 	);
 }
 
-export default function CorneaMaster() {
+export default function CorneaMaster({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	return (
 		<ErrorBoundary>
-			<CorneaMasterInner />
+			<CorneaMasterInner lang={lang} />
 		</ErrorBoundary>
 	);
 }

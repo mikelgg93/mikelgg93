@@ -1,0 +1,12 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { getVisiblePosts } from "@/lib/blog";
+
+type Props = HTMLAttributes<"a">;
+const { href, ...attributes } = Astro.props;
+// Keep references readable if an article or its translation is still unpublished.
+const match = href?.toString().match(/^\/(es\/)?blog\/([^/#?]+)\/?(?:[?#].*)?$/);
+const id = match ? `${match[2]}${match[1] ? "-es" : ""}` : undefined;
+const visible = !id || (await getVisiblePosts()).some(post => post.id === id);
+---
+{visible ? <a href={href} {...attributes}><slot /></a> : <slot />}

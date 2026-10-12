@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "astro dev",
 		"build": "astro build",
+		"build:drafts": "INCLUDE_UNPUBLISHED=true astro build",
 		"preview": "astro preview",
 		"build:presentation": "bun scripts/build-eye-presentation.ts",
 		"astro": "astro",

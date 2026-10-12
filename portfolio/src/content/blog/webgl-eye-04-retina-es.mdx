@@ -1,5 +1,6 @@
 ---
 title: "Modelando el ojo IV: La retina"
+published: false
 description: "De una malla curva a las capas retinianas, los conos, los bastones y el muestreo: construimos el extremo receptor del ojo con WebGL."
 date: 2026-10-09
 author: "Miguel García"
@@ -7,6 +8,8 @@ tags: ["webgl", "threejs", "vision science", "retina", "anatomy"]
 lang: "es"
 image: "/images/blog/retina-banner.png"
 ---
+
+import PublishedPost from "@/components/blog/PublishedPost.astro";
 
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
@@ -158,6 +161,12 @@ Para esta visualización, los espesores, colores, el desplazamiento de la papila
 Tenemos las principales piezas anatómicas del modelo. Colocarlas en una escena todavía no crea una simulación óptica o neural completa. Para predecir una imagen retiniana tendríamos que acoplar y validar las superficies, los índices de refracción y las distancias; para predecir la visión también habría que modelar qué hacen la retina y el cerebro con esa imagen.
 
 Por ahora, la construcción alcanza un punto útil: la luz tiene una superficie a la que llegar, células que la muestrean y una razón por la que «más polígonos» y «más información visual» son cosas distintas.
+
+<PublishedPost id="webgl-eye-05-models-es">
+
+Continúa con la [Parte 5: Modelos y poblaciones](/es/blog/webgl-eye-05-models): comparamos esta construcción con Navarro y Atchison y variamos sus dimensiones.
+
+</PublishedPost>
 
 ## Referencias
 

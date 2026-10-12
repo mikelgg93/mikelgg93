@@ -1,5 +1,6 @@
 ---
 title: "Modelling the eye III: The lens"
+published: false
 description: "From two simple domes to a gradient-index lens: ciliary muscle, zonules, OCT, cataracts and presbyopia in interactive 3D."
 date: 2026-10-07
 author: "Miguel García"
@@ -7,6 +8,9 @@ tags: ["webgl", "threejs", "vision science", "optics", "anatomy"]
 lang: "en"
 image: "/images/blog/lens-banner.png"
 ---
+
+import PublishedPost from "@/components/blog/PublishedPost.astro";
+import DraftOnly from "@/components/blog/DraftOnly.astro";
 
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { lensSources } from '../../components/eye/lens/lensSources';
@@ -23,6 +27,8 @@ In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea. In [Part 2](/blog/w
 A camera often solves this by moving its lenses. The eye mainly changes the shape of one: the **crystalline lens**, tucked behind the iris. The mechanism is called **accommodation**, and its motor is a ring of muscle around the lens. The surprising part is that focusing up close involves releasing some of the pull on the lens.
 
 We'll start with a deliberately crude shape, give it an optical interior, then add the machinery that moves it. Finally, we'll look at how we measure a real lens and what changes when it loses transparency or flexibility.
+
+For the construction path, follow the domes, GRIN, suspension and final assembly. The literature and OCT notes explain how shapes are checked against real eyes; you can return to them afterwards. For scene setup and units, the [series starter project](/downloads/eye-starter.zip) reaches a first arrangement of cornea, iris, lens and retina.
 
 ## First approximation: Two domes
 
@@ -224,9 +230,17 @@ This is an anatomical assembly of our teaching models. It brings together the co
 
 We have now explored three mechanisms: a fixed front surface, an adjustable aperture and a lens that changes focus. In the real eye, they work together to form the retinal image.
 
+<DraftOnly>
+
 Walk through the construction in the [animated HTML presentation](/presentations/webgl-eye/), from the camera and sphere to the assembled eye.
 
+</DraftOnly>
+
+<PublishedPost id="webgl-eye-04-retina">
+
 Next, [Part 4: The retina](/blog/webgl-eye-04-retina/) builds the receiving surface, its layers and a photoreceptor sampling experiment.
+
+</PublishedPost>
 
 ## References
 

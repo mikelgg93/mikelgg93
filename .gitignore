@@ -23,6 +23,7 @@ logs
 # production
 /build
 dist
+/portfolio/local-previews/
 
 # misc
 .DS_Store

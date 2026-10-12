@@ -1,5 +1,5 @@
 ---
-import { getCollection } from "astro:content";
+import { getVisiblePosts } from "@/lib/blog";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import MobileMenu from "@/components/MobileMenu";
@@ -9,7 +9,7 @@ const isEs = pathname.startsWith("/es");
 const blogPath = isEs ? "/es/blog" : "/blog";
 const homePath = isEs ? "/es" : "/";
 
-const allPosts = await getCollection("blog");
+const allPosts = await getVisiblePosts();
 const posts = allPosts
   .filter((p) =>
     isEs ? p.data.lang === "es" : !p.data.lang || p.data.lang === "en",

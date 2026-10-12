@@ -1,10 +1,14 @@
+import "./cornea.css";
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createDemoLoop } from "../demoLoop";
 import { disposeThree } from "../disposeThree";
+import { eyeText } from "../earlyText";
 import { observeThreeResize } from "../threeResize";
 
-export default function CorneaStep1() {
+export default function CorneaStep1({ lang = "en" }: { lang?: "en" | "es" }) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -19,7 +23,7 @@ export default function CorneaStep1() {
 
 		// Renderer setup
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.setClearColor(0x000000, 0); // Transparent background
 		mountRef.current.appendChild(renderer.domElement);
 
@@ -92,43 +96,24 @@ export default function CorneaStep1() {
 		scene.add(mesh);
 
 		// Animation Loop
-		let animationFrameId: number;
-		const animate = () => {
-			animationFrameId = requestAnimationFrame(animate);
-			controls.update();
-			renderer.render(scene, camera);
-
-			const debugEl = mountRef.current
-				?.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const state = {
-					camera: {
-						position: {
-							x: Number(camera.position.x.toFixed(3)),
-							y: Number(camera.position.y.toFixed(3)),
-							z: Number(camera.position.z.toFixed(3)),
-						},
-						rotation: {
-							x: Number(camera.rotation.x.toFixed(3)),
-							y: Number(camera.rotation.y.toFixed(3)),
-							z: Number(camera.rotation.z.toFixed(3)),
-						},
-						zoom: Number(camera.zoom.toFixed(3)),
-					},
-					target: {
-						x: Number(controls.target.x.toFixed(3)),
-						y: Number(controls.target.y.toFixed(3)),
-						z: Number(controls.target.z.toFixed(3)),
-					},
-				};
-				(debugEl as HTMLElement).innerText = JSON.stringify(state, null, 2);
-			}
-		};
-		animate();
+		const loop = createDemoLoop(mountRef.current, {
+			controls: controls,
+			draw: () => {
+				renderer.render(scene, camera);
+				return false;
+			},
+			inspect: () => ({
+				model: "Spherical cap",
+				radiusSceneUnits: radius,
+				mmPerSceneUnit: 7.8,
+				sweepRadians: phiLength,
+				camera: camera.position.toArray(),
+				target: controls.target.toArray(),
+			}),
+		});
 
 		return () => {
-			cancelAnimationFrame(animationFrameId);
+			loop.dispose();
 			resizeObserver.disconnect();
 			if (mountRef.current && renderer.domElement.parentNode) {
 				mountRef.current.removeChild(renderer.domElement);
@@ -140,10 +125,10 @@ export default function CorneaStep1() {
 	}, []);
 
 	return (
-		<div className="relative w-full h-full">
+		<div className="cornea-demo relative w-full h-full">
 			<div
 				ref={mountRef}
-				className="w-full h-full min-h-[400px]"
+				className="cornea-scene w-full h-full min-h-[400px]"
 				style={{ cursor: "grab" }}
 			/>
 		</div>

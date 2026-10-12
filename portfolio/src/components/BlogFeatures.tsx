@@ -1,14 +1,22 @@
 import { Clock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-export default function BlogFeatures() {
+export default function BlogFeatures({ lang = "en" }: { lang?: "en" | "es" }) {
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const [scrollProgress, setScrollProgress] = useState(0);
 	const [isReading, setIsReading] = useState(false);
 	const [remainingTime, setRemainingTime] = useState(0);
 
 	useEffect(() => {
-		const words = document.body.innerText.split(/\s+/).length;
+		const article = document.querySelector("article")?.cloneNode(true) as
+			| HTMLElement
+			| undefined;
+		article
+			?.querySelectorAll(".interactive-viewer, nav, pre")
+			.forEach((node) => {
+				node.remove();
+			});
+		const words = (article?.textContent ?? "").trim().split(/\s+/).length;
 		const totalReadingTime = Math.ceil(words / 200); // 200 WPM
 		const viewport = window.visualViewport;
 		let animationFrame: number | null = null;
@@ -105,15 +113,16 @@ export default function BlogFeatures() {
 			</div>
 
 			<div
-				className={`absolute bottom-[max(1.5rem,env(safe-area-inset-bottom,0px))] right-[max(1.5rem,env(safe-area-inset-right,0px))] md:bottom-[max(2rem,env(safe-area-inset-bottom,0px))] md:right-[max(2rem,env(safe-area-inset-right,0px))] bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-500 transform ${
-					isReading
-						? "translate-y-0 opacity-100"
-						: "translate-y-10 opacity-0 pointer-events-none"
+				aria-hidden={!isReading}
+				className={`absolute top-[calc(12px+env(safe-area-inset-top,0px))] left-1/2 -translate-x-1/2 bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-opacity duration-300 motion-reduce:transition-none ${
+					isReading ? "opacity-100" : "opacity-0"
 				}`}
 			>
 				<Clock className="w-3.5 h-3.5 text-tertiary-foreground" />
 				<span className="text-[11px] font-mono font-semibold tracking-tight text-tertiary-foreground mt-px">
-					{remainingTime} min left
+					{lang === "es"
+						? `${remainingTime} min restantes`
+						: `${remainingTime} min left`}
 				</span>
 			</div>
 		</div>

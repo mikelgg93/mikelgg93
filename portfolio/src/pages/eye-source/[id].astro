@@ -4,9 +4,20 @@ import { lensSources } from '../../components/eye/lens/lensSources';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
 import { modelSources } from '../../components/eye/models/modelSources';
 import { sourceId } from '../../components/ui/sourcePath';
+import { corneaSources, pupilSources } from '../../components/eye/earlySources';
+import { getVisiblePosts } from '../../lib/blog';
 export const partial = true;
-export function getStaticPaths() {
-  const files = new Map([...Object.values(lensSources), ...Object.values(retinaSources), ...Object.values(modelSources)].flat().map(file => [file.path, file]));
+export async function getStaticPaths() {
+  const visibleIds = new Set((await getVisiblePosts()).map(post => post.id.replace(/-es$/, '')));
+  const sources = [
+    ['webgl-eye-01-cornea', corneaSources],
+    ['webgl-eye-02-pupil', pupilSources],
+    ['webgl-eye-03-lens', lensSources],
+    ['webgl-eye-04-retina', retinaSources],
+    ['webgl-eye-05-models', modelSources],
+  ] as const;
+  const files = new Map(sources.filter(([id]) => visibleIds.has(id))
+    .flatMap(([, groups]) => Object.values(groups).flat()).map(file => [file.path, file]));
   return [...files.values()].map(file => ({ params: { id: sourceId(file.path) }, props: file }));
 }
 const { code, lang } = Astro.props;

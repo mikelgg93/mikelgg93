@@ -41,8 +41,8 @@ function tissueMaterial() {
 	const material = new THREE.MeshPhongMaterial({
 		color: 0xffffff,
 		vertexColors: true,
-		specular: 0x543538,
-		shininess: 24,
+		specular: 0x362b2b,
+		shininess: 12,
 		side: THREE.DoubleSide,
 	});
 	material.onBeforeCompile = (shader) => {
@@ -62,8 +62,8 @@ function tissueMaterial() {
    float r=length(tissuePoint.xy), a=atan(tissuePoint.y,tissuePoint.x);
    float outer=smoothstep(6.15,6.85,r);
    // Irregular elongated grain suggests bundles, with no transverse stripes.
-   float longitudinal=tissueNoise(vec2(a*95.0 + sin(tissuePoint.z*1.3),tissuePoint.z*1.6));
-   float circular=tissueNoise(vec2(a*3.0,tissuePoint.z*43.0 + sin(a*5.0)));
+   float longitudinal=tissueNoise(vec2(a*57.0 + sin(tissuePoint.z*1.3),tissuePoint.z*1.6));
+   float circular=tissueNoise(vec2(a*3.0,tissuePoint.z*25.0 + sin(a*5.0)));
    float grain=mix(circular,longitudinal,outer);
    diffuseColor.rgb *= 0.78 + 0.28*grain;
   `,
@@ -72,7 +72,7 @@ function tissueMaterial() {
 			"#include <normal_fragment_maps>",
 			`#include <normal_fragment_maps>
    // A small surface-gradient bump gives the bundles depth as the eye rotates.
-   float tissueHeight=0.018*grain;
+   float tissueHeight=0.009*grain;
    vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition);
    vec3 tx=cross(sy,normal), ty=cross(normal,sx);
    float determinant=dot(sx,tx);

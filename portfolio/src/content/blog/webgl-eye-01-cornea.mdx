@@ -1,5 +1,6 @@
 ---
 title: "Modelling the eye: The cornea"
+published: true
 description: "We start at the very front of the eye. What shape is the cornea, why isn't it a simple sphere, and how do we build it in WebGL?"
 date: 2026-07-27
 author: "Miguel García"
@@ -8,7 +9,10 @@ lang: "en"
 image: "/images/blog/cornea-banner.png"
 ---
 
-import { Code } from 'astro:components';
+import PublishedPost from "@/components/blog/PublishedPost.astro";
+
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import { corneaSources } from '../../components/eye/earlySources';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
 import CorneaStep1 from '../../components/eye/cornea/CorneaStep1';
 import CorneaAspheric from '../../components/eye/cornea/CorneaAspheric';
@@ -20,27 +24,22 @@ import CorneaKeratoconus from '../../components/eye/cornea/CorneaKeratoconus';
 import CorneaPlacido from '../../components/eye/cornea/CorneaPlacido';
 import CorneaRealistic from '../../components/eye/cornea/CorneaRealistic';
 
-import CorneaStep1Code from '../../components/eye/cornea/CorneaStep1.tsx?raw';
-import CorneaAsphericCode from '../../components/eye/cornea/CorneaAspheric.tsx?raw';
-import CorneaAstigmatismCode from '../../components/eye/cornea/CorneaAstigmatism.tsx?raw';
-import CorneaLayeredCode from '../../components/eye/cornea/CorneaLayered.tsx?raw';
-import CorneaTearFilmCode from '../../components/eye/cornea/CorneaTearFilm.tsx?raw';
-import CorneaMasterCode from '../../components/eye/cornea/CorneaMaster.tsx?raw';
-import CorneaKeratoconusCode from '../../components/eye/cornea/CorneaKeratoconus.tsx?raw';
-import CorneaPlacidoCode from '../../components/eye/cornea/CorneaPlacido.tsx?raw';
-import CorneaRealisticCode from '../../components/eye/cornea/CorneaRealistic.tsx?raw';
 
 Ask a graphics programmer to model an eyeball and the first instinct is usually a glass sphere. It renders fast and looks clean. The problem is that a spherical cornea would add spherical aberration, spreading the image of a night-time streetlight.
 
-The clear dome at the front of the eye, the **cornea**, is a more interesting shape than a sphere, and it does most of the focusing. Of the eye's roughly 60 diopters of optical power, the cornea supplies about 43. The famous crystalline lens inside handles the rest and does the fine-tuning. But how do we know it is not just a solid dome of biological glass? When Antonie van Leeuwenhoek first looked at corneal tissue through his homemade microscopes in the 1680s, he found it was not glass at all, but a tightly woven fabric of living fibers.
+The clear dome at the front of the eye, the **cornea**, is a more interesting shape than a sphere, and it does most of the focusing. Of the eye's roughly 60 diopters of optical power, the cornea supplies about 43. The crystalline lens adds adjustable focusing power; the powers of these separated optical components do not simply add. But how do we know it is not just a solid dome of biological glass? When Antonie van Leeuwenhoek first looked at corneal tissue through his homemade microscopes in the 1680s, he found it was not glass at all, but a tightly woven fabric of living fibers.
 
 In this series we build the eye one part at a time in WebGL. Each section below has a live 3D view, and a **Code** tab with the full source. Let us start at the front.
+
+Want to build it from scratch? [Download the starter project](/downloads/eye-starter.zip), unzip it, then run `bun install` and `bun run dev` (npm works too). One file, `main.js`, takes you through camera → sphere → cap → Q → thickness → material → assembly. Its README says what to edit and what to look for at each checkpoint. The article’s **Code** tabs also include the shared modules and styles for the complete demos.
 
 ## The spherical cap: a first approximation
 
 Before hospital scanners existed, people measured the eye with clever tricks. In 1619 Christoph Scheiner described estimating corneal curvature by comparing its reflections with those from glass spheres of known curvature. This was an early comparison method, rather than modern quantitative keratometry. Today, a useful typical value is: the front of the cornea has a radius of curvature of about $R \approx 7.8\ \text{mm}$.
 
 The visible cornea is a slightly oval window, roughly $11.7\ \text{mm}$ wide and $10.6\ \text{mm}$ tall, because the white of the eye overlaps it top and bottom. For a first WebGL model we ignore that and slice a clean cap off a sphere.
+
+For this first cap, **1 scene unit represents 7.8 mm**: we normalise its radius to 1. The later conic demos use **1 unit = 1 mm**, so their radii can be entered directly. Scaling geometry does not change its shape, but camera distances must use the same units.
 
 In Three.js a sphere already knows how to draw itself. We just tell it to keep only the front cap by limiting the vertical sweep angle:
 
@@ -60,7 +59,7 @@ const geometry = new THREE.SphereGeometry(
     <CorneaStep1 client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaStep1Code} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.step1} />
   </div>
 </InteractiveViewer>
 
@@ -92,14 +91,14 @@ for (let r = 0; r <= validR; r += step) {
 }
 ```
 
-Use the buttons below to switch between a typical human cornea, a spherical cornea, and an oblate / post-myopic-LASIK example. The color runs from green at the center to the shape's color at the rim, so you can see where each one bends light differently.
+Use the buttons below to switch between a typical human cornea, a spherical cornea, and an oblate / post-myopic-LASIK example. The color runs from green at the center to the shape's color at the rim, to help you compare their shapes; these colors do not calculate refraction.
 
 <InteractiveViewer>
   <div slot="preview">
     <CorneaAspheric client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaAsphericCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.aspheric} />
   </div>
 </InteractiveViewer>
 
@@ -123,13 +122,13 @@ The two directions of maximum and minimum curvature are called the **meridians**
     <CorneaAstigmatism client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaAstigmatismCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.astigmatism} />
   </div>
 </InteractiveViewer>
 
-## Inside the cornea: six layers
+## Inside the cornea: layers of tissue
 
-Up close the cornea is not one clear sheet but six stacked layers, all packed into about half a millimeter (typical central thickness is approximately $500$–$550\ \mu\text{m}$, with variation between eyes and measurement methods). The thicknesses below are illustrative model values totaling $540\ \mu\text{m}$:
+The cornea is usually described as five layers. Here we also distinguish the proposed pre-Descemet (Dua’s) layer from the posterior stroma, a classification still debated. They fit into about half a millimeter (typical central thickness is approximately $500$–$550\ \mu\text{m}$, with variation between eyes and measurement methods). The thicknesses below are illustrative model values totaling $540\ \mu\text{m}$:
 
 | Layer | Thickness | Role |
 | :--- | :---: | :--- |
@@ -151,7 +150,7 @@ The model below is a **schematic cross-section with approximately proportional l
     <CorneaLayered client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaLayeredCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.layered} />
   </div>
 </InteractiveViewer>
 
@@ -170,7 +169,7 @@ where $n$ is the oil's refractive index, $d$ its thickness, $\theta$ the angle o
     <CorneaTearFilm client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaTearFilmCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.tearFilm} />
   </div>
 </InteractiveViewer>
 
@@ -193,7 +192,7 @@ The effect on vision is worse than plain short-sightedness. The cone is not symm
     <CorneaKeratoconus client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaKeratoconusCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.keratoconus} />
   </div>
 </InteractiveViewer>
 
@@ -208,7 +207,7 @@ For this visualisation, the rings are a curvature-based approximation, not a ful
     <CorneaPlacido client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaPlacidoCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.placido} />
   </div>
 </InteractiveViewer>
 
@@ -223,7 +222,7 @@ At extreme slider combinations, the displayed aperture narrows to stay within th
     <CorneaMaster client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaMasterCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.master} />
   </div>
 </InteractiveViewer>
 
@@ -236,11 +235,17 @@ The models above are built to explain, so they favor clear colors and diagrams o
     <CorneaRealistic client:visible />
   </div>
   <div slot="code">
-    <Code code={CorneaRealisticCode} lang="tsx" theme="github-dark" />
+    <SourceFiles files={corneaSources.realistic} />
   </div>
 </InteractiveViewer>
 
 That gives us a solid front surface for the eye.
+
+<PublishedPost id="webgl-eye-02-pupil">
+
+Continue with [Part 2: The pupil](/blog/webgl-eye-02-pupil), where we give the eye an adjustable aperture.
+
+</PublishedPost>
 
 ## References
 

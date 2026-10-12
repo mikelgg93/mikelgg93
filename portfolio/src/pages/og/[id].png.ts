@@ -1,12 +1,12 @@
 import type { APIRoute } from "astro";
-import { getCollection } from "astro:content";
+import { getVisiblePosts } from "@/lib/blog";
 import satori from "satori";
 import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
 export async function getStaticPaths() {
-  const posts = await getCollection("blog");
+  const posts = await getVisiblePosts();
   const ids = Array.from(new Set(posts.map(p => p.id.replace("-es", ""))));
 
   return ids.map(id => {

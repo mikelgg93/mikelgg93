@@ -206,7 +206,7 @@ export default function RetinaAssembly({
 							const view = viewRef.current;
 							if (!view) return;
 							view.setView("front");
-							view.camera.position.set(0, 0, 40);
+							view.camera.position.set(6, 2, 38);
 							view.controls.target.set(0, 0, -12);
 							view.controls.update();
 							view.invalidate();
@@ -281,6 +281,22 @@ export default function RetinaAssembly({
 					{es
 						? "Ver retina muestra los puntos numerados: fóvea en el centro de la mácula y papila hacia nasal. Relieve foveal en la malla; vasos principales estilizados. ACD interno, cristalino relajado; AXL hasta el límite que representa el EPR. No es biometría clínica."
 						: "Retinal view shows the numbered landmarks: fovea within the macula, disc towards nasal. The pit deforms the mesh; major vessels are stylised. Internal ACD, relaxed lens; AXL ends at the boundary representing the RPE. These are model dimensions, not clinical biometry."}
+				</p>
+				<p className="lens-note">
+					<a
+						href={
+							es
+								? "#convertir-la-superficie-en-tejido"
+								: "#turn-the-surface-into-a-tissue"
+						}
+					>
+						{es
+							? "Ver la sección foveal ampliada"
+							: "See the magnified foveal section"}
+					</a>
+					{es
+						? ": aquí el relieve sigue a escala del ojo."
+						: ": here the relief stays at whole-eye scale."}
 				</p>
 			</div>
 		</div>

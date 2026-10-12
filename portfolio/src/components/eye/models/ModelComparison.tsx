@@ -13,25 +13,41 @@ import ModelScene from "./ModelScene";
 export function Dimensions({
 	eye,
 	lang = "en",
+	reference,
 }: {
 	eye: EyePrescription;
 	lang?: "en" | "es";
+	reference?: EyePrescription;
 }) {
 	const es = lang === "es";
 	return (
 		<div className="models-dimensions">
 			{[
-				["CCT", eye.cct],
-				[es ? "ACD interna" : "Internal ACD", eye.acd],
-				["LT", eye.lt],
-				[es ? "Tramo vítreo*" : "Vitreous span*", vitreousDepth(eye)],
-				[es ? "Extremo axial*" : "Axial endpoint*", eye.axial],
-			].map(([label, value]) => (
+				["CCT", eye.cct, reference?.cct],
+				[es ? "ACD interna" : "Internal ACD", eye.acd, reference?.acd],
+				["LT", eye.lt, reference?.lt],
+				[
+					es ? "Tramo vítreo*" : "Vitreous span*",
+					vitreousDepth(eye),
+					reference && vitreousDepth(reference),
+				],
+				[
+					es ? "Extremo axial*" : "Axial endpoint*",
+					eye.axial,
+					reference?.axial,
+				],
+			].map(([label, value, baseline]) => (
 				<div key={label}>
 					<span>{label}</span>
 					<strong>
 						{Number(value).toFixed(2)} <small>mm</small>
 					</strong>
+					{baseline !== undefined && (
+						<small className="models-delta">
+							Δ {Number(value) - Number(baseline) >= 0 ? "+" : ""}
+							{(Number(value) - Number(baseline)).toFixed(2)} mm
+						</small>
+					)}
 				</div>
 			))}
 		</div>
@@ -105,8 +121,13 @@ export default function ModelComparison({
 					prescription: eye,
 				}}
 			/>
-			<Dimensions eye={eye} lang={lang} />
+			<Dimensions eye={eye} lang={lang} reference={TEACHING} />
 			<div className="lens-controls">
+				<p className="lens-note">
+					{es
+						? "Δ respecto a nuestro modelo: positivo = mayor, negativo = menor. Compara las distancias declaradas; los extremos retinianos tienen las convenciones indicadas abajo."
+						: "Δ from our assembly: positive = larger, negative = smaller. These compare declared distances; retinal endpoints use the conventions below."}
+				</p>
 				<p className="lens-note">
 					{model === "teaching"
 						? es

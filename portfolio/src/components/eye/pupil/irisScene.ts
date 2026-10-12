@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { createDemoLoop } from "../demoLoop";
 import { observeThreeResize } from "../threeResize";
 
 // A shared 3D iris scene used by every pupil demo in Part 2: a dished,
@@ -18,8 +19,11 @@ export interface IrisParams {
 
 export interface IrisScene {
 	params: IrisParams;
-	setOnFrame: (cb: ((dt: number, elapsed: number) => void) | null) => void;
+	setOnFrame: (
+		cb: ((dt: number, elapsed: number, reducedMotion: boolean) => void) | null,
+	) => void;
 	setDebug: (cb: (() => Record<string, unknown>) | null) => void;
+	invalidate: () => void;
 	dispose: () => void;
 }
 
@@ -217,7 +221,9 @@ export function createIrisScene(
 	initial: IrisParams,
 ): IrisScene {
 	const params: IrisParams = { ...initial };
-	let onFrame: ((dt: number, elapsed: number) => void) | null = null;
+	let onFrame:
+		| ((dt: number, elapsed: number, reducedMotion: boolean) => void)
+		| null = null;
 	let debugCb: (() => Record<string, unknown>) | null = null;
 
 	const scene = new THREE.Scene();
@@ -290,67 +296,45 @@ export function createIrisScene(
 
 	const resizeObserver = observeThreeResize(mount, renderer, camera);
 
-	const clock = new THREE.Clock();
-	let lastTime = performance.now() / 1000;
-	let lastDebug = 0;
-	let raf = 0;
-
-	const animate = () => {
-		raf = requestAnimationFrame(animate);
-		const now = performance.now() / 1000;
-		const dt = Math.min(0.1, now - lastTime);
-		lastTime = now;
-		const elapsed = clock.getElapsedTime();
-
-		if (onFrame) onFrame(dt, elapsed);
-
-		irisMat.uniforms.uTime!.value = elapsed;
-		irisMat.uniforms.uPupilRadius!.value = params.pupilRadius;
-		irisMat.uniforms.uPigmentation!.value = params.pigmentation;
-		irisMat.uniforms.uShowMuscles!.value = params.showMuscles;
-		irisMat.uniforms.uStilesCrawford!.value = params.stilesCrawford;
-
-		orbit.update();
-		renderer.render(scene, camera);
-
-		if (now - lastDebug > 0.1) {
-			lastDebug = now;
-			const debugEl = mount
-				.closest(".interactive-viewer")
-				?.querySelector(".debug-output");
-			if (debugEl) {
-				const payload = debugCb
-					? debugCb()
-					: {
-							camera: {
-								position: {
-									x: +camera.position.x.toFixed(3),
-									y: +camera.position.y.toFixed(3),
-									z: +camera.position.z.toFixed(3),
-								},
-							},
-							target: {
-								x: +orbit.target.x.toFixed(3),
-								y: +orbit.target.y.toFixed(3),
-								z: +orbit.target.z.toFixed(3),
-							},
-						};
-				(debugEl as HTMLElement).innerText = JSON.stringify(payload, null, 2);
-			}
-		}
-	};
-	animate();
+	const loop = createDemoLoop(mount, {
+		controls: orbit,
+		continuous: (reducedMotion) => onFrame !== null || !reducedMotion,
+		draw: (dt, elapsed, reducedMotion) => {
+			onFrame?.(dt, elapsed, reducedMotion);
+			irisMat.uniforms.uTime!.value = reducedMotion ? 0 : elapsed;
+			irisMat.uniforms.uPupilRadius!.value = params.pupilRadius;
+			irisMat.uniforms.uPigmentation!.value = params.pigmentation;
+			irisMat.uniforms.uShowMuscles!.value = params.showMuscles;
+			irisMat.uniforms.uStilesCrawford!.value = params.stilesCrawford;
+			renderer.render(scene, camera);
+			return false;
+		},
+		inspect: () => ({
+			model: "Illustrative iris",
+			pupilDiameterMm: +(params.pupilRadius * 24).toFixed(3),
+			pigmentation: params.pigmentation,
+			muscleMap: params.showMuscles,
+			sceWeighting: params.stilesCrawford,
+			...debugCb?.(),
+			camera: camera.position.toArray(),
+			target: orbit.target.toArray(),
+		}),
+	});
 
 	return {
 		params,
+		invalidate: loop.invalidate,
 		setOnFrame: (cb) => {
 			onFrame = cb;
+			loop.invalidate();
 		},
 		setDebug: (cb) => {
 			debugCb = cb;
+			loop.inspect();
+			loop.invalidate();
 		},
 		dispose: () => {
-			cancelAnimationFrame(raf);
+			loop.dispose();
 			resizeObserver.disconnect();
 			orbit.dispose();
 			if (renderer.domElement.parentNode)

@@ -1,5 +1,6 @@
 ---
 title: "Modelling the eye V: One eye is not a population"
+published: false
 description: "Compare our WebGL eye with Navarro and Atchison, then build synthetic eyes from normal distributions and published covariances."
 date: 2026-10-10
 author: "Miguel García"
@@ -73,6 +74,8 @@ Here $SR$ is in dioptres, while radius and vitreous chamber depth are in millime
 
 This is a relation **within that model family**, not a general rule for converting somebody's axial length into spectacle power. We are also not exercising its GRIN optics here. The comparison renders geometry; calculating retinal image quality would require a consistent ray tracer, refractive indices, wavelength, pupil, object distance and image-surface definition.
 
+The Δ readouts below the model show the difference from our assembly in millimetres. Axial endpoints retain the conventions described above.
+
 ## First approximation: Vary one number
 
 Suppose we want more than one eye. The tempting starting point is to add a little random noise to each slider. We can do better by giving that noise a meaning.
@@ -117,6 +120,8 @@ This conversion is nonlinear. A Gaussian K does **not** become an exactly Gaussi
 Now imagine drawing ACD and lens thickness independently. Each histogram could look convincing while the combinations are wrong. In the selected published matrix, those two measurements are negatively correlated: thicker lenses tend to accompany shallower chambers in that modelled population. That association is not a rule that forces every thick lens into a shallow chamber, nor does correlation alone establish a mechanism.
 
 We need a **covariance matrix** $\Sigma$. Its diagonal contains variances; its off-diagonal terms describe how pairs vary together. Covariance carries units: an entry involving K and AL is in D·mm, while an ACD–LT entry is in mm². Parameter order matters as much as units.
+
+In the next plot, compare ACD with LT: independent draws make a cloud without a systematic tilt; the published covariance tilts it towards shallower chambers with thicker lenses. That is the relationship we want each generated eye to respect statistically.
 
 Cholesky factorisation gives us a lower-triangular matrix $L$ such that $\Sigma = LL^{\mathsf T}$. Then:
 

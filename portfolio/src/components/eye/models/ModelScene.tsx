@@ -33,7 +33,7 @@ export default function ModelScene({
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(45, 17, 31);
+		view.camera.position.set(48, 16, 12);
 		const group = new THREE.Group();
 		group.position.z = 12;
 		view.scene.add(group);
@@ -152,7 +152,7 @@ export default function ModelScene({
 						const view = viewRef.current;
 						if (!view) return;
 						view.setView(name);
-						if (name === "reset") view.camera.position.set(45, 17, 31);
+						if (name === "reset") view.camera.position.set(48, 16, 12);
 						view.controls.update();
 						view.invalidate();
 					}}

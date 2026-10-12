@@ -1,5 +1,6 @@
 ---
 title: "Modelling the eye IV: The retina"
+published: false
 description: "From a curved mesh to retinal layers, rods, cones and sampling: build the receiving end of the eye in WebGL."
 date: 2026-10-09
 author: "Miguel García"
@@ -7,6 +8,8 @@ tags: ["webgl", "threejs", "vision science", "retina", "anatomy"]
 lang: "en"
 image: "/images/blog/retina-banner.png"
 ---
+
+import PublishedPost from "@/components/blog/PublishedPost.astro";
 
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
@@ -158,6 +161,12 @@ For this visualisation, wall thicknesses, colours, the disc offset and the short
 We now have the main anatomical pieces of an eye model. Putting them in one scene does not yet make a complete optical or neural simulation. To predict a retinal image we would have to couple and validate the surfaces, refractive indices and distances; to predict vision we would need to model what the retina and brain do with that image too.
 
 For now, the construction has reached a useful milestone: light has a surface to reach, cells to sample it, and a reason that “more polygons” and “more visual information” are different things.
+
+<PublishedPost id="webgl-eye-05-models">
+
+Continue with [Part 5: Models and populations](/blog/webgl-eye-05-models): compare this assembly with Navarro and Atchison, then vary its dimensions.
+
+</PublishedPost>
 
 ## References
 

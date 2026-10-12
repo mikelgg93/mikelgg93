@@ -1,3 +1,4 @@
+import { eyeText } from "../earlyText";
 import "./pupil.css";
 import { ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +10,12 @@ import {
 	validPupil,
 } from "./neonPupil";
 
-export default function PupilHardwareSync() {
+export default function PupilHardwareSync({
+	lang = "en",
+}: {
+	lang?: "en" | "es";
+}) {
+	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
 	const [deviceIp, setDeviceIp] = useState("192.168.18.39");
@@ -164,8 +170,10 @@ export default function PupilHardwareSync() {
 						const values = [latest.left, latest.right].filter(validPupil);
 						const mean =
 							values.reduce((sum, value) => sum + value, 0) / values.length;
-						if (sceneRef.current)
+						if (sceneRef.current) {
 							sceneRef.current.params.pupilRadius = mean * (0.5 / 12.0);
+							sceneRef.current.invalidate();
+						}
 						setPupilMm(latest);
 						const graph = canvasRef.current;
 						const ctx = graph?.getContext("2d");
@@ -299,14 +307,14 @@ export default function PupilHardwareSync() {
 					<div className="flex items-center gap-2">
 						<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
 						<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-							Live Neon pupil data
+							{t("Live Neon pupil data")}
 						</span>
 					</div>
 					<div className="flex items-center gap-2">
 						<div
 							role="status"
-							aria-label={status}
-							title={status}
+							aria-label={t(status)}
+							title={t(status)}
 							className={`w-2 h-2 rounded-full ${status === "streaming" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
 						/>
 						{isSettingsOpen ? (
@@ -321,7 +329,7 @@ export default function PupilHardwareSync() {
 					<div className="flex flex-col gap-2 mt-3">
 						<input
 							type="text"
-							aria-label="Neon device address"
+							aria-label={t("Neon device address")}
 							autoCapitalize="none"
 							spellCheck={false}
 							value={deviceIp}
@@ -335,14 +343,14 @@ export default function PupilHardwareSync() {
 							className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors w-full ${status === "streaming" ? "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
 						>
 							{status === "streaming"
-								? "Disconnect"
+								? t("Disconnect")
 								: status === "connecting"
-									? "Cancel connection"
-									: "Connect"}
+									? t("Cancel connection")
+									: t("Connect")}
 						</button>
 						{errorMsg && (
 							<div className="text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20">
-								{errorMsg}
+								{t(errorMsg)}
 							</div>
 						)}
 					</div>
@@ -369,13 +377,13 @@ export default function PupilHardwareSync() {
 					10mm
 				</div>
 				<div className="absolute right-2 top-2 text-[10px] text-emerald-500/70 font-mono font-bold tracking-wider uppercase">
-					LAST 1000 SAMPLES
+					{t("LAST 1000 SAMPLES")}
 				</div>
 
 				<div className="absolute right-4 bottom-2 flex gap-4">
 					<div className="flex flex-col items-end">
 						<span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-0.5">
-							Left
+							{t("Left")}
 						</span>
 						<div className="flex items-baseline gap-1">
 							<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">
@@ -388,7 +396,7 @@ export default function PupilHardwareSync() {
 					</div>
 					<div className="flex flex-col items-end">
 						<span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">
-							Right
+							{t("Right")}
 						</span>
 						<div className="flex items-baseline gap-1">
 							<span className="text-3xl font-mono font-bold text-foreground leading-none drop-shadow-md">

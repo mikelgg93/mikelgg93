@@ -1,5 +1,6 @@
 ---
 title: "Modelando el ojo III: El cristalino"
+published: false
 description: "De dos cúpulas sencillas a una lente con gradiente de índice: músculo ciliar, zónulas, OCT, cataratas y presbicia en 3D interactivo."
 date: 2026-10-07
 author: "Miguel García"
@@ -7,6 +8,9 @@ tags: ["webgl", "threejs", "vision science", "optics", "anatomy"]
 lang: "es"
 image: "/images/blog/lens-banner.png"
 ---
+
+import PublishedPost from "@/components/blog/PublishedPost.astro";
+import DraftOnly from "@/components/blog/DraftOnly.astro";
 
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { lensSources } from '../../components/eye/lens/lensSources';
@@ -23,6 +27,8 @@ En la [Parte 1](/es/blog/webgl-eye-01-cornea) dimos forma a la córnea. En la [P
 Una cámara suele resolverlo desplazando sus lentes. El ojo cambia principalmente la forma de una: el **cristalino**, situado detrás del iris. Este mecanismo se llama **acomodación**, y su motor es un anillo muscular que rodea la lente. Lo sorprendente es que enfocar de cerca implica reducir parte de la tracción sobre ella.
 
 Partiremos de una forma deliberadamente sencilla, le daremos un interior óptico y añadiremos el mecanismo que la mueve. Después veremos cómo medimos un cristalino real y qué cambia al perder transparencia o flexibilidad.
+
+Sigue primero las cúpulas, el GRIN, la suspensión y el conjunto final. Las notas de literatura y OCT explican cómo se contrasta una forma con ojos reales; puedes volver a ellas después. Si necesitas preparar la escena y sus unidades, el [proyecto inicial de la serie](/downloads/eye-starter.zip) llega hasta una primera disposición de córnea, iris, cristalino y retina.
 
 ## Primera aproximación: Dos cúpulas
 
@@ -224,9 +230,17 @@ Es una composición anatómica de nuestros modelos didácticos. Reúne la córne
 
 Hemos explorado tres mecanismos: una superficie anterior fija, una abertura ajustable y una lente que cambia el enfoque. En el ojo real, trabajan juntos para formar la imagen retiniana.
 
+<DraftOnly>
+
 Recorre la construcción paso a paso en la [presentación animada en HTML](/presentations/webgl-eye/) (en inglés), desde la cámara y la esfera hasta el ojo ensamblado.
 
+</DraftOnly>
+
+<PublishedPost id="webgl-eye-04-retina-es">
+
 A continuación, la [Parte 4: La retina](/es/blog/webgl-eye-04-retina/) construye la superficie receptora, sus capas y un experimento de muestreo de fotorreceptores.
+
+</PublishedPost>
 
 ## Referencias
 

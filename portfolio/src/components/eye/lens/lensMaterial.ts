@@ -6,7 +6,9 @@ export function clearLensMaterial(implant = false) {
 	return new THREE.MeshPhysicalMaterial({
 		color: implant ? 0xffffff : 0xfffdf1,
 		metalness: 0,
-		roughness: 0.055,
+		roughness: 0.1,
+		envMapIntensity: 0.55,
+		specularIntensity: 0.6,
 		transmission: 0.96,
 		ior: (implant ? 1.46 : 1.4) / 1.336,
 		thickness: implant ? 0.65 : 2.5,

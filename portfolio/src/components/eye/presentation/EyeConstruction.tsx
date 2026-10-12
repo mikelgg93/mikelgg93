@@ -12,13 +12,17 @@ type FullscreenElement = HTMLElement & { webkitRequestFullscreen?: () => void };
 
 export default function EyeConstruction({
 	standalone = false,
+	availableArticles = [],
 }: {
 	standalone?: boolean;
+	availableArticles?: string[];
 }) {
 	const article = (slug: string) =>
 		standalone
 			? `https://github.com/mikelgg93/mikelgg93/blob/webgl-eye-04-retina/portfolio/src/content/blog/${slug}.mdx`
-			: `/blog/${slug}/`;
+			: availableArticles.includes(slug)
+				? `/blog/${slug}/`
+				: undefined;
 	const [slide, setSlide] = useState(0),
 		[playing, setPlaying] = useState(true),
 		[error, setError] = useState(false),
@@ -180,7 +184,10 @@ export default function EyeConstruction({
 	return (
 		<main className="construction" ref={root} data-step="0" data-progress="0">
 			<header className="deck-header">
-				<a href={article("webgl-eye-03-lens")} className="deck-brand">
+				<a
+					href={article("webgl-eye-03-lens") ?? "/blog/"}
+					className="deck-brand"
+				>
 					MGG <span>/ WebGL eye</span>
 				</a>
 				<div className="deck-header-actions">
