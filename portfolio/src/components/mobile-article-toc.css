@@ -10,6 +10,11 @@
 		inset -1px -1px 0 rgb(255 255 255 / 0.12);
 }
 
+.mobile-article-toc a[aria-current="location"] {
+	background-color: color-mix(in srgb, var(--tertiary) 16%, transparent);
+	box-shadow: inset 3px 0 0 var(--tertiary);
+}
+
 .mobile-article-toc-header {
 	z-index: 1;
 	background: var(--popover);

@@ -158,7 +158,7 @@ export default function MobileArticleToc({
 							key={section.id}
 							href={`#${section.id}`}
 							aria-current={section.id === active ? "location" : undefined}
-							className={`block rounded-xl px-3 py-3 leading-snug hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-primary ${section.id === active ? "bg-foreground/10 font-semibold" : "text-popover-foreground/85"}`}
+							className={`block rounded-xl px-3 py-3 leading-snug hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-tertiary ${section.id === active ? "font-semibold" : "text-popover-foreground/85"}`}
 							onClick={(event) => {
 								const heading = document.getElementById(section.id);
 								if (!heading) return;
