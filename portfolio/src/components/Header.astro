@@ -67,9 +67,15 @@ const posts = allPosts
 </nav>
 
 <script>
+  let cleanupHeader: (() => void) | undefined;
+
   function initHeader() {
+    cleanupHeader?.();
     const header = document.getElementById("main-header");
     if (!header) return;
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    document.documentElement.toggleAttribute("data-ios", isIos);
 
     const handleScroll = () => {
       if (window.scrollY > 50) {
@@ -93,14 +99,39 @@ const posts = allPosts
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
+    cleanupHeader = () => window.removeEventListener("scroll", handleScroll);
   }
 
   document.addEventListener("astro:page-load", initHeader);
+  document.addEventListener("astro:before-swap", () => cleanupHeader?.());
 </script>
 
 <style is:global>
+  body:has([data-mobile-menu][data-state="open"]) .reading-time {
+    visibility: hidden;
+  }
+
+  /* viewport-fit=cover exposes the iOS safe area. Use an opaque scrolled
+     header there so text cannot show through behind the clock. The extra
+     background above it covers the top edge during toolbar transitions. */
+  :root[data-ios] #main-header.is-scrolled {
+    background-color: var(--background);
+  }
+  :root[data-ios] {
+    background-color: var(--background);
+  }
+  :root[data-ios] #main-header::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 100%;
+    height: env(safe-area-inset-top, 0px);
+    background: var(--background);
+    pointer-events: none;
+  }
+
   #main-header:not(.is-scrolled).header-theme-dark {
     --primary: 0 0% 100%;
     color: white;

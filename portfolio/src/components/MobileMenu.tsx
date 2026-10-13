@@ -1,3 +1,5 @@
+import { Menu } from "lucide-react";
+import { useState } from "react";
 import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
@@ -7,8 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import { useState } from "react";
+import { useMobileMenuSwipe } from "@/hooks/useMobileMenuSwipe";
 
 interface PostLink {
   title: string;
@@ -29,6 +30,7 @@ export default function MobileMenu({
   isEs,
 }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
+  useMobileMenuSwipe(open, setOpen, blogPath);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -42,7 +44,9 @@ export default function MobileMenu({
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="bg-transparent border-none flex flex-col w-[85vw] max-w-sm"
+        data-mobile-menu
+        aria-describedby={undefined}
+        className="bg-transparent border-none flex flex-col w-[85vw] max-w-sm data-[state=open]:duration-200 data-[state=closed]:duration-150 motion-reduce:animate-none [&>button]:top-[calc(6rem+env(safe-area-inset-top,0px)+0.5rem)] [&>button]:p-3"
       >
         <div className="absolute -inset-y-32 inset-x-0 bg-background/95 backdrop-blur-md border-l border-border/50 -z-10" />
         <SheetHeader className="sr-only">

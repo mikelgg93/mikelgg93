@@ -1,8 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import { Image } from "astro:assets";
+import BlogPostList from "@/components/BlogPostList.astro";
 import { getVisiblePosts } from "@/lib/blog";
-import { Clock } from "lucide-react";
 
 const posts = await getVisiblePosts();
 
@@ -15,71 +14,14 @@ const sortedPosts = posts
   );
 ---
 
-<Layout
-  title="Blog"
-  description="Thoughts on optometry, neuroscience, and code."
->
-  <section class="container mx-auto px-4 py-12 md:py-24 max-w-screen-lg">
-    <div
-      class="flex flex-col items-start gap-4 mb-12 animate-in fade-in slide-in-from-bottom-6 duration-700"
-    >
-      <h1 class="text-3xl font-bold tracking-tight md:text-5xl font-serif">
-        Blog
-      </h1>
-      <p class="text-xl text-muted-foreground">
+<Layout title="Blog" description="Thoughts on optometry, neuroscience, and code.">
+  <section class="container mx-auto px-4 md:px-8 pt-24 pb-12 md:py-28 max-w-5xl">
+    <header class="pb-8 md:pb-10 border-b border-border/50">
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight font-serif">Blog</h1>
+      <p class="mt-4 text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl">
         Writing about my journey in research and development.
       </p>
-      <div class="h-[1px] w-full bg-border opacity-50 mt-4"></div>
-    </div>
-
-    <div
-      class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200"
-    >
-      {
-        sortedPosts.map((post) => (
-          <a
-            href={`/blog/${post.id}`}
-            class="block p-5 bg-muted/30 hover:bg-muted/60 transition-colors group relative overflow-hidden rounded-xl border border-transparent hover:border-border/50 flex flex-col h-full"
-          >
-            {post.data.image && (
-              <div class="w-full h-48 mb-4 overflow-hidden rounded-lg bg-background shrink-0">
-                <Image
-                  src={post.data.image}
-                  alt={post.data.title}
-                  width={1200}
-                  height={630}
-                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-              </div>
-            )}
-            <div class="flex justify-between items-start mb-4">
-              <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-80">
-                {new Date(post.data.date || Date.now()).toLocaleDateString(
-                  "en-US",
-                  { year: "numeric", month: "short", day: "numeric" },
-                )}
-              </span>
-              <div class="flex items-center gap-1.5 text-primary shrink-0 ml-2">
-                <Clock className="w-3.5 h-3.5" />
-                <span class="text-[10px] font-bold uppercase tracking-widest">
-                  {Math.max(
-                    1,
-                    Math.ceil((post.body || "").split(/\s+/).length / 200),
-                  )}{" "}
-                  min read
-                </span>
-              </div>
-            </div>
-            <h4 class="text-xl font-bold text-foreground leading-snug group-hover:text-primary transition-colors mb-3 font-serif flex-grow">
-              {post.data.title}
-            </h4>
-            <p class="text-sm text-muted-foreground line-clamp-3 font-light mt-auto">
-              {post.data.description}
-            </p>
-          </a>
-        ))
-      }
-    </div>
+    </header>
+    <BlogPostList posts={sortedPosts} lang="en" />
   </section>
 </Layout>

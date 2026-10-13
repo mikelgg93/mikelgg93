@@ -4,6 +4,7 @@ import { getVisiblePosts } from "@/lib/blog";
 import { Clock } from "lucide-react";
 import CitationsData from "public/citations.json";
 import Resume from "public/es-resume.json";
+import Hero from "public/hero.png";
 import CitationsChart from "@/components/CitationsChart";
 import Layout from "@/layouts/Layout.astro";
 
@@ -23,10 +24,16 @@ const sortedPosts = posts
 <Layout title={name} description={summary}>
 
   <header class="relative w-full h-[50vh] min-h-[450px] overflow-hidden flex items-end">
-    <img
+    <Image
       alt="Hero landscape"
       class="absolute inset-0 w-full h-full object-cover object-[center_35%]"
-      src="/hero.png"
+      src={Hero}
+      format="webp"
+      quality={82}
+      widths={[480, 768, 1024, 1440, 1792]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
     />
     <div class="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-background z-10"></div>
     <div class="relative w-full max-w-5xl mx-auto px-4 md:px-8 pb-8 z-20 pt-24">
