@@ -2,7 +2,8 @@ import { useEffect } from "react";
 
 // Leave scene rotation, sliders, code/table scrolling and browser edge gestures
 // to their existing owners. Only a deliberate left swipe over page prose opens
-// the menu; passive listeners never prevent ordinary vertical scrolling.
+// the menu; a right swipe inside the open sidebar closes it. Passive listeners
+// never prevent ordinary vertical scrolling.
 export function useMobileMenuSwipe(
 	open: boolean,
 	setOpen: (open: boolean) => void,
@@ -12,9 +13,12 @@ export function useMobileMenuSwipe(
 		let start: { id: number; x: number; y: number; time: number } | null = null;
 		const excluded = (target: EventTarget | null) => {
 			if (!(target instanceof Element)) return true;
+			const inMenu = target.closest("[data-mobile-menu][data-state='open']");
+			if (open && !inMenu) return true;
+			if (!open && target.closest("a, [role='dialog']")) return true;
 			if (
 				target.closest(
-					".interactive-viewer, canvas, iframe, video, audio, pre, .table-scroll, .katex-display, a, button, input, textarea, select, label, [contenteditable]:not([contenteditable='false']), [role='slider'], [role='dialog'], [popover], [data-no-menu-swipe]",
+					".interactive-viewer, canvas, iframe, video, audio, pre, .table-scroll, .katex-display, button, input, textarea, select, label, [contenteditable]:not([contenteditable='false']), [role='slider'], [popover], [data-no-menu-swipe]",
 				)
 			)
 				return true;
@@ -37,7 +41,6 @@ export function useMobileMenuSwipe(
 		const onStart = (event: TouchEvent) => {
 			reset();
 			if (
-				open ||
 				!mobile.matches ||
 				event.touches.length !== 1 ||
 				excluded(event.target) ||
@@ -77,9 +80,9 @@ export function useMobileMenuSwipe(
 			const dx = touch.clientX - origin.x;
 			const dy = Math.abs(touch.clientY - origin.y);
 			if (
-				dx < -80 &&
+				(open ? dx > 80 : dx < -80) &&
 				dy < 48 &&
-				dy < -dx * 0.4 &&
+				dy < Math.abs(dx) * 0.4 &&
 				event.timeStamp - origin.time < 650
 			) {
 				document
@@ -87,7 +90,7 @@ export function useMobileMenuSwipe(
 					.forEach((popover) => {
 						popover.hidePopover();
 					});
-				setOpen(true);
+				setOpen(!open);
 			}
 		};
 		const onResize = () => {

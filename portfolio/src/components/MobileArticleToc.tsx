@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import "./mobile-article-toc.css";
 
 interface Section {
 	id: string;
@@ -34,11 +35,11 @@ export default function MobileArticleToc({
 	useEffect(() => {
 		if (!open) return;
 		const viewport = window.visualViewport;
-		const desktop = window.matchMedia("(min-width: 1280px)");
+		const widerScreen = window.matchMedia("(min-width: 768px)");
 		let frame: number | null = null;
 		const position = () => {
 			frame = null;
-			if (desktop.matches) {
+			if (widerScreen.matches) {
 				panel.current?.hidePopover();
 				return;
 			}
@@ -68,12 +69,12 @@ export default function MobileArticleToc({
 		window.addEventListener("resize", schedulePosition);
 		viewport?.addEventListener("resize", schedulePosition);
 		viewport?.addEventListener("scroll", schedulePosition);
-		desktop.addEventListener("change", schedulePosition);
+		widerScreen.addEventListener("change", schedulePosition);
 		return () => {
 			window.removeEventListener("resize", schedulePosition);
 			viewport?.removeEventListener("resize", schedulePosition);
 			viewport?.removeEventListener("scroll", schedulePosition);
-			desktop.removeEventListener("change", schedulePosition);
+			widerScreen.removeEventListener("change", schedulePosition);
 			if (frame !== null) cancelAnimationFrame(frame);
 		};
 	}, [open]);
@@ -95,8 +96,12 @@ export default function MobileArticleToc({
 				aria-controls={id}
 				tabIndex={visible ? 0 : -1}
 				disabled={!visible}
-				className="absolute inset-0 rounded-xl pointer-events-auto cursor-pointer xl:hidden focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-tertiary before:absolute before:inset-x-0 before:-inset-y-2"
+				className="absolute inset-0 rounded-xl pointer-events-auto cursor-pointer md:hidden focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-tertiary before:absolute before:inset-x-0 before:-inset-y-2"
 				onClick={(event) => {
+					if (!window.matchMedia("(max-width: 767px)").matches) {
+						event.preventDefault();
+						return;
+					}
 					if (open) return;
 					// Reuse the desktop TOC's labels and anchors without changing it.
 					const items = Array.from(
@@ -129,16 +134,16 @@ export default function MobileArticleToc({
 				id={id}
 				popover="auto"
 				onToggle={(event) => setOpen(event.newState === "open")}
-				className="fixed top-auto left-auto m-0 p-0 rounded-2xl border border-border bg-popover text-popover-foreground shadow-xl pointer-events-auto overflow-y-auto overscroll-contain xl:hidden"
+				className="mobile-article-toc fixed top-auto left-auto m-0 p-0 text-popover-foreground pointer-events-auto overflow-y-auto overscroll-contain md:hidden"
 			>
-				<div className="sticky top-0 bg-popover flex items-center justify-between pl-4 pr-1 py-1 border-b border-border">
+				<div className="mobile-article-toc-header sticky top-0 flex items-center justify-between pl-4 pr-1 py-1">
 					<p id={`${id}-title`} className="text-xs font-semibold tracking-wide">
 						{isEs ? "En esta página" : "On this page"}
 					</p>
 					<button
 						type="button"
 						aria-label={isEs ? "Cerrar índice" : "Close table of contents"}
-						className="p-3 rounded-xl hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+						className="p-3 rounded-xl hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-primary"
 						onClick={() => {
 							panel.current?.hidePopover();
 							trigger.current?.focus({ preventScroll: true });
@@ -153,7 +158,7 @@ export default function MobileArticleToc({
 							key={section.id}
 							href={`#${section.id}`}
 							aria-current={section.id === active ? "location" : undefined}
-							className={`block rounded-lg px-3 py-3 leading-snug hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${section.id === active ? "bg-muted font-semibold" : "text-muted-foreground"}`}
+							className={`block rounded-xl px-3 py-3 leading-snug hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-primary ${section.id === active ? "bg-foreground/10 font-semibold" : "text-popover-foreground/85"}`}
 							onClick={(event) => {
 								const heading = document.getElementById(section.id);
 								if (!heading) return;
