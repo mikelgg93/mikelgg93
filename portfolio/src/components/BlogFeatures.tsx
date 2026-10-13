@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import MobileArticleToc from "./MobileArticleToc";
 
 export default function BlogFeatures() {
 	const viewportRef = useRef<HTMLDivElement>(null);
@@ -127,7 +128,7 @@ export default function BlogFeatures() {
 
 			<div
 				aria-hidden={!isReading}
-				className={`absolute bottom-3 right-[max(1.5rem,env(safe-area-inset-right,0px))] md:bottom-4 md:right-[max(2rem,env(safe-area-inset-right,0px))] bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-500 motion-reduce:transition-none transform ${
+				className={`reading-time absolute bottom-3 right-[max(1.5rem,env(safe-area-inset-right,0px))] md:bottom-4 md:right-[max(2rem,env(safe-area-inset-right,0px))] bg-tertiary backdrop-blur-md shadow-lg rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-500 motion-reduce:transition-none transform ${
 					isReading
 						? "translate-y-0 opacity-100"
 						: "translate-y-10 opacity-0 pointer-events-none"
@@ -137,6 +138,7 @@ export default function BlogFeatures() {
 				<span className="text-[11px] font-mono font-semibold tracking-tight text-tertiary-foreground mt-px">
 					{remainingTime} min
 				</span>
+				<MobileArticleToc visible={isReading} remainingTime={remainingTime} />
 			</div>
 		</div>
 	);
