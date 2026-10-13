@@ -13,10 +13,10 @@ export default function BlogFeatures() {
 		const isIos =
 			/iPad|iPhone|iPod/.test(ua) ||
 			(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-		// Browser identity matters here: other iOS browsers also use WebKit.
+		// Brave iOS can identify itself in the UA without exposing navigator.brave.
 		const isSafari =
 			/Version\/[\d.]+.*Safari\//.test(ua) &&
-			!/(CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Ddg|GSA|FBAN|FBIOS|Instagram)/i.test(
+			!/(Brave|CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Ddg|GSA|FBAN|FBIOS|Instagram)/i.test(
 				ua,
 			) &&
 			!("brave" in navigator);
@@ -106,13 +106,12 @@ export default function BlogFeatures() {
 					rx="12"
 					ry="12"
 					fill="none"
-					stroke="var(--color-tertiary)"
 					strokeWidth="4"
 					pathLength="100"
 					strokeDasharray="100"
 					strokeDashoffset={100 - scrollProgress}
 					strokeLinecap="round"
-					className="transition-all duration-75 ease-out opacity-80"
+					className="stroke-tertiary transition-all duration-75 ease-out opacity-80"
 				/>
 			</svg>
 
