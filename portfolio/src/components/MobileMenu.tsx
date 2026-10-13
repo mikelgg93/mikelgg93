@@ -46,7 +46,7 @@ export default function MobileMenu({
         side="right"
         data-mobile-menu
         aria-describedby={undefined}
-        className="bg-transparent border-none flex flex-col w-[85vw] max-w-sm [&>button]:top-[calc(6rem+env(safe-area-inset-top,0px)+0.5rem)] [&>button]:p-3"
+        className="bg-transparent border-none flex flex-col w-[85vw] max-w-sm data-[state=open]:duration-200 data-[state=closed]:duration-150 motion-reduce:animate-none [&>button]:top-[calc(6rem+env(safe-area-inset-top,0px)+0.5rem)] [&>button]:p-3"
       >
         <div className="absolute -inset-y-32 inset-x-0 bg-background/95 backdrop-blur-md border-l border-border/50 -z-10" />
         <SheetHeader className="sr-only">

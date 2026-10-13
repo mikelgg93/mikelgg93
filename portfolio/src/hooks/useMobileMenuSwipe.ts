@@ -1,3 +1,4 @@
+import { prefetch } from "astro:prefetch";
 import { navigate } from "astro:transitions/client";
 import { useEffect } from "react";
 
@@ -10,6 +11,24 @@ export function useMobileMenuSwipe(
 	setOpen: (open: boolean) => void,
 	blogPath: string,
 ) {
+	// Pages serves directory routes with a trailing slash; avoid a redirect on
+	// the gesture's navigation and use the same URL for its prefetch.
+	const directoryPath = `${blogPath.replace(/\/$/, "")}/`;
+
+	useEffect(() => {
+		// The hidden menu's Blog link rarely receives hover on a phone. Warm the
+		// directory after initial rendering, respecting Astro's data-saver checks.
+		const timer = window.setTimeout(() => {
+			if (
+				window.matchMedia("(max-width: 767px)").matches &&
+				document.querySelector("article #blog-toc")
+			) {
+				prefetch(directoryPath);
+			}
+		}, 1000);
+		return () => window.clearTimeout(timer);
+	}, [directoryPath]);
+
 	useEffect(() => {
 		const mobile = window.matchMedia("(max-width: 767px)");
 		let start: {
@@ -64,7 +83,7 @@ export function useMobileMenuSwipe(
 				x: touch.clientX,
 				y: touch.clientY,
 				time: event.timeStamp,
-				// Blog listing cards also use <article>; only a full post has a TOC.
+				// Listing previews also use <article>; only a full post has a TOC.
 				inArticle:
 					event.target instanceof Element &&
 					Boolean(event.target.closest("article")?.querySelector("#blog-toc")),
@@ -78,8 +97,21 @@ export function useMobileMenuSwipe(
 				!touch ||
 				touch.identifier !== start.id ||
 				Math.abs(touch.clientY - start.y) > 48
-			)
+			) {
 				reset();
+				return;
+			}
+			// An early swipe can precede the scheduled prefetch. Start loading once its
+			// direction is clear, but commit navigation only on a completed gesture.
+			const dx = touch.clientX - start.x;
+			if (
+				!open &&
+				start.inArticle &&
+				dx > 24 &&
+				Math.abs(touch.clientY - start.y) < dx * 0.4
+			) {
+				prefetch(directoryPath);
+			}
 		};
 		const onEnd = (event: TouchEvent) => {
 			const origin = start;
@@ -102,7 +134,7 @@ export function useMobileMenuSwipe(
 					return;
 				}
 				if (dx > 0) {
-					if (origin.inArticle) void navigate(blogPath);
+					if (origin.inArticle) void navigate(directoryPath);
 					return;
 				}
 				document
@@ -129,5 +161,5 @@ export function useMobileMenuSwipe(
 			document.removeEventListener("touchcancel", reset);
 			mobile.removeEventListener("change", onResize);
 		};
-	}, [open, setOpen, blogPath]);
+	}, [open, setOpen, directoryPath]);
 }
