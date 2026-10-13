@@ -30,7 +30,7 @@ export default function MobileMenu({
   isEs,
 }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
-  useMobileMenuSwipe(open, setOpen);
+  useMobileMenuSwipe(open, setOpen, blogPath);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

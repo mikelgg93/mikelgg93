@@ -1,16 +1,24 @@
+import { navigate } from "astro:transitions/client";
 import { useEffect } from "react";
 
 // Leave scene rotation, sliders, code/table scrolling and browser edge gestures
 // to their existing owners. Only a deliberate left swipe over page prose opens
-// the menu; a right swipe inside the open sidebar closes it. Passive listeners
-// never prevent ordinary vertical scrolling.
+// the menu; a right swipe closes the sidebar or returns an article to its blog
+// directory. Passive listeners never prevent ordinary vertical scrolling.
 export function useMobileMenuSwipe(
 	open: boolean,
 	setOpen: (open: boolean) => void,
+	blogPath: string,
 ) {
 	useEffect(() => {
 		const mobile = window.matchMedia("(max-width: 767px)");
-		let start: { id: number; x: number; y: number; time: number } | null = null;
+		let start: {
+			id: number;
+			x: number;
+			y: number;
+			time: number;
+			inArticle: boolean;
+		} | null = null;
 		const excluded = (target: EventTarget | null) => {
 			if (!(target instanceof Element)) return true;
 			const inMenu = target.closest("[data-mobile-menu][data-state='open']");
@@ -56,6 +64,10 @@ export function useMobileMenuSwipe(
 				x: touch.clientX,
 				y: touch.clientY,
 				time: event.timeStamp,
+				// Blog listing cards also use <article>; only a full post has a TOC.
+				inArticle:
+					event.target instanceof Element &&
+					Boolean(event.target.closest("article")?.querySelector("#blog-toc")),
 			};
 		};
 		const onMove = (event: TouchEvent) => {
@@ -80,17 +92,25 @@ export function useMobileMenuSwipe(
 			const dx = touch.clientX - origin.x;
 			const dy = Math.abs(touch.clientY - origin.y);
 			if (
-				(open ? dx > 80 : dx < -80) &&
+				Math.abs(dx) > 80 &&
 				dy < 48 &&
 				dy < Math.abs(dx) * 0.4 &&
 				event.timeStamp - origin.time < 650
 			) {
+				if (open) {
+					if (dx > 0) setOpen(false);
+					return;
+				}
+				if (dx > 0) {
+					if (origin.inArticle) void navigate(blogPath);
+					return;
+				}
 				document
 					.querySelectorAll<HTMLElement>("[popover]:popover-open")
 					.forEach((popover) => {
 						popover.hidePopover();
 					});
-				setOpen(!open);
+				setOpen(true);
 			}
 		};
 		const onResize = () => {
@@ -109,5 +129,5 @@ export function useMobileMenuSwipe(
 			document.removeEventListener("touchcancel", reset);
 			mobile.removeEventListener("change", onResize);
 		};
-	}, [open, setOpen]);
+	}, [open, setOpen, blogPath]);
 }

@@ -12,7 +12,6 @@
 
 .mobile-article-toc a[aria-current="location"] {
 	background-color: color-mix(in srgb, var(--tertiary) 16%, transparent);
-	box-shadow: inset 3px 0 0 var(--tertiary);
 }
 
 .mobile-article-toc-header {
