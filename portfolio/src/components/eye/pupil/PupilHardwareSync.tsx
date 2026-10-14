@@ -89,6 +89,7 @@ export default function PupilHardwareSync({
 		let disposed = false;
 		let lastSampleAt = performance.now();
 		let receivedFirstSample = false;
+		let monitorStarted = false;
 		let animationFrame: number | null = null;
 		let latest: PupilSample | null = null;
 		let renderingVisible = false;
@@ -108,6 +109,8 @@ export default function PupilHardwareSync({
 			: () => {};
 		let restoreStorage: (() => void) | null = null;
 		const watchdog = window.setInterval(() => {
+			// The browser permission prompt can remain open until the user responds.
+			if (!monitorStarted) return;
 			if (
 				performance.now() - lastSampleAt >
 				(receivedFirstSample ? 5000 : 15000)
@@ -249,9 +252,16 @@ export default function PupilHardwareSync({
 				);
 			};
 
-			// 3. Fetch the device's webapp dynamically. HTTPS pages may be blocked
-			// from reaching this HTTP service; fetch cannot distinguish mixed
-			// content, local-network permission, CORS and connectivity failures.
+			// A user-initiated local fetch triggers Chromium's LNA prompt where
+			// supported. Other browsers ignore this hint; it grants no permission.
+			// https://developer.chrome.com/blog/local-network-access
+			const fetchOpts: RequestInit & { targetAddressSpace?: "local" } = {
+				signal: abort.signal,
+				cache: "no-store",
+				...(safeIp !== "localhost" && !safeIp.startsWith("127.")
+					? { targetAddressSpace: "local" as const }
+					: {}),
+			};
 			const fetchMonitor = async (url: string) => {
 				try {
 					return await fetch(url, fetchOpts);
@@ -259,14 +269,10 @@ export default function PupilHardwareSync({
 					if (abort.signal.aborted) throw error;
 					throw new Error(
 						lang === "es"
-							? "No se pudo acceder a Neon. Comprueba la Wi-Fi y la dirección. Companion utiliza HTTP. Desde una página HTTPS, el navegador puede bloquear contenido mixto, acceso a la red local o CORS. Si lo bloquea, prueba la demo desde un servidor HTTP local; abrir Monitor en otra pestaña no elimina estas restricciones."
-							: "Could not reach Neon. Check Wi-Fi and the device address. Companion uses HTTP. From an HTTPS page, your browser may block mixed content, local-network access or CORS. If blocked, try the demo from a local HTTP server; opening Monitor in another tab does not remove these restrictions.",
+							? "No se pudo acceder a Neon. Comprueba la dirección, la Wi-Fi y los permisos del navegador."
+							: "Could not reach Neon. Check the address, Wi-Fi and browser permissions.",
 					);
 				}
-			};
-			const fetchOpts = {
-				signal: abort.signal,
-				cache: "no-store" as RequestCache,
 			};
 			const htmlRes = await fetchMonitor(`http://${safeIp}:8080/`);
 			if (!htmlRes.ok)
@@ -334,6 +340,8 @@ export default function PupilHardwareSync({
 			script.textContent = scriptText;
 			script.onerror = () =>
 				fail("Could not load the Companion Monitor bundle.");
+			lastSampleAt = performance.now();
+			monitorStarted = true;
 			frameDocument.body.appendChild(script);
 		} catch (error: unknown) {
 			fail(
@@ -345,7 +353,7 @@ export default function PupilHardwareSync({
 	return (
 		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
 			{/* Collapsible Settings Overlay */}
-			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 shadow-xl pointer-events-auto transition-all">
+			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 max-h-[calc(100%-2rem)] overflow-y-auto shadow-xl pointer-events-auto transition-all">
 				<div
 					className="flex items-center justify-between cursor-pointer select-none"
 					onClick={() => setIsSettingsOpen(!isSettingsOpen)}
@@ -398,11 +406,69 @@ export default function PupilHardwareSync({
 									? t("Cancel connection")
 									: t("Connect")}
 						</button>
+						<p className="text-[11px] leading-relaxed text-muted-foreground">
+							{lang === "es"
+								? "En la misma Wi-Fi que Neon, pulsa Conectar y permite el acceso a la red local si el navegador lo solicita."
+								: "On the same Wi-Fi as Neon, click Connect and allow local-network access if your browser asks."}
+						</p>
 						{errorMsg && (
-							<div className="text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20">
+							<div
+								role="alert"
+								className="text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20"
+							>
 								{t(errorMsg)}
 							</div>
 						)}
+						<details
+							open={status === "error"}
+							className="text-[11px] leading-relaxed text-muted-foreground"
+						>
+							<summary className="cursor-pointer py-1 text-foreground">
+								{lang === "es" ? "Ayuda de conexión" : "Connection help"}
+							</summary>
+							<p className="mt-2">
+								{lang === "es"
+									? "Chrome y otros navegadores Chromium compatibles pueden solicitar permiso para acceder a la red local. Si lo denegaste, abre los controles del sitio junto a la dirección y permite el acceso a la red local; después vuelve a conectar."
+									: "Chrome and supported Chromium browsers can ask for local-network permission. If you denied it, open the site controls beside the address and allow local-network access, then reconnect."}
+							</p>
+							<p className="mt-2">
+								{lang === "es"
+									? "Si sigue bloqueado en Chrome o Edge de escritorio:"
+									: "If it is still blocked in desktop Chrome or Edge:"}
+							</p>
+							<ol className="list-decimal pl-4 space-y-1 mt-1">
+								<li>
+									{lang === "es"
+										? "Abre los controles junto a la dirección → Configuración del sitio (o Permisos de este sitio)."
+										: "Open the controls beside the address → Site settings (or Permissions for this site)."}
+								</li>
+								<li>
+									{lang === "es"
+										? "Cambia Contenido no seguro a Permitir, solo para este sitio de confianza."
+										: "Set Insecure content to Allow, only for this trusted site."}
+								</li>
+								<li>
+									{lang === "es"
+										? "Recarga la página y pulsa Conectar. Puedes revocar el permiso cuando termines."
+										: "Reload the page and click Connect. You can revoke the exception afterwards."}
+								</li>
+							</ol>
+							<p className="mt-2">
+								{lang === "es"
+									? "Los nombres y las opciones varían según el navegador. Safari/iPhone puede no ofrecer esta excepción; prueba una vista previa HTTP local. CORS, la red o la conexión WebSocket aún pueden impedir el acceso. Esta página no puede cambiar los permisos por ti."
+									: "Names and availability vary by browser. Safari/iPhone may not offer this exception; try a local HTTP preview. CORS, networking or the WebSocket connection may still block access. This page cannot change permissions for you."}
+							</p>
+							<a
+								className="underline"
+								href="https://developer.chrome.com/blog/local-network-access"
+								target="_blank"
+								rel="noreferrer"
+							>
+								{lang === "es"
+									? "Permisos de red local de Chrome"
+									: "Chrome local-network permissions"}
+							</a>
+						</details>
 					</div>
 				)}
 			</div>

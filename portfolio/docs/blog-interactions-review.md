@@ -55,3 +55,11 @@ Popover classifications are assigned explicitly at each control. Typical anatomi
 - Phone layouts are tested in Chromium emulation with software WebGL; this is not a real iOS Safari/device test. Test render resolution was reduced for software-GPU performance; production resolution is unchanged.
 - HTTPS-to-HTTP Neon access is subject to browser mixed-content, local-network and CORS policies. A fetch failure cannot identify which restriction caused it. Clearer errors do not bypass security or make the public HTTPS integration universally available. A local HTTP preview can avoid the mixed-content condition but still needs network/CORS access.
 - The original eye transition is scroll-driven; the 404 reuses its path automatically over six seconds of visible animation time.
+
+## Neon local-network permission follow-up
+
+Connect now marks non-loopback device fetches with Chromium's `targetAddressSpace: "local"` hint. The fetch itself can trigger the browser-owned local-network permission prompt; no permission is silently granted. Loopback addresses retain ordinary fetch behaviour. See [Chrome's LNA documentation](https://developer.chrome.com/blog/local-network-access).
+
+The stream watchdog starts when the Monitor script is attached, rather than expiring while a permission prompt is pending. Cancellation still aborts fetching and disposes the hidden iframe. A short connection note is always available; errors expand English/Spanish help with local-network permission settings, desktop Chrome/Edge's per-site insecure-content exception and the remaining CORS/WebSocket limitations. The help panel scrolls within the demo at phone widths.
+
+This does not replace or rewrite the Companion Monitor integration. Real permission prompts and physical Neon connectivity require a supported browser/device test; a mocked delayed fetch verifies the timeout and fallback behaviour.
