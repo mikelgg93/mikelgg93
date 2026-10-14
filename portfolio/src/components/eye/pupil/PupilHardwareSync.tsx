@@ -21,7 +21,7 @@ export default function PupilHardwareSync({
 	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
-	const [deviceIp, setDeviceIp] = useState("192.168.18.39");
+	const [deviceIp, setDeviceIp] = useState("neon.local");
 	const [status, setStatus] = useState<
 		"disconnected" | "connecting" | "streaming" | "error"
 	>("disconnected");
