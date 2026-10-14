@@ -164,22 +164,40 @@ export default function PupilHardwareSync({
 			const frameDocument = frame.contentDocument!;
 			const frameWindow = frame.contentWindow! as Window & {
 				_neonObserve?: (socket: WebSocket, url: string) => void;
+				_neonSocketUrl?: (url: string | URL) => string;
+			};
+			const deviceHttp = `http://${safeIp}:8080/`;
+			frameWindow._neonSocketUrl = (raw) => {
+				const text = String(raw);
+				if (/^(?:wss?|https?):\/\//i.test(text)) {
+					const url = new URL(text);
+					if (url.protocol === "http:") url.protocol = "ws:";
+					if (url.protocol === "https:") url.protocol = "wss:";
+					return url.href;
+				}
+				// e.g. "about://host:8080/api/..." or "/api/...": keep path + query.
+				const path = text.replace(/^[a-z][a-z0-9+.-]*:(?:\/\/[^/?#]*)?/i, "");
+				const url = new URL(
+					path.startsWith("/") ? path : `/${path}`,
+					deviceHttp,
+				);
+				url.protocol = "ws:";
+				return url.href;
 			};
 			const base = frameDocument.createElement("base");
-			base.href = `http://${safeIp}:8080/`;
+			base.href = deviceHttp;
 			frameDocument.head.appendChild(base);
 			const dummyRoot = frameDocument.createElement("div");
 			dummyRoot.id = "neon-dummy-root";
 			frameDocument.body.appendChild(dummyRoot);
-			frameWindow.addEventListener("error", () =>
-				fail(
-					"Could not load the Companion Monitor. Check browser access to the device.",
-				),
+			// The Monitor app emits unrelated errors/rejections during normal startup
+			// (media playback, UI requests). Do not tear down on them: the no-data
+			// watchdog reports genuine failures. Log them to help debugging.
+			frameWindow.addEventListener("error", (event) =>
+				console.warn("[Neon Monitor] error:", event.error ?? event.message),
 			);
-			frameWindow.addEventListener("unhandledrejection", () =>
-				fail(
-					"Companion Monitor connection failed. Check browser access to the device.",
-				),
+			frameWindow.addEventListener("unhandledrejection", (event) =>
+				console.warn("[Neon Monitor] unhandled rejection:", event.reason),
 			);
 
 			schedulePresentation = () => {
@@ -225,12 +243,10 @@ export default function PupilHardwareSync({
 			frameWindow._neonObserve = (socket, url) => {
 				sockets.add(socket);
 				socket.addEventListener("close", () => sockets.delete(socket));
-				const parsedUrl = new URL(url);
-				if (
-					parsedUrl.hostname !== safeIp ||
-					parsedUrl.pathname.includes("status")
-				)
-					return;
+				// Only sockets constructed by the Monitor bundle reach this hook.
+				// Do not compare hostnames: the Monitor resolves `neon.local` to the
+				// device IP (from /api/status) before opening its stream sockets.
+				if (new URL(url).pathname.includes("status")) return;
 				const receive = createPupilReceiver(onSample);
 				// Preserve message order even if the Monitor uses Blob rather than ArrayBuffer.
 				let pending = Promise.resolve();
@@ -267,10 +283,26 @@ export default function PupilHardwareSync({
 					return await fetch(url, fetchOpts);
 				} catch (error) {
 					if (abort.signal.aborted) throw error;
+					let lnaDenied = false;
+					for (const name of ["local-network-access", "local-network"]) {
+						try {
+							const state = await navigator.permissions.query({
+								name: name as PermissionName,
+							});
+							if (state.state === "denied") lnaDenied = true;
+							break;
+						} catch {
+							// Permission name not supported by this browser; try the next.
+						}
+					}
 					throw new Error(
-						lang === "es"
-							? "No se pudo acceder a Neon. Comprueba la dirección, la Wi-Fi y los permisos del navegador."
-							: "Could not reach Neon. Check the address, Wi-Fi and browser permissions.",
+						lnaDenied
+							? lang === "es"
+								? "El navegador ha denegado el acceso a la red local para este sitio. Permítelo en los ajustes del sitio (junto a la dirección), recarga y vuelve a conectar."
+								: "Your browser denied local-network access for this site. Allow it in the site settings (beside the address), reload and connect again."
+							: lang === "es"
+								? "No se pudo acceder a Neon. Comprueba la dirección, la Wi-Fi y los permisos del navegador."
+								: "Could not reach Neon. Check the address, Wi-Fi and browser permissions.",
 					);
 				}
 			};
@@ -324,13 +356,19 @@ export default function PupilHardwareSync({
 				/window\.location\.host/g,
 				`("${safeIp}:8080")`,
 			);
+			scriptText = scriptText.replace(
+				/window\.location\.protocol/g,
+				`("http:")`,
+			);
 
 			// 5. Scope the interceptor to sockets constructed by the Monitor bundle.
+			// URLs derived from bare `location` resolve against about:blank inside
+			// the iframe, so normalise every socket URL to the device first.
 			scriptText = scriptText.replace(
 				/new\s+(?:window\.)?WebSocket\b/g,
 				`new (class extends WebSocket {
 					constructor(url, protocols) {
-						super(url, protocols);
+						super(window._neonSocketUrl(url), protocols);
 						window._neonObserve(this, this.url);
 					}
 				})`,
