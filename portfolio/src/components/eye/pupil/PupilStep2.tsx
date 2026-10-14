@@ -1,4 +1,6 @@
 import { eyeText } from "../earlyText";
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -35,6 +37,15 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 		const history: { targetD: number; actualD: number; time: number }[] = [];
 		const queue: { time: number; targetD: number }[] = [];
 		let currentD = 6.0;
+
+		const viewer = mountRef.current.closest(".interactive-viewer");
+		const initialDiameter = currentD;
+		const resetDynamics = () => {
+			currentD = initialDiameter;
+			queue.length = 0;
+			history.length = 0;
+		};
+		viewer?.addEventListener("eye:reset", resetDynamics);
 
 		const pupilFromLuminance = (L: number) => {
 			const logL = Math.log10(Math.max(0.0001, L));
@@ -124,12 +135,21 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 			canvasResize.observe(canvasRef.current.parentElement);
 
 		return () => {
+			viewer?.removeEventListener("eye:reset", resetDynamics);
 			canvasResize.disconnect();
 			s.dispose();
 			sceneRef.current = null;
 		};
 	}, []);
 
+	const defaults = useInitialParameters(
+		{ lumLevel, latencyActive },
+		(initial) => {
+			setLumLevel(initial.lumLevel);
+			setLatencyActive(initial.latencyActive);
+		},
+		mountRef,
+	);
 	return (
 		<div className="pupil-demo relative w-full bg-transparent rounded-lg overflow-hidden flex flex-col gap-3 p-2 sm:gap-4 sm:p-4">
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 md:h-[500px]">
@@ -163,29 +183,47 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 
 			<div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-card/70 border border-border p-3 rounded-xl">
-				<div className="flex items-center gap-2">
-					<span className="text-xs font-semibold text-foreground">
-						{t("Light:")}
-					</span>
-					<button
-						onClick={() => setLumLevel("dark")}
-						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${lumLevel === "dark" ? "bg-indigo-600 text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
-					>
-						{t("Dark")}
-					</button>
-					<button
-						onClick={() => setLumLevel("bright")}
-						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${lumLevel === "bright" ? "bg-amber-400 text-black" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
-					>
-						{t("Bright")}
-					</button>
-				</div>
-				<button
-					onClick={() => setLatencyActive(!latencyActive)}
-					className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${latencyActive ? "bg-emerald-500 text-white" : "bg-secondary text-muted-foreground"}`}
+				<ParameterControl
+					value={lumLevel}
+					initial={defaults.lumLevel}
+					onReset={setLumLevel}
+					label="light level"
+					lang={lang}
+					context={parameterContext.luminance}
 				>
-					{latencyActive ? t("220 ms delay: on") : t("220 ms delay: off")}
-				</button>
+					<div className="flex items-center gap-2">
+						<span className="text-xs font-semibold text-foreground">
+							{t("Light:")}
+						</span>
+						<button
+							onClick={() => setLumLevel("dark")}
+							className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${lumLevel === "dark" ? "bg-indigo-600 text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+						>
+							{t("Dark")}
+						</button>
+						<button
+							onClick={() => setLumLevel("bright")}
+							className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${lumLevel === "bright" ? "bg-amber-400 text-black" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+						>
+							{t("Bright")}
+						</button>
+					</div>
+				</ParameterControl>
+				<ParameterControl
+					value={latencyActive}
+					initial={defaults.latencyActive}
+					onReset={setLatencyActive}
+					label="reflex delay"
+					lang={lang}
+					context={parameterContext.latency}
+				>
+					<button
+						onClick={() => setLatencyActive(!latencyActive)}
+						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${latencyActive ? "bg-emerald-500 text-white" : "bg-secondary text-muted-foreground"}`}
+					>
+						{latencyActive ? t("220 ms delay: on") : t("220 ms delay: off")}
+					</button>
+				</ParameterControl>
 			</div>
 		</div>
 	);

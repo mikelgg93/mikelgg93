@@ -9,6 +9,8 @@ const blog = defineCollection({
 		published: z.boolean().default(false),
 		description: z.string().optional(),
 		date: z.date().or(z.string()).optional(),
+		// Set explicitly for meaningful content revisions, never from build/git time.
+		updated: z.date().or(z.string()).optional(),
 		tags: z.array(z.string()).optional(),
 		author: z.string().optional(),
 		lang: z.string().optional(),

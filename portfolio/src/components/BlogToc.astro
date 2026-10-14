@@ -16,17 +16,16 @@
 </aside>
 
 <script>
-  function slugify(text: string) {
-    return text.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-");
-  }
+  let disconnect: (() => void) | undefined;
 
   function setupToc() {
+    disconnect?.();
     const aside = document.getElementById("blog-toc");
     const list = document.getElementById("blog-toc-list");
     const article = document.querySelector("article");
     if (!aside || !list || !article) return;
 
-    const headings = Array.from(article.querySelectorAll("h2")) as HTMLElement[];
+    const headings = Array.from(article.querySelectorAll("h2[data-article-heading]")) as HTMLElement[];
     if (headings.length === 0) {
       aside.style.display = "none";
       return;
@@ -39,25 +38,19 @@
     // inline math does not show duplicated text (e.g. "QQ") in the ToC.
     const labelOf = (h: HTMLElement) => {
       const clone = h.cloneNode(true) as HTMLElement;
-      clone.querySelectorAll(".katex-mathml").forEach((n) => n.remove());
+      clone.querySelectorAll(".katex-mathml, [data-heading-link]").forEach((n) => n.remove());
       return (clone.textContent || "").trim();
     };
 
     headings.forEach((h) => {
       const label = labelOf(h);
-      if (!h.id) h.id = slugify(label);
       const li = document.createElement("li");
       li.className = "m-0 p-0";
       const a = document.createElement("a");
-      a.href = `#${h.id}`;
+      a.href = `#${encodeURIComponent(h.id)}`;
       a.textContent = label;
       a.className =
         "block -ml-px border-l-2 border-transparent pl-3 no-underline text-muted-foreground hover:text-foreground transition-colors leading-snug";
-      a.addEventListener("click", (e) => {
-        e.preventDefault();
-        h.scrollIntoView({ behavior: "smooth", block: "start" });
-        history.replaceState(null, "", `#${h.id}`);
-      });
       li.appendChild(a);
       list.appendChild(li);
       links.set(h.id, a);
@@ -83,10 +76,12 @@
       },
       { rootMargin: "-20% 0px -70% 0px", threshold: 0 }
     );
+    disconnect = () => observer.disconnect();
     headings.forEach((h) => observer.observe(h));
-    setActive(headings[0].id);
+    setActive(headings[0]!.id);
   }
 
   setupToc();
   document.addEventListener("astro:page-load", setupToc);
+  document.addEventListener("astro:before-swap", () => disconnect?.());
 </script>

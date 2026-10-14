@@ -1,4 +1,6 @@
 import { eyeText } from "../earlyText";
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -38,6 +40,15 @@ export default function PupilStep1({ lang = "en" }: { lang?: "en" | "es" }) {
 		s.invalidate();
 	}, [diameter, showMuscles, pigment]);
 
+	const defaults = useInitialParameters(
+		{ diameter, showMuscles, pigment },
+		(initial) => {
+			setDiameter(initial.diameter);
+			setShowMuscles(initial.showMuscles);
+			setPigment(initial.pigment);
+		},
+		mountRef,
+	);
 	return (
 		<div className="pupil-demo relative w-full h-[450px] md:h-[550px] bg-transparent overflow-hidden rounded-lg group">
 			<div className="pupil-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[240px]">
@@ -61,35 +72,60 @@ export default function PupilStep1({ lang = "en" }: { lang?: "en" | "es" }) {
 							{diameter.toFixed(1)} mm
 						</span>
 					</span>
-					<input
-						type="range"
-						aria-label={t("Pupil diameter")}
-						min="2"
-						max="8"
-						step="0.1"
+					<ParameterControl
 						value={diameter}
-						onChange={(e) => setDiameter(parseFloat(e.target.value))}
-						className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-					/>
+						initial={defaults.diameter}
+						onReset={setDiameter}
+						label="pupil diameter"
+						lang={lang}
+						context={parameterContext.pupil}
+					>
+						<input
+							type="range"
+							aria-label={t("Pupil diameter")}
+							min="2"
+							max="8"
+							step="0.1"
+							value={diameter}
+							onChange={(e) => setDiameter(parseFloat(e.target.value))}
+							className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+						/>
+					</ParameterControl>
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
-					<button
-						onClick={() => setShowMuscles(!showMuscles)}
-						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${showMuscles ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+					<ParameterControl
+						value={showMuscles}
+						initial={defaults.showMuscles}
+						onReset={setShowMuscles}
+						label="muscle overlay"
+						lang={lang}
 					>
-						{showMuscles ? t("Muscles on") : t("Muscles off")}
-					</button>
-					<select
-						aria-label={t("Iris pigment")}
+						<button
+							onClick={() => setShowMuscles(!showMuscles)}
+							className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${showMuscles ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+						>
+							{showMuscles ? t("Muscles on") : t("Muscles off")}
+						</button>
+					</ParameterControl>
+					<ParameterControl
 						value={pigment}
-						onChange={(e) => setPigment(parseInt(e.target.value, 10))}
-						className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
+						initial={defaults.pigment}
+						onReset={setPigment}
+						label="iris pigmentation"
+						lang={lang}
 					>
-						<option value={0}>{t("Brown")}</option>
-						<option value={1}>{t("Hazel")}</option>
-						<option value={2}>{t("Blue")}</option>
-						<option value={3}>{t("Albino")}</option>
-					</select>
+						<select
+							aria-label={t("Iris pigment")}
+							value={pigment}
+							onChange={(e) => setPigment(parseInt(e.target.value, 10))}
+							className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
+						>
+							<option value={0}>{t("Brown")}</option>
+							<option value={1}>{t("Hazel")}</option>
+							<option value={2}>{t("Blue")}</option>
+							<option value={3}>{t("Albino")}</option>
+						</select>
+					</ParameterControl>
 				</div>
 			</div>
 

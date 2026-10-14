@@ -7,9 +7,14 @@ const tabs = [['preview', es ? 'Vista previa' : 'Preview'], ['code', es ? 'Códi
 ---
 <div class="interactive-viewer relative border border-border rounded-lg overflow-hidden my-8 bg-card text-card-foreground"
   data-copy-code={es ? 'Copiar código' : 'Copy Code'} data-copy-json={es ? 'Copiar JSON' : 'Copy JSON'} data-copied={es ? '¡Copiado!' : 'Copied!'} data-copy-failed={es ? 'No se pudo copiar' : 'Copy failed'}>
-  <div class="viewer-tabs flex border-b border-border bg-muted/50 p-2 gap-2" role="tablist" aria-label={es ? 'Demo interactiva' : 'Interactive demo'}>
+  <div class="flex border-b border-border bg-muted/50 p-2 gap-1">
+  <div class="viewer-tabs flex flex-1 min-w-0 gap-1" role="tablist" aria-label={es ? 'Demo interactiva' : 'Interactive demo'}>
     {tabs.map(([key, label]) => <button type="button" role="tab" id={`${id}-${key}-tab`} aria-controls={`${id}-${key}`} aria-selected={key === 'preview'} tabindex={key === 'preview' ? 0 : -1}
       class:list={['tab-btn rounded text-sm font-medium transition-colors', key === 'preview' ? 'bg-background shadow-sm text-foreground active-tab' : 'text-muted-foreground hover:bg-background/50 hover:text-foreground']} data-tab={key}>{label}</button>)}
+  </div>
+  <button type="button" class="viewer-reset px-2 min-h-11 text-muted-foreground hover:text-foreground rounded focus-visible:outline-2 focus-visible:outline-primary" aria-label={es ? 'Restablecer simulación' : 'Reset simulation'} title={es ? 'Restablecer simulación' : 'Reset simulation'}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7" /></svg>
+  </button>
   </div>
 
   <div class="tab-content relative w-full" id={`${id}-preview`} role="tabpanel" aria-labelledby={`${id}-preview-tab`} data-content="preview">
@@ -44,6 +49,10 @@ const tabs = [['preview', es ? 'Vista previa' : 'Preview'], ['code', es ? 'Códi
     viewers.forEach(viewer => {
       if (viewer.hasAttribute('data-viewer-ready')) return;
       viewer.setAttribute('data-viewer-ready', '');
+      viewer.querySelector('.viewer-reset')?.addEventListener('click', () => {
+        viewer.dispatchEvent(new CustomEvent('eye:reset'));
+        requestAnimationFrame(() => viewer.dispatchEvent(new CustomEvent('eye:inspect')));
+      });
       const btns = viewer.querySelectorAll<HTMLButtonElement>('.tab-btn');
       const contents = viewer.querySelectorAll('.tab-content');
       const copyLabel = (tab: string | null) => viewer.getAttribute(tab === 'code' ? 'data-copy-code' : 'data-copy-json') ?? '';
@@ -85,7 +94,7 @@ const tabs = [['preview', es ? 'Vista previa' : 'Preview'], ['code', es ? 'Códi
           if (targetTab === 'debug') viewer.dispatchEvent(new CustomEvent('eye:inspect'));
         });
         btn.addEventListener('keydown', (event) => {
-          const current = [...btns].indexOf(btn);
+          const current = Array.from(btns).indexOf(btn);
           const next = event.key === 'ArrowRight' ? (current + 1) % btns.length
             : event.key === 'ArrowLeft' ? (current + btns.length - 1) % btns.length
             : event.key === 'Home' ? 0 : event.key === 'End' ? btns.length - 1 : -1;
@@ -143,7 +152,7 @@ const tabs = [['preview', es ? 'Vista previa' : 'Preview'], ['code', es ? 'Códi
       }
 
       // Reusable Ctrl-to-Zoom interceptor for all 3D WebGL canvases
-      const previewArea = viewer.querySelector('[data-content="preview"]');
+      const previewArea = viewer.querySelector<HTMLElement>('[data-content="preview"]');
       if (previewArea) {
         previewArea.addEventListener('wheel', (e) => {
           // If the user isn't holding Ctrl/Cmd, stop the event from reaching OrbitControls.

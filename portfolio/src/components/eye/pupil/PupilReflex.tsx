@@ -1,4 +1,6 @@
 import { eyeText } from "../earlyText";
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -75,6 +77,18 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			dilationTauSeconds: 0.65,
 			...debugState,
 		}));
+
+		const viewer = mountRef.current.closest(".interactive-viewer");
+		const initialDiameter = currentDiameter;
+		const resetDynamics = () => {
+			currentDiameter = initialDiameter;
+			queue.length = 0;
+			lastHud = -Infinity;
+			paramsRef.current.flashUntilTime = 0;
+			if (flashTimerRef.current !== null) clearTimeout(flashTimerRef.current);
+			setIsFlashActive(false);
+		};
+		viewer?.addEventListener("eye:reset", resetDynamics);
 
 		const pupilFromLuminance = (L: number, offset: number) => {
 			const d =
@@ -157,6 +171,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 		});
 
 		return () => {
+			viewer?.removeEventListener("eye:reset", resetDynamics);
 			if (flashTimerRef.current !== null) clearTimeout(flashTimerRef.current);
 			s.dispose();
 			sceneRef.current = null;
@@ -165,6 +180,16 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 
 	const fmt = (n: number) => (n >= 1000 ? n.toExponential(1) : n.toFixed(1));
 
+	const defaults = useInitialParameters(
+		{ luminance, baselineOffset, stilesCrawford, pigmentation },
+		(initial) => {
+			setLuminance(initial.luminance);
+			setBaselineOffset(initial.baselineOffset);
+			setStilesCrawford(initial.stilesCrawford);
+			setPigmentation(initial.pigmentation);
+		},
+		mountRef,
+	);
 	return (
 		<div className="pupil-demo relative w-full h-[580px] bg-transparent overflow-hidden rounded-lg group">
 			<div
@@ -243,16 +268,25 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 								{luminance.toFixed(1)} cd/m²
 							</span>
 						</div>
-						<input
-							type="range"
-							aria-label={t("Scene luminance")}
-							min="-2"
-							max="4"
-							step="0.05"
-							value={Math.log10(Math.max(0.01, luminance))}
-							onChange={(e) => setLuminance(10 ** parseFloat(e.target.value))}
-							className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-yellow-500"
-						/>
+						<ParameterControl
+							value={luminance}
+							initial={defaults.luminance}
+							onReset={setLuminance}
+							label="luminance"
+							lang={lang}
+							context={parameterContext.luminance}
+						>
+							<input
+								type="range"
+								aria-label={t("Scene luminance")}
+								min="-2"
+								max="4"
+								step="0.05"
+								value={Math.log10(Math.max(0.01, luminance))}
+								onChange={(e) => setLuminance(10 ** parseFloat(e.target.value))}
+								className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-yellow-500"
+							/>
+						</ParameterControl>
 						<div className="flex justify-between text-[9px] text-muted-foreground font-mono">
 							<span>{t("starlight")}</span>
 							<span>{t("moonlight")}</span>
@@ -282,53 +316,79 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 								mm
 							</span>
 						</div>
-						<input
-							type="range"
-							aria-label={t("Baseline pupil offset")}
-							min="-1"
-							max="1"
-							step="0.1"
+						<ParameterControl
 							value={baselineOffset}
-							onChange={(e) => setBaselineOffset(parseFloat(e.target.value))}
-							className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-						/>
+							initial={defaults.baselineOffset}
+							onReset={setBaselineOffset}
+							label="diameter offset"
+							lang={lang}
+							context={parameterContext.cognitive}
+						>
+							<input
+								type="range"
+								aria-label={t("Baseline pupil offset")}
+								min="-1"
+								max="1"
+								step="0.1"
+								value={baselineOffset}
+								onChange={(e) => setBaselineOffset(parseFloat(e.target.value))}
+								className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+							/>
+						</ParameterControl>
 					</div>
 					<div className="flex items-center justify-between bg-background/50 p-2 rounded-xl border border-border">
 						<span className="text-[11px] font-medium text-foreground">
 							Stiles-Crawford
 						</span>
-						<button
-							aria-label={t("Stiles-Crawford effect")}
-							aria-pressed={stilesCrawford}
-							onClick={() => setStilesCrawford(!stilesCrawford)}
-							className="inline-flex h-5 w-9 items-center justify-center"
+						<ParameterControl
+							value={stilesCrawford}
+							initial={defaults.stilesCrawford}
+							onReset={setStilesCrawford}
+							label="SCE weighting"
+							lang={lang}
+							context={parameterContext.sce}
 						>
-							<span
-								className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${stilesCrawford ? "bg-emerald-500" : "bg-secondary"}`}
+							<button
+								aria-label={t("Stiles-Crawford effect")}
+								aria-pressed={stilesCrawford}
+								onClick={() => setStilesCrawford(!stilesCrawford)}
+								className="inline-flex h-5 w-9 items-center justify-center"
 							>
 								<span
-									className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${stilesCrawford ? "translate-x-4.5" : "translate-x-1"}`}
-								/>
-							</span>
-						</button>
+									className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${stilesCrawford ? "bg-emerald-500" : "bg-secondary"}`}
+								>
+									<span
+										className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${stilesCrawford ? "translate-x-4.5" : "translate-x-1"}`}
+									/>
+								</span>
+							</button>
+						</ParameterControl>
 					</div>
 					<div className="flex items-center justify-between bg-background/50 p-2 rounded-xl border border-border">
 						<span className="text-[11px] font-medium text-foreground">
 							{t("Iris pigment")}
 						</span>
-						<select
-							aria-label={t("Iris pigment")}
+						<ParameterControl
 							value={pigmentation}
-							onChange={(e) =>
-								setPigmentation(e.target.value as PigmentationType)
-							}
-							className="bg-card text-foreground font-semibold text-[11px] px-2 py-1 rounded-lg border border-border focus:outline-none cursor-pointer"
+							initial={defaults.pigmentation}
+							onReset={setPigmentation}
+							label="iris pigmentation"
+							lang={lang}
 						>
-							<option value="hazel">{t("Hazel")}</option>
-							<option value="brown">{t("Brown")}</option>
-							<option value="blue">{t("Blue")}</option>
-							<option value="albino">{t("Albino")}</option>
-						</select>
+							<select
+								aria-label={t("Iris pigment")}
+								value={pigmentation}
+								onChange={(e) =>
+									setPigmentation(e.target.value as PigmentationType)
+								}
+								className="bg-card text-foreground font-semibold text-[11px] px-2 py-1 rounded-lg border border-border focus:outline-none cursor-pointer"
+							>
+								<option value="hazel">{t("Hazel")}</option>
+								<option value="brown">{t("Brown")}</option>
+								<option value="blue">{t("Blue")}</option>
+								<option value="albino">{t("Albino")}</option>
+							</select>
+						</ParameterControl>
 					</div>
 				</div>
 			</div>

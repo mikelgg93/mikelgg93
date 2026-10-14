@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import LensViews from "../lens/LensViews";
 import { createLensScene } from "../lens/lensScene";
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import type { EyePrescription } from "./eyeModels";
 import { createPatch, PATCHES, updatePatch } from "./modelGeometry";
 
@@ -103,6 +104,13 @@ export default function ModelScene({
 		};
 	}, [lang]);
 	const es = lang === "es";
+	const defaults = useInitialParameters(
+		{ section },
+		(initial) => {
+			setSection(initial.section);
+		},
+		mount,
+	);
 	return (
 		<>
 			<div
@@ -137,13 +145,21 @@ export default function ModelScene({
 			</div>
 			<div className="lens-controls">
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={section}
-						onClick={() => setSection(!section)}
+					<ParameterControl
+						value={section}
+						initial={defaults.section}
+						onReset={setSection}
+						label="section view"
+						lang={lang}
 					>
-						{es ? "Sección" : "Section"}
-					</button>
+						<button
+							type="button"
+							aria-pressed={section}
+							onClick={() => setSection(!section)}
+						>
+							{es ? "Sección" : "Section"}
+						</button>
+					</ParameterControl>
 				</div>
 				<LensViews
 					lang={lang}

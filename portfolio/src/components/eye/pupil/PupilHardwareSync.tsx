@@ -1,4 +1,7 @@
 import { eyeText } from "../earlyText";
+import { ParameterInfo } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
+import { observeVisibility } from "../visibility";
 import "./pupil.css";
 import { ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -36,6 +39,17 @@ export default function PupilHardwareSync({
 
 	useEffect(() => {
 		if (!mountRef.current) return;
+		const reset = mountRef.current
+			.closest(".interactive-viewer")
+			?.querySelector<HTMLButtonElement>(".viewer-reset");
+		if (reset) {
+			const label =
+				lang === "es"
+					? "Restablecer cámara; mantener conexión"
+					: "Reset camera; keep streaming";
+			reset.setAttribute("aria-label", label);
+			reset.title = label;
+		}
 		sceneRef.current = createIrisScene(mountRef.current, {
 			pupilRadius: 3.0 * (0.5 / 12.0),
 			pigmentation: 1,
@@ -77,6 +91,21 @@ export default function PupilHardwareSync({
 		let receivedFirstSample = false;
 		let animationFrame: number | null = null;
 		let latest: PupilSample | null = null;
+		let renderingVisible = false;
+		let schedulePresentation = () => {};
+		const stopVisibility = mountRef.current
+			? observeVisibility(
+					mountRef.current.closest(".pupil-demo") ?? mountRef.current,
+					(active) => {
+						renderingVisible = active;
+						if (active) schedulePresentation();
+						else if (animationFrame !== null) {
+							cancelAnimationFrame(animationFrame);
+							animationFrame = null;
+						}
+					},
+				)
+			: () => {};
 		let restoreStorage: (() => void) | null = null;
 		const watchdog = window.setInterval(() => {
 			if (
@@ -94,6 +123,7 @@ export default function PupilHardwareSync({
 			if (disposed) return;
 			disposed = true;
 			abort.abort();
+			stopVisibility();
 			window.clearInterval(watchdog);
 			if (animationFrame !== null) cancelAnimationFrame(animationFrame);
 			for (const socket of sockets) socket.close();
@@ -149,24 +179,12 @@ export default function PupilHardwareSync({
 				),
 			);
 
-			const onSample = (sample: PupilSample) => {
-				if (disposed) return;
-				const left = validPupil(sample.left) ? sample.left : null;
-				const right = validPupil(sample.right) ? sample.right : null;
-				if (left === null && right === null) return;
-				lastSampleAt = performance.now();
-				if (!receivedFirstSample) {
-					receivedFirstSample = true;
-					setStatus("streaming");
-				}
-				latest = { left, right }; // preserve missing eyes as gaps, not invented measurements
-				historyRef.current.push(latest);
-				if (historyRef.current.length > 1000) historyRef.current.shift();
+			schedulePresentation = () => {
 				// Measurements may arrive at 200 Hz; presentation follows browser frames.
-				if (animationFrame === null)
+				if (!disposed && renderingVisible && latest && animationFrame === null)
 					animationFrame = requestAnimationFrame(() => {
 						animationFrame = null;
-						if (disposed || !latest) return;
+						if (disposed || !renderingVisible || !latest) return;
 						const values = [latest.left, latest.right].filter(validPupil);
 						const mean =
 							values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -185,6 +203,21 @@ export default function PupilHardwareSync({
 								graph.height,
 							);
 					});
+			};
+			const onSample = (sample: PupilSample) => {
+				if (disposed) return;
+				const left = validPupil(sample.left) ? sample.left : null;
+				const right = validPupil(sample.right) ? sample.right : null;
+				if (left === null && right === null) return;
+				lastSampleAt = performance.now();
+				if (!receivedFirstSample) {
+					receivedFirstSample = true;
+					setStatus("streaming");
+				}
+				latest = { left, right }; // preserve missing eyes as gaps, not invented measurements
+				historyRef.current.push(latest);
+				if (historyRef.current.length > 1000) historyRef.current.shift();
+				schedulePresentation();
 			};
 			frameWindow._neonObserve = (socket, url) => {
 				sockets.add(socket);
@@ -216,12 +249,26 @@ export default function PupilHardwareSync({
 				);
 			};
 
-			// 3. Fetch the device's webapp dynamically
+			// 3. Fetch the device's webapp dynamically. HTTPS pages may be blocked
+			// from reaching this HTTP service; fetch cannot distinguish mixed
+			// content, local-network permission, CORS and connectivity failures.
+			const fetchMonitor = async (url: string) => {
+				try {
+					return await fetch(url, fetchOpts);
+				} catch (error) {
+					if (abort.signal.aborted) throw error;
+					throw new Error(
+						lang === "es"
+							? "No se pudo acceder a Neon. Comprueba la Wi-Fi y la dirección. Companion utiliza HTTP. Desde una página HTTPS, el navegador puede bloquear contenido mixto, acceso a la red local o CORS. Si lo bloquea, prueba la demo desde un servidor HTTP local; abrir Monitor en otra pestaña no elimina estas restricciones."
+							: "Could not reach Neon. Check Wi-Fi and the device address. Companion uses HTTP. From an HTTPS page, your browser may block mixed content, local-network access or CORS. If blocked, try the demo from a local HTTP server; opening Monitor in another tab does not remove these restrictions.",
+					);
+				}
+			};
 			const fetchOpts = {
 				signal: abort.signal,
 				cache: "no-store" as RequestCache,
 			};
-			const htmlRes = await fetch(`http://${safeIp}:8080/`, fetchOpts);
+			const htmlRes = await fetchMonitor(`http://${safeIp}:8080/`);
 			if (!htmlRes.ok)
 				throw new Error(`Companion returned HTTP ${htmlRes.status}`);
 			const html = await htmlRes.text();
@@ -231,9 +278,8 @@ export default function PupilHardwareSync({
 				throw new Error("Could not find index.js in the Neon device response");
 
 			// 4. Fetch the JS bundle and sandbox its mount point & location
-			const jsRes = await fetch(
+			const jsRes = await fetchMonitor(
 				`http://${safeIp}:8080${scriptMatch[1]}`,
-				fetchOpts,
 			);
 			if (!jsRes.ok)
 				throw new Error(`Monitor bundle returned HTTP ${jsRes.status}`);
@@ -308,6 +354,10 @@ export default function PupilHardwareSync({
 						<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
 						<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 							{t("Live Neon pupil data")}
+							<ParameterInfo
+								label="Neon pupil diameter"
+								context={parameterContext.neon}
+							/>
 						</span>
 					</div>
 					<div className="flex items-center gap-2">

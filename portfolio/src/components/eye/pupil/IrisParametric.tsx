@@ -1,4 +1,6 @@
 import { eyeText } from "../earlyText";
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -71,6 +73,16 @@ export default function IrisParametric({
 	const fmt = (n: number) =>
 		n >= 1000 ? n.toExponential(1) : n.toFixed(n < 10 ? 1 : 0);
 
+	const defaults = useInitialParameters(
+		{ diameter, logL, stilesCrawford, pigment },
+		(initial) => {
+			setDiameter(initial.diameter);
+			setLogL(initial.logL);
+			setStilesCrawford(initial.stilesCrawford);
+			setPigment(initial.pigment);
+		},
+		mountRef,
+	);
 	return (
 		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group">
 			{/* Metrics HUD */}
@@ -121,51 +133,86 @@ export default function IrisParametric({
 							{diameter.toFixed(1)} mm
 						</span>
 					</span>
-					<input
-						type="range"
-						aria-label={t("Pupil diameter")}
-						min="2"
-						max="8"
-						step="0.1"
+					<ParameterControl
 						value={diameter}
-						onChange={(e) => setDiameter(parseFloat(e.target.value))}
-						className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-					/>
+						initial={defaults.diameter}
+						onReset={setDiameter}
+						label="pupil diameter"
+						lang={lang}
+						context={parameterContext.pupil}
+					>
+						<input
+							type="range"
+							aria-label={t("Pupil diameter")}
+							min="2"
+							max="8"
+							step="0.1"
+							value={diameter}
+							onChange={(e) => setDiameter(parseFloat(e.target.value))}
+							className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+						/>
+					</ParameterControl>
 				</div>
 				<div className="flex items-center gap-3">
 					<span className="text-xs font-semibold text-foreground min-w-[92px]">
 						{t("Light")}{" "}
 						<span className="font-mono text-amber-500 font-bold">{fmt(L)}</span>
 					</span>
-					<input
-						type="range"
-						aria-label={t("Scene luminance")}
-						min="-2"
-						max="4"
-						step="0.05"
+					<ParameterControl
 						value={logL}
-						onChange={(e) => setLogL(parseFloat(e.target.value))}
-						className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-amber-500"
-					/>
+						initial={defaults.logL}
+						onReset={setLogL}
+						label="luminance"
+						lang={lang}
+						context={parameterContext.luminance}
+					>
+						<input
+							type="range"
+							aria-label={t("Scene luminance")}
+							min="-2"
+							max="4"
+							step="0.05"
+							value={logL}
+							onChange={(e) => setLogL(parseFloat(e.target.value))}
+							className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-amber-500"
+						/>
+					</ParameterControl>
 				</div>
 				<div className="flex flex-wrap items-center justify-between gap-2">
-					<button
-						onClick={() => setStilesCrawford(!stilesCrawford)}
-						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${stilesCrawford ? "bg-emerald-500 text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+					<ParameterControl
+						value={stilesCrawford}
+						initial={defaults.stilesCrawford}
+						onReset={setStilesCrawford}
+						label="SCE weighting"
+						lang={lang}
+						context={parameterContext.sce}
 					>
-						Stiles-Crawford {stilesCrawford ? t("on") : t("off")}
-					</button>
-					<select
-						aria-label={t("Iris pigment")}
+						<button
+							onClick={() => setStilesCrawford(!stilesCrawford)}
+							className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${stilesCrawford ? "bg-emerald-500 text-white" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+						>
+							Stiles-Crawford {stilesCrawford ? t("on") : t("off")}
+						</button>
+					</ParameterControl>
+					<ParameterControl
 						value={pigment}
-						onChange={(e) => setPigment(parseInt(e.target.value, 10))}
-						className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
+						initial={defaults.pigment}
+						onReset={setPigment}
+						label="iris pigmentation"
+						lang={lang}
 					>
-						<option value={0}>{t("Brown")}</option>
-						<option value={1}>{t("Hazel")}</option>
-						<option value={2}>{t("Blue")}</option>
-						<option value={3}>{t("Albino")}</option>
-					</select>
+						<select
+							aria-label={t("Iris pigment")}
+							value={pigment}
+							onChange={(e) => setPigment(parseInt(e.target.value, 10))}
+							className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
+						>
+							<option value={0}>{t("Brown")}</option>
+							<option value={1}>{t("Hazel")}</option>
+							<option value={2}>{t("Blue")}</option>
+							<option value={3}>{t("Albino")}</option>
+						</select>
+					</ParameterControl>
 				</div>
 			</div>
 

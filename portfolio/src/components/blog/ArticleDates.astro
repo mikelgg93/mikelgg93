@@ -1,0 +1,13 @@
+---
+import { articleDates, formatArticleDate } from "@/lib/articleDates";
+interface Props {
+  data: { published: boolean; date?: Date | string; updated?: Date | string };
+  lang: "en" | "es";
+}
+const { data, lang } = Astro.props;
+const { published, updated } = articleDates(data);
+---
+{published && <span class="article-dates">
+  {lang === "es" ? "Publicado" : "Published"} <time datetime={published.toISOString().slice(0, 10)}>{formatArticleDate(published, lang)}</time>
+  {updated && <> · {lang === "es" ? "Actualizado" : "Updated"} <time datetime={updated.toISOString().slice(0, 10)}>{formatArticleDate(updated, lang)}</time></>}
+</span>}

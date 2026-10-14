@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -138,6 +140,15 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 			view.dispose();
 		};
 	}, [lang]);
+	const defaults = useInitialParameters(
+		{ radius, separated, wireframe },
+		(initial) => {
+			setRadius(initial.radius);
+			setSeparated(initial.separated);
+			setWireframe(initial.wireframe);
+		},
+		mount,
+	);
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
@@ -175,43 +186,68 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 					lang={lang}
 					onView={(view) => viewRef.current?.setView(view)}
 				/>
-				<label>
-					<span className="lens-value">
-						<span>
-							{es ? "Radio de ambas superficies" : "Radius of both surfaces"}
+				<ParameterControl
+					value={radius}
+					initial={defaults.radius}
+					onReset={setRadius}
+					label="surface radius"
+					lang={lang}
+					context={parameterContext.domes}
+				>
+					<label>
+						<span className="lens-value">
+							<span>
+								{es ? "Radio de ambas superficies" : "Radius of both surfaces"}
+							</span>
+							<output>{radius.toFixed(1)} mm</output>
 						</span>
-						<output>{radius.toFixed(1)} mm</output>
-					</span>
-					<input
-						type="range"
-						min="6"
-						max="14"
-						step="0.1"
-						value={radius}
-						onChange={(e) => setRadius(Number(e.target.value))}
-					/>
-				</label>
+						<input
+							type="range"
+							min="6"
+							max="14"
+							step="0.1"
+							value={radius}
+							onChange={(e) => setRadius(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={!separated}
-						onClick={() => setSeparated(!separated)}
+					<ParameterControl
+						value={separated}
+						initial={defaults.separated}
+						onReset={setSeparated}
+						label="dome separation"
+						lang={lang}
 					>
-						{separated
-							? es
-								? "Unir las cúpulas"
-								: "Join the domes"
-							: es
-								? "Separar las cúpulas"
-								: "Separate the domes"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={wireframe}
-						onClick={() => setWireframe(!wireframe)}
+						<button
+							type="button"
+							aria-pressed={!separated}
+							onClick={() => setSeparated(!separated)}
+						>
+							{separated
+								? es
+									? "Unir las cúpulas"
+									: "Join the domes"
+								: es
+									? "Separar las cúpulas"
+									: "Separate the domes"}
+						</button>
+					</ParameterControl>
+					<ParameterControl
+						value={wireframe}
+						initial={defaults.wireframe}
+						onReset={setWireframe}
+						label="wireframe"
+						lang={lang}
 					>
-						{es ? "Malla" : "Wireframe"}
-					</button>
+						<button
+							type="button"
+							aria-pressed={wireframe}
+							onClick={() => setWireframe(!wireframe)}
+						>
+							{es ? "Malla" : "Wireframe"}
+						</button>
+					</ParameterControl>
 				</div>
 				<p className="lens-note">
 					{es

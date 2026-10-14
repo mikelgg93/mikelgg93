@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -149,6 +151,14 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 			? "Subcapsular posterior: una placa justo por delante de la cápsula posterior."
 			: "Posterior subcapsular: a patch just in front of the posterior capsule.",
 	};
+	const defaults = useInitialParameters(
+		{ type, opacity },
+		(initial) => {
+			setType(initial.type);
+			setOpacity(initial.opacity);
+		},
+		mount,
+	);
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
@@ -184,40 +194,61 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 					lang={lang}
 					onView={(view) => viewRef.current?.setView(view)}
 				/>
-				<label>
-					{es ? "Patrón de opacidad" : "Opacity pattern"}
-					<select
-						value={type}
-						onChange={(e) => {
-							const next = e.target.value as typeof type;
-							setType(next);
-							viewRef.current?.setView(next === "posterior" ? "back" : "front");
-						}}
-					>
-						<option value="nuclear">Nuclear</option>
-						<option value="cortical">Cortical</option>
-						<option value="posterior">
-							{es ? "Subcapsular posterior" : "Posterior subcapsular"}
-						</option>
-					</select>
-				</label>
+				<ParameterControl
+					value={type}
+					initial={defaults.type}
+					onReset={setType}
+					label="cataract pattern"
+					lang={lang}
+				>
+					<label>
+						{es ? "Patrón de opacidad" : "Opacity pattern"}
+						<select
+							value={type}
+							onChange={(e) => {
+								const next = e.target.value as typeof type;
+								setType(next);
+								viewRef.current?.setView(
+									next === "posterior" ? "back" : "front",
+								);
+							}}
+						>
+							<option value="nuclear">Nuclear</option>
+							<option value="cortical">Cortical</option>
+							<option value="posterior">
+								{es ? "Subcapsular posterior" : "Posterior subcapsular"}
+							</option>
+						</select>
+					</label>
+				</ParameterControl>
 				<p className="lens-note" aria-live="polite">
 					{descriptions[type]}
 				</p>
-				<label>
-					<span className="lens-value">
-						<span>{es ? "Opacidad ilustrativa" : "Illustrative opacity"}</span>
-						<output>{Math.round(opacity * 100)} / 100</output>
-					</span>
-					<input
-						type="range"
-						min="0"
-						max="1"
-						step="0.01"
-						value={opacity}
-						onChange={(e) => setOpacity(Number(e.target.value))}
-					/>
-				</label>
+				<ParameterControl
+					value={opacity}
+					initial={defaults.opacity}
+					onReset={setOpacity}
+					label="opacity"
+					lang={lang}
+					context={parameterContext.cataract}
+				>
+					<label>
+						<span className="lens-value">
+							<span>
+								{es ? "Opacidad ilustrativa" : "Illustrative opacity"}
+							</span>
+							<output>{Math.round(opacity * 100)} / 100</output>
+						</span>
+						<input
+							type="range"
+							min="0"
+							max="1"
+							step="0.01"
+							value={opacity}
+							onChange={(e) => setOpacity(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				<div className="lens-buttons">
 					<button
 						type="button"

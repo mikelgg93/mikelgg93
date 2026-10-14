@@ -1,0 +1,52 @@
+<script>
+  // Delegation survives Astro navigation; generated IDs and native links work
+  // before JavaScript runs. Copying never replaces a browser history entry.
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  document.addEventListener("click", async (event) => {
+    const link = (event.target as Element).closest<HTMLAnchorElement>("[data-heading-link]");
+    if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (!navigator.clipboard) return; // The native anchor remains a useful fallback.
+    event.preventDefault();
+    const es = document.documentElement.lang === "es";
+    const status = link.querySelector<HTMLElement>("[role=status]");
+    try {
+      await navigator.clipboard.writeText(link.href);
+      if (status?.isConnected) status.textContent = es ? "Copiado" : "Copied";
+    } catch {
+      if (status?.isConnected) status.textContent = es ? "Usa «Copiar enlace»" : "Use “Copy link”";
+    }
+    const timer = setTimeout(() => {
+      if (status) status.textContent = "";
+      timers.delete(timer);
+    }, 2000);
+    timers.add(timer);
+  });
+  document.addEventListener("astro:before-swap", () => {
+    timers.forEach(clearTimeout);
+    timers.clear();
+  });
+</script>
+
+<style is:global>
+  [data-article-heading] { scroll-margin-top: calc(6rem + env(safe-area-inset-top, 0px)); }
+  [data-article-heading]:focus { outline: none; }
+  [data-article-heading] .heading-link {
+    display: inline-flex; position: relative; align-items: center; justify-content: center;
+    width: 32px; height: 32px; margin-inline-start: .2em; vertical-align: middle;
+    opacity: 0; color: var(--muted-foreground); text-decoration: none;
+    border-radius: 4px; transition: opacity 120ms;
+  }
+  [data-article-heading]:hover .heading-link,
+  [data-article-heading]:focus-within .heading-link { opacity: 1; }
+  .heading-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .heading-link-status {
+    position: absolute; bottom: 100%; inset-inline-end: 0; white-space: nowrap;
+    font: 12px var(--font-sans); font-weight: normal; color: var(--foreground);
+    background: var(--background); border-radius: 4px;
+  }
+  .heading-link-status:not(:empty) { padding: 4px 8px; border: 1px solid var(--border); }
+  @media (hover: none), (pointer: coarse) {
+    [data-article-heading] .heading-link { opacity: .6; width: 44px; height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) { [data-article-heading] .heading-link { transition: none; } }
+</style>

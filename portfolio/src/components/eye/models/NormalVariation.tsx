@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./models.css";
 import { useMemo, useState } from "react";
@@ -67,6 +69,15 @@ export default function NormalVariation({
 		const v = low + (i / 160) * half * 2;
 		return `${i ? "L" : "M"}${x(v)},${y(densityCount(v))}`;
 	}).join(" ");
+	const defaults = useInitialParameters(
+		{ parameter, spread, seed },
+		(initial) => {
+			setParameter(initial.parameter);
+			setSpread(initial.spread);
+			setSeed(initial.seed);
+		},
+		root,
+	);
 	return (
 		<div
 			ref={root}
@@ -80,30 +91,39 @@ export default function NormalVariation({
 				<span className="lens-muted">512 {es ? "muestras" : "draws"}</span>
 			</div>
 			<div className="lens-controls">
-				<label>
-					{es ? "Medida" : "Measurement"}
-					<select
-						value={parameter}
-						onChange={(e) =>
-							setParameter(Number(e.target.value) as ParameterIndex)
-						}
-					>
-						{PARAMETERS.map((p, i) => (
-							<option key={p} value={i}>
-								{p === "K"
-									? es
-										? "K · potencia queratométrica"
-										: "K · keratometric power"
-									: p === "ACD"
+				<ParameterControl
+					value={parameter}
+					initial={defaults.parameter}
+					onReset={setParameter}
+					label="distribution parameter"
+					lang={lang}
+					context={parameterContext.population}
+				>
+					<label>
+						{es ? "Medida" : "Measurement"}
+						<select
+							value={parameter}
+							onChange={(e) =>
+								setParameter(Number(e.target.value) as ParameterIndex)
+							}
+						>
+							{PARAMETERS.map((p, i) => (
+								<option key={p} value={i}>
+									{p === "K"
 										? es
-											? "ACD · profundidad interna"
-											: "ACD · internal depth"
-										: p}{" "}
-								({UNITS[i]})
-							</option>
-						))}
-					</select>
-				</label>
+											? "K · potencia queratométrica"
+											: "K · keratometric power"
+										: p === "ACD"
+											? es
+												? "ACD · profundidad interna"
+												: "ACD · internal depth"
+											: p}{" "}
+									({UNITS[i]})
+								</option>
+							))}
+						</select>
+					</label>
+				</ParameterControl>
 			</div>
 			<svg
 				className="models-plot"
@@ -156,23 +176,32 @@ export default function NormalVariation({
 				</text>
 			</svg>
 			<div className="lens-controls">
-				<label>
-					<span className="lens-value">
-						{es ? "Multiplicador de dispersión" : "Spread multiplier"}
-						<output>{spread.toFixed(2)}×</output>
-					</span>
-					<input
-						aria-label={
-							es ? "Multiplicador de dispersión" : "Spread multiplier"
-						}
-						type="range"
-						min="0"
-						max="2"
-						step="0.05"
-						value={spread}
-						onChange={(e) => setSpread(Number(e.target.value))}
-					/>
-				</label>
+				<ParameterControl
+					value={spread}
+					initial={defaults.spread}
+					onReset={setSpread}
+					label="distribution spread"
+					lang={lang}
+					context={parameterContext.spread}
+				>
+					<label>
+						<span className="lens-value">
+							{es ? "Multiplicador de dispersión" : "Spread multiplier"}
+							<output>{spread.toFixed(2)}×</output>
+						</span>
+						<input
+							aria-label={
+								es ? "Multiplicador de dispersión" : "Spread multiplier"
+							}
+							type="range"
+							min="0"
+							max="2"
+							step="0.05"
+							value={spread}
+							onChange={(e) => setSpread(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				<p className="models-equation">
 					μ = {mean.toFixed(3)} · σ = {sd.toFixed(3)} {UNITS[parameter]}
 				</p>
@@ -188,9 +217,17 @@ export default function NormalVariation({
 							: "Gold: normal density × N × bin width. Band: μ ± σ. All tails are included."}
 				</p>
 				<div className="lens-buttons">
-					<button type="button" onClick={() => setSeed((s) => (s + 1) >>> 0)}>
-						{es ? "Nueva muestra" : "New draw"}
-					</button>
+					<ParameterControl
+						value={seed}
+						initial={defaults.seed}
+						onReset={setSeed}
+						label="random seed"
+						lang={lang}
+					>
+						<button type="button" onClick={() => setSeed((s) => (s + 1) >>> 0)}>
+							{es ? "Nueva muestra" : "New draw"}
+						</button>
+					</ParameterControl>
 				</div>
 				<p className="lens-note">
 					{es

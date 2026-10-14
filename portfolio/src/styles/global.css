@@ -225,3 +225,6 @@
     @apply block mt-0 mb-2 text-[17px] leading-snug font-serif italic text-primary border-b border-border/40 pb-1.5;
   }
 }
+
+/* Native fragment navigation leaves room for the fixed header. */
+#about, #experience, #publications, #contact { scroll-margin-top: calc(6rem + env(safe-area-inset-top, 0px)); }

@@ -1,6 +1,8 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./models.css";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
 	atchison,
 	type EyePrescription,
@@ -70,8 +72,21 @@ export default function ModelComparison({
 					: atchison(sr),
 		[model, sr],
 	);
+	const resetAnchor = useRef<HTMLDivElement>(null);
+	const defaults = useInitialParameters(
+		{ model, sr },
+		(initial) => {
+			setModel(initial.model);
+			setSR(initial.sr);
+		},
+		resetAnchor,
+	);
 	return (
-		<div className="lens-demo models-demo" data-demo="model-comparison">
+		<div
+			ref={resetAnchor}
+			className="lens-demo models-demo"
+			data-demo="model-comparison"
+		>
 			<div className="lens-heading">
 				<strong>
 					{es ? "Tres modelos, una escala" : "Three models, one scale"}
@@ -81,36 +96,54 @@ export default function ModelComparison({
 				</span>
 			</div>
 			<div className="lens-controls">
-				<label>
-					{es ? "Modelo" : "Model"}
-					<select value={model} onChange={(e) => setModel(e.target.value)}>
-						<option value="teaching">
-							{es ? "Nuestro modelo" : "Our assembly"}
-						</option>
-						<option value="navarro">Navarro · 1999</option>
-						<option value="atchison">Atchison · 2006</option>
-					</select>
-				</label>
-				{model === "atchison" && (
+				<ParameterControl
+					value={model}
+					initial={defaults.model}
+					onReset={setModel}
+					label="eye prescription"
+					lang={lang}
+					context={parameterContext.schematicModel}
+				>
 					<label>
-						<span className="lens-value">
-							{es
-								? "Refracción del modelo (SR)"
-								: "Model spectacle refraction (SR)"}
-							<output>{sr.toFixed(1)} D</output>
-						</span>
-						<input
-							aria-label={
-								es ? "Refracción del modelo" : "Model spectacle refraction"
-							}
-							type="range"
-							min="-10"
-							max="0"
-							step="0.25"
-							value={sr}
-							onChange={(e) => setSR(Number(e.target.value))}
-						/>
+						{es ? "Modelo" : "Model"}
+						<select value={model} onChange={(e) => setModel(e.target.value)}>
+							<option value="teaching">
+								{es ? "Nuestro modelo" : "Our assembly"}
+							</option>
+							<option value="navarro">Navarro · 1999</option>
+							<option value="atchison">Atchison · 2006</option>
+						</select>
 					</label>
+				</ParameterControl>
+				{model === "atchison" && (
+					<ParameterControl
+						value={sr}
+						initial={defaults.sr}
+						onReset={setSR}
+						label="spectacle refraction"
+						lang={lang}
+						context={parameterContext.refraction}
+					>
+						<label>
+							<span className="lens-value">
+								{es
+									? "Refracción del modelo (SR)"
+									: "Model spectacle refraction (SR)"}
+								<output>{sr.toFixed(1)} D</output>
+							</span>
+							<input
+								aria-label={
+									es ? "Refracción del modelo" : "Model spectacle refraction"
+								}
+								type="range"
+								min="-10"
+								max="0"
+								step="0.25"
+								value={sr}
+								onChange={(e) => setSR(Number(e.target.value))}
+							/>
+						</label>
+					</ParameterControl>
 				)}
 			</div>
 			<ModelScene
