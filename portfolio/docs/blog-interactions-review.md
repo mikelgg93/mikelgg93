@@ -63,3 +63,7 @@ Connect now marks non-loopback device fetches with Chromium's `targetAddressSpac
 The stream watchdog starts when the Monitor script is attached, rather than expiring while a permission prompt is pending. Cancellation still aborts fetching and disposes the hidden iframe. A short connection note is always available; errors expand English/Spanish help with local-network permission settings, desktop Chrome/Edge's per-site insecure-content exception and the remaining CORS/WebSocket limitations. The help panel scrolls within the demo at phone widths.
 
 This does not replace or rewrite the Companion Monitor integration. Real permission prompts and physical Neon connectivity require a supported browser/device test; a mocked delayed fetch verifies the timeout and fallback behaviour.
+
+### Date provenance checked against Git
+
+The Cornea `date: 2026-07-27` was already present in its original `5008ed7` commit, dated 31 July 2026. The Pupil `date: 2026-08-10` was already present in its original `214e4e3` commit, dated 14 September 2026. These are inherited editorial metadata, not verified first-publication events. Commit dates are also not deployment dates. The owner should confirm the actual publication dates before treating the labels/structured data as independently verified.

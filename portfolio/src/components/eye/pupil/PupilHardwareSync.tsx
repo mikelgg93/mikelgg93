@@ -408,8 +408,8 @@ export default function PupilHardwareSync({
 						</button>
 						<p className="text-[11px] leading-relaxed text-muted-foreground">
 							{lang === "es"
-								? "En la misma Wi-Fi que Neon, pulsa Conectar y permite el acceso a la red local si el navegador lo solicita."
-								: "On the same Wi-Fi as Neon, click Connect and allow local-network access if your browser asks."}
+								? "Los datos pupilares llegan directamente de Neon a través de tu Wi-Fi. Pulsa Conectar y permite el acceso a la red local si el navegador lo solicita."
+								: "Live pupil data comes directly from Neon on your Wi-Fi. Click Connect and allow local-network access if your browser asks."}
 						</p>
 						{errorMsg && (
 							<div
@@ -426,6 +426,11 @@ export default function PupilHardwareSync({
 							<summary className="cursor-pointer py-1 text-foreground">
 								{lang === "es" ? "Ayuda de conexión" : "Connection help"}
 							</summary>
+							<p className="mt-2">
+								{lang === "es"
+									? "El navegador pide permiso para impedir que cualquier web acceda a los dispositivos de tu red sin tu consentimiento. Además, este blog usa HTTPS, pero el servicio local de Companion usa HTTP sin cifrar. Esa combinación puede bloquearse como contenido mixto; la excepción de contenido no seguro permite esa conexión, pero no la cifra."
+									: "Your browser asks permission to stop websites accessing devices on your network without your consent. This blog also uses HTTPS, while Companion’s local service uses unencrypted HTTP. That combination can be blocked as mixed content; the insecure-content exception permits that connection but does not encrypt it."}
+							</p>
 							<p className="mt-2">
 								{lang === "es"
 									? "Chrome y otros navegadores Chromium compatibles pueden solicitar permiso para acceder a la red local. Si lo denegaste, abre los controles del sitio junto a la dirección y permite el acceso a la red local; después vuelve a conectar."
