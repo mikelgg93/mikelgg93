@@ -31,6 +31,15 @@ published: false
 Set `published: true` when the article is ready. An omitted flag defaults to
 `false`. English and Spanish files each have their own flag.
 
+Leave `date` absent while drafting. When changing to `published: true`, set
+`date: YYYY-MM-DD` to the publication/merge day on `master` (Europe/Madrid),
+in the same change. Published posts without a valid date fail validation.
+Keep this date on later edits; use optional `updated` for a meaningful revision.
+Do not use the draft creation date, author date, or a fresh date on every build.
+For posts that predate the publication flag, use the first commit introducing
+them on the default branch's first-parent history. Translations published
+together use the same date.
+
 - `bun run build` includes only published posts in article routes, listings,
   navigation, social preview images and article source panels.
 - `bun run dev` includes unpublished posts for editing.

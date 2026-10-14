@@ -7,7 +7,12 @@ import BlogLayout from "@/layouts/BlogLayout.astro";
 export async function getStaticPaths() {
 	const posts = (await getVisiblePosts())
 		.filter((p) => !p.data.lang || p.data.lang === "en")
-		.sort((a, b) => new Date(a.data.date || 0).valueOf() - new Date(b.data.date || 0).valueOf());
+		// Undated drafts follow published articles in private previews.
+		.sort((a, b) => {
+			const aDate = a.data.date ? new Date(a.data.date).valueOf() : Number.MAX_SAFE_INTEGER;
+			const bDate = b.data.date ? new Date(b.data.date).valueOf() : Number.MAX_SAFE_INTEGER;
+			return aDate - bDate || a.id.localeCompare(b.id);
+		});
 
 	return posts.map((post, i) => {
 		const previous = posts[i - 1];

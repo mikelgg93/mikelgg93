@@ -15,7 +15,7 @@ Implemented on `feat/blog-interactions-and-search`; intended for review before p
 | Search | Shortcut help only | Local searchable published articles, section text, portfolio sections/publications and the public eye project; keyboard and touch palette |
 | Neon connection errors | Generic fetch failure | Explanation of HTTP/HTTPS mixed content, local-network permissions and CORS; original Companion Monitor interception retained |
 
-The existing desktop TOC, reading-time pill, mobile gestures and published/draft visibility policy are retained. No dependency, scientific equation, article prose or publication date changes. Slides and Parts III–V remain unpublished. The branch retains the preceding blog-directory swipe-to-home change.
+The existing desktop TOC, reading-time pill, mobile gestures and published/draft visibility policy are retained. No dependency, scientific equation or article prose changes. Publication dates were subsequently corrected at the owner’s request; see below. Slides and Parts III–V remain unpublished. The branch retains the preceding blog-directory swipe-to-home change.
 
 ## Defaults and reset semantics
 
@@ -39,7 +39,7 @@ Other demos capture initial parameters once per mount, including conditional con
 
 ## Metadata and provenance requiring editorial confirmation
 
-Original frontmatter dates are preserved, rather than inferred from Git or the current date. An optional `updated` date can be supplied after an editor confirms the date of a meaningful revision; none has been invented here. Draft dates are not represented as publication dates.
+Publication dates follow the owner’s default-branch/publication rule documented below. An optional `updated` date can be supplied after an editor confirms the date of a meaningful revision; none has been invented here. Draft dates are not represented as publication dates.
 
 Popover classifications are assigned explicitly at each control. Typical anatomical starting values are literature-derived, adjusted geometry/material/response parameters are illustrative, and live Neon pupil diameters are measured. The 80–420 nm material setting is an illustrative Three.js iridescence parameter, not a claim about physiological tear-film thickness. Existing article references supply provenance; these controls do not independently validate individual anatomy.
 
@@ -64,6 +64,14 @@ The stream watchdog starts when the Monitor script is attached, rather than expi
 
 This does not replace or rewrite the Companion Monitor integration. Real permission prompts and physical Neon connectivity require a supported browser/device test; a mocked delayed fetch verifies the timeout and fallback behaviour.
 
-### Date provenance checked against Git
+### Publication dates corrected to default-branch history
 
-The Cornea `date: 2026-07-27` was already present in its original `5008ed7` commit, dated 31 July 2026. The Pupil `date: 2026-08-10` was already present in its original `214e4e3` commit, dated 14 September 2026. These are inherited editorial metadata, not verified first-publication events. Commit dates are also not deployment dates. The owner should confirm the actual publication dates before treating the labels/structured data as independently verified.
+At the owner's request, dates now reflect first appearance on `master` rather than inherited draft metadata (Europe/Madrid):
+
+| Posts (English and Spanish) | Date | First default-branch commit |
+| --- | --- | --- |
+| First entry | 2026-04-01 | `546a88b` |
+| Cornea | 2026-09-09 | `89414c3` (PR #16 merge) |
+| Pupil | 2026-10-02 | `214e4e3` / `e19f236` |
+
+These use first-parent commit/merge dates, not earlier author dates or a claim about an exact deployment timestamp. Parts III–V remain unpublished and their placeholder dates have been removed. When a draft is published, set its date to that publication/merge day in the same change. The content schema rejects published posts with missing/invalid dates; it does not silently invent dates at build time. See the README publishing instructions.
