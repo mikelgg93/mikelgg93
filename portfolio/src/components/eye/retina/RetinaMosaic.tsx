@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./retina.css";
 import { useEffect, useRef, useState } from "react";
@@ -98,8 +100,17 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 			view.dispose();
 		};
 	}, [lang]);
+	const resetAnchor = useRef<HTMLDivElement>(null);
+	const defaults = useInitialParameters(
+		{ central, top },
+		(initial) => {
+			setCentral(initial.central);
+			setTop(initial.top);
+		},
+		resetAnchor,
+	);
 	return (
-		<div className="lens-demo retina-demo">
+		<div ref={resetAnchor} className="lens-demo retina-demo">
 			<div className="lens-heading">
 				<strong>
 					{es
@@ -144,24 +155,45 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				</span>
 			</div>
 			<div className="lens-controls">
-				<label>
-					{es ? "Región" : "Region"}
-					<select
-						value={central ? "central" : "peripheral"}
-						onChange={(e) => setCentral(e.target.value === "central")}
-					>
-						<option value="central">
-							{es ? "Centro foveal" : "Foveal centre"}
-						</option>
-						<option value="peripheral">
-							{es ? "Fuera del centro" : "Away from centre"}
-						</option>
-					</select>
-				</label>
+				<ParameterControl
+					value={central}
+					initial={defaults.central}
+					onReset={setCentral}
+					label="retinal region"
+					lang={lang}
+					context={parameterContext.mosaic}
+				>
+					<label>
+						{es ? "Región" : "Region"}
+						<select
+							value={central ? "central" : "peripheral"}
+							onChange={(e) => setCentral(e.target.value === "central")}
+						>
+							<option value="central">
+								{es ? "Centro foveal" : "Foveal centre"}
+							</option>
+							<option value="peripheral">
+								{es ? "Fuera del centro" : "Away from centre"}
+							</option>
+						</select>
+					</label>
+				</ParameterControl>
 				<div className="lens-buttons">
-					<button type="button" aria-pressed={top} onClick={() => setTop(!top)}>
-						{es ? "Vista del mosaico" : "Mosaic view"}
-					</button>
+					<ParameterControl
+						value={top}
+						initial={defaults.top}
+						onReset={setTop}
+						label="mosaic view"
+						lang={lang}
+					>
+						<button
+							type="button"
+							aria-pressed={top}
+							onClick={() => setTop(!top)}
+						>
+							{es ? "Vista del mosaico" : "Mosaic view"}
+						</button>
+					</ParameterControl>
 				</div>
 				<p className="lens-note">
 					{es

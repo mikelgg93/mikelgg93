@@ -1,6 +1,9 @@
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
+import { observeVisibility } from "./visibility";
+
 type Options = {
+	reset?: () => void;
 	controls?: OrbitControls;
 	draw: (dt: number, elapsed: number, reducedMotion: boolean) => boolean;
 	inspect: () => object;
@@ -14,6 +17,9 @@ export function createDemoLoop(mount: HTMLElement, options: Options) {
 	const events = viewer ?? mount;
 	const debug = viewer?.querySelector(".debug-output");
 	const motion = matchMedia("(prefers-reduced-motion: reduce)");
+	const orbitDamping = options.controls?.enableDamping ?? false;
+	if (options.controls && motion.matches)
+		options.controls.enableDamping = false;
 	let visible = false;
 	let disposed = false;
 	let drawing = false;
@@ -51,24 +57,43 @@ export function createDemoLoop(mount: HTMLElement, options: Options) {
 		frame = 0;
 		lastTime = 0;
 	}
-	function visibility() {
-		if (document.hidden) suspend();
-		else invalidate();
+	const stopVisibility = observeVisibility(
+		mount.closest(".pupil-demo") ?? mount,
+		(active) => {
+			visible = active;
+			if (active) invalidate();
+			else suspend();
+		},
+	);
+	options.controls?.saveState();
+	function reset() {
+		suspend();
+		elapsed = 0;
+		options.reset?.();
+		if (options.controls) {
+			const damping = options.controls.enableDamping;
+			options.controls.enableDamping = false;
+			options.controls.update();
+			options.controls.reset();
+			options.controls.enableDamping = damping;
+		}
+		invalidate();
+		inspect();
 	}
-	const observer = new IntersectionObserver(([entry]) => {
-		visible = entry?.isIntersecting ?? false;
-		if (visible) invalidate();
-		else suspend();
-	});
-	observer.observe(mount);
+	viewer?.addEventListener("eye:reset", reset);
+	viewer?.addEventListener("eye:reset-camera", reset);
 	const resize = new ResizeObserver(invalidate);
 	resize.observe(mount);
 	options.controls?.addEventListener("change", invalidate);
 	for (const event of ["input", "change", "click"])
 		events.addEventListener(event, invalidate);
 	viewer?.addEventListener("eye:inspect", inspect);
-	document.addEventListener("visibilitychange", visibility);
-	motion.addEventListener("change", invalidate);
+	function motionChanged() {
+		if (options.controls)
+			options.controls.enableDamping = !motion.matches && orbitDamping;
+		invalidate();
+	}
+	motion.addEventListener("change", motionChanged);
 	inspect();
 	return {
 		invalidate,
@@ -76,14 +101,15 @@ export function createDemoLoop(mount: HTMLElement, options: Options) {
 		dispose() {
 			disposed = true;
 			suspend();
-			observer.disconnect();
+			stopVisibility();
+			viewer?.removeEventListener("eye:reset", reset);
+			viewer?.removeEventListener("eye:reset-camera", reset);
 			resize.disconnect();
 			options.controls?.removeEventListener("change", invalidate);
 			for (const event of ["input", "change", "click"])
 				events.removeEventListener(event, invalidate);
 			viewer?.removeEventListener("eye:inspect", inspect);
-			document.removeEventListener("visibilitychange", visibility);
-			motion.removeEventListener("change", invalidate);
+			motion.removeEventListener("change", motionChanged);
 		},
 	};
 }

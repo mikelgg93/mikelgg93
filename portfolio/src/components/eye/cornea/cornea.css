@@ -23,3 +23,5 @@
 	.cornea-demo input[type="range"] { min-height: 24px; }
 	.cornea-demo canvas { touch-action: pan-y !important; }
 }
+
+.cornea-demo > .parameter-control.cornea-actions { max-width: calc(100% - 24px); }

@@ -1,5 +1,8 @@
 ---
 import { Image } from "astro:assets";
+import ArticleDates from "@/components/blog/ArticleDates.astro";
+import HeadingLinks from "@/components/blog/HeadingLinks.astro";
+import { articleDates } from "@/lib/articleDates";
 import BlogFeatures from "@/components/BlogFeatures";
 import BlogToc from "@/components/BlogToc.astro";
 import PretextText from "@/components/PretextText";
@@ -8,6 +11,18 @@ import Layout from "@/layouts/Layout.astro";
 import "katex/dist/katex.min.css";
 
 const { frontmatter, prevUrl = null, nextUrl = null, id } = Astro.props;
+const dates = articleDates(frontmatter);
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const structuredArticle = frontmatter.published ? {
+  "@context": "https://schema.org", "@type": "BlogPosting",
+  headline: frontmatter.title, description: frontmatter.description,
+  url: canonical.href, mainEntityOfPage: canonical.href,
+  datePublished: dates.published?.toISOString().slice(0, 10),
+  dateModified: dates.updated?.toISOString().slice(0, 10),
+  author: { "@type": "Person", name: frontmatter.author || "Miguel García" },
+  image: frontmatter.image ? new URL(frontmatter.image, canonical).href : undefined,
+  inLanguage: frontmatter.lang || "en",
+} : null;
 const ogImage = id ? `/og/${id.replace('-es', '')}.png` : frontmatter.image;
 const isSpanish = Astro.url.pathname.startsWith("/es/");
 const hasMobileModelControls = ["webgl-eye-02-pupil", "webgl-eye-03-lens"]
@@ -21,7 +36,8 @@ const mobileHint = hasMobileModelControls
     : "For the best experience, it is recommended to view these interactive articles on a desktop computer.");
 ---
 
-<Layout title={frontmatter.title} description={frontmatter.description} image={ogImage}>
+<Layout title={frontmatter.title} description={frontmatter.description} image={ogImage} article={structuredArticle}>
+  <HeadingLinks />
   <BlogFeatures client:load />
 
   <div class="md:hidden relative h-0 z-40">
@@ -77,15 +93,17 @@ const mobileHint = hasMobileModelControls
         />
       )
     }
+    <p class="not-prose text-xs text-muted-foreground mb-6"><ArticleDates data={frontmatter} lang={isSpanish ? "es" : "en"} /></p>
     {Astro.url.pathname.includes('/webgl-eye-0') && <EyeSeriesNav />}
     <div class="h-[1px] w-full bg-border opacity-50 mb-8"></div>
-    <div class="font-sans leading-relaxed">
+    <div data-article-body class="font-sans leading-relaxed">
       <slot />
     </div>
   </article>
 </Layout>
 
 <script>
+  import { blocksPageShortcut } from "@/lib/keyboard";
   // Left / right arrow keys move to the previous / next article. Bound once on
   // document (which survives view transitions); it reads the current article's
   // data attributes each press. Ignored while typing in a field or nudging a
@@ -93,15 +111,7 @@ const mobileHint = hasMobileModelControls
   function eyeArrowNav(e: KeyboardEvent) {
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    const el = document.activeElement as HTMLElement | null;
-    if (
-      el &&
-      (el.tagName === "INPUT" ||
-        el.tagName === "TEXTAREA" ||
-        el.tagName === "SELECT" ||
-        el.isContentEditable)
-    )
-      return;
+    if (blocksPageShortcut(e.target)) return;
     const article = document.querySelector("article[data-prev-url], article[data-next-url]") as HTMLElement | null;
     if (!article) return;
     const url = e.key === "ArrowLeft" ? article.dataset.prevUrl : article.dataset.nextUrl;

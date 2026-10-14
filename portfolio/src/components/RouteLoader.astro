@@ -29,6 +29,7 @@ import Signature from "@/components/Signature.astro";
 </div>
 
 <script>
+  import { blocksPageShortcut } from "@/lib/keyboard";
   let hasRun = false;
 
   // Listen before page-load: reduced-motion signatures finish synchronously.
@@ -63,6 +64,7 @@ import Signature from "@/components/Signature.astro";
 
   // Attach keydown globally outside the page-load event or outside the early return
   document.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || blocksPageShortcut(e.target)) return;
     if (e.key === "s" || e.key === "S") {
       const loader = document.getElementById("route-loader");
       if (loader) {

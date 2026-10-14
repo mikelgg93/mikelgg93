@@ -1,0 +1,26 @@
+.command-palette {
+  position: fixed; top: max(72px, 14dvh); bottom: auto; margin: 0 auto; padding: 0;
+  width: min(600px, calc(100vw - 24px)); max-height: calc(86dvh - 24px);
+  color: var(--foreground); background: var(--background); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: 0 16px 64px #0004; overflow: hidden; font-family: var(--font-sans);
+}
+.command-palette::backdrop { background: #0005; backdrop-filter: blur(5px); }
+.command-content { display: flex; flex-direction: column; max-height: calc(86dvh - 24px); }
+.command-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.command-header input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; padding-block: 12px; font-size: 16px; }
+.command-header:focus-within { box-shadow: inset 0 -2px var(--primary); }
+.command-palette button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; }
+.command-palette button:focus-visible { outline: 2px solid var(--primary); }
+.command-results, .command-help { overflow-y: auto; overscroll-behavior: contain; padding: 6px; }
+.command-results [role="option"] { padding: 10px 12px; cursor: pointer; border-radius: 5px; }
+.command-results [aria-selected="true"] { background: color-mix(in srgb, var(--tertiary) 14%, transparent); }
+.command-type { display: block; font-size: 10px; color: var(--muted-foreground); margin-bottom: 2px; }
+.command-results strong { display: block; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.command-results p { font-size: 12px; line-height: 1.5; color: var(--muted-foreground); margin-top: 3px; }
+.command-footer { display: flex; flex: none; align-items: center; justify-content: space-between; padding: 0 12px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-foreground); }
+.command-help { padding: 16px 20px; font-size: 14px; }
+.command-help h2 { font-family: var(--font-serif); font-size: 22px; margin-bottom: 12px; }
+.command-help p { display: flex; justify-content: space-between; gap: 20px; padding: 6px 0; }
+.command-palette kbd { font-family: var(--font-mono); font-size: 11px; }
+.command-status:not(:empty) { font-size: 13px; padding: 16px; color: var(--muted-foreground); }
+@media (max-width: 640px) { .command-palette { top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 24px); } .command-content { max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 24px); } }

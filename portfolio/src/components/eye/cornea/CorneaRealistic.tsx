@@ -6,7 +6,21 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { createDemoLoop } from "../demoLoop";
 import { eyeText } from "../earlyText";
+import { ParameterInfo } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import { observeThreeResize } from "../threeResize";
+
+export const CORNEA_REALISTIC_DEFAULTS = {
+	model: "Illustrative physical material",
+	iridescenceRangeNm: [80, 420] as [number, number],
+	physiologicalThinFilm: false,
+	camera: [-3.9555121010005623, -2.292437857508836, -18.844061470083833] as [
+		number,
+		number,
+		number,
+	],
+	target: [0, 0, 0] as [number, number, number],
+};
 
 // Average anatomical values (mm). Built at true scale, framed by the camera.
 const R_ANT = 7.8; // anterior radius of curvature
@@ -108,7 +122,7 @@ export default function CorneaRealistic({
 
 		const scene = new THREE.Scene();
 		const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 200);
-		camera.position.set(6, 4, 18);
+		camera.position.fromArray(CORNEA_REALISTIC_DEFAULTS.camera);
 
 		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -129,6 +143,8 @@ export default function CorneaRealistic({
 		controls.enablePan = false;
 		controls.minDistance = 12;
 		controls.maxDistance = 45;
+		controls.target.fromArray(CORNEA_REALISTIC_DEFAULTS.target);
+		controls.update();
 
 		const resizeObserver = observeThreeResize(
 			mountRef.current,
@@ -173,10 +189,12 @@ export default function CorneaRealistic({
 			clearcoatRoughness: 0.015,
 			specularIntensity: 1.0,
 			envMapIntensity: 1.3,
-			// Tear-film thin-film interference (oil-slick sheen).
+			// Illustrative iridescence range, not physiological lipid thickness.
 			iridescence: 1.0,
 			iridescenceIOR: 1.32,
-			iridescenceThicknessRange: [80, 420],
+			iridescenceThicknessRange: [
+				...CORNEA_REALISTIC_DEFAULTS.iridescenceRangeNm,
+			],
 			iridescenceThicknessMap: filmMap,
 			// A touch of anisotropy from the corneal collagen grain.
 			anisotropy: 0.2,
@@ -191,6 +209,12 @@ export default function CorneaRealistic({
 
 		const loop = createDemoLoop(mountRef.current, {
 			controls: controls,
+			reset: () => {
+				filmMap.offset.set(0, 0);
+				mat.iridescenceThicknessRange = [
+					...CORNEA_REALISTIC_DEFAULTS.iridescenceRangeNm,
+				];
+			},
 			continuous: (reducedMotion) => !reducedMotion,
 			draw: (dt, _elapsed, reducedMotion) => {
 				if (!reducedMotion) {
@@ -201,9 +225,9 @@ export default function CorneaRealistic({
 				return false;
 			},
 			inspect: () => ({
-				model: "Illustrative physical material",
-				iridescenceRangeNm: [80, 420],
-				physiologicalThinFilm: false,
+				model: CORNEA_REALISTIC_DEFAULTS.model,
+				iridescenceRangeNm: mat.iridescenceThicknessRange,
+				physiologicalThinFilm: CORNEA_REALISTIC_DEFAULTS.physiologicalThinFilm,
 				camera: camera.position.toArray(),
 				target: controls.target.toArray(),
 			}),
@@ -233,6 +257,10 @@ export default function CorneaRealistic({
 			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
 					{t("Hyperrealistic Cornea")}
+					<ParameterInfo
+						label="corneal material"
+						context={parameterContext.material}
+					/>
 				</span>
 				<div className="text-[10px] text-muted-foreground max-w-[220px] leading-relaxed">
 					{t("Built to average anatomy: R")}

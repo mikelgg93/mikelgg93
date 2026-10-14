@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./models.css";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -92,8 +94,23 @@ export default function PopulationVariation({
 			}, 1000),
 		);
 	}
+	const resetAnchor = useRef<HTMLDivElement>(null);
+	const defaults = useInitialParameters(
+		{ correlated, seed, selected, pair },
+		(initial) => {
+			setCorrelated(initial.correlated);
+			setSeed(initial.seed);
+			setSelected(initial.selected);
+			setPair(initial.pair);
+		},
+		resetAnchor,
+	);
 	return (
-		<div className="lens-demo models-demo" data-demo="population-variation">
+		<div
+			ref={resetAnchor}
+			className="lens-demo models-demo"
+			data-demo="population-variation"
+		>
 			<div className="lens-heading">
 				<strong>
 					{es
@@ -105,34 +122,51 @@ export default function PopulationVariation({
 				</span>
 			</div>
 			<div className="lens-controls">
-				<label>
-					{es ? "Muestreo" : "Sampling"}
-					<select
-						value={correlated ? "correlated" : "independent"}
-						onChange={(e) => setCorrelated(e.target.value === "correlated")}
-					>
-						<option value="independent">
-							{es ? "Independientes" : "Independent"}
-						</option>
-						<option value="correlated">
-							{es ? "Covarianza publicada" : "Published covariance"}
-						</option>
-					</select>
-				</label>
-				<label>
-					{es ? "Comparar medidas" : "Compare measurements"}
-					<select
-						value={pair}
-						onChange={(e) => setPair(Number(e.target.value))}
-					>
-						<option value="0">
-							{es ? "ACD interna × LT" : "Internal ACD × LT"}
-						</option>
-						<option value="1">
-							{es ? "AL × K queratométrica" : "AL × keratometric K"}
-						</option>
-					</select>
-				</label>
+				<ParameterControl
+					value={correlated}
+					initial={defaults.correlated}
+					onReset={setCorrelated}
+					label="sampling mode"
+					lang={lang}
+					context={parameterContext.population}
+				>
+					<label>
+						{es ? "Muestreo" : "Sampling"}
+						<select
+							value={correlated ? "correlated" : "independent"}
+							onChange={(e) => setCorrelated(e.target.value === "correlated")}
+						>
+							<option value="independent">
+								{es ? "Independientes" : "Independent"}
+							</option>
+							<option value="correlated">
+								{es ? "Covarianza publicada" : "Published covariance"}
+							</option>
+						</select>
+					</label>
+				</ParameterControl>
+				<ParameterControl
+					value={pair}
+					initial={defaults.pair}
+					onReset={setPair}
+					label="plotted variables"
+					lang={lang}
+				>
+					<label>
+						{es ? "Comparar medidas" : "Compare measurements"}
+						<select
+							value={pair}
+							onChange={(e) => setPair(Number(e.target.value))}
+						>
+							<option value="0">
+								{es ? "ACD interna × LT" : "Internal ACD × LT"}
+							</option>
+							<option value="1">
+								{es ? "AL × K queratométrica" : "AL × keratometric K"}
+							</option>
+						</select>
+					</label>
+				</ParameterControl>
 			</div>
 			<svg
 				className="models-plot"
@@ -194,23 +228,31 @@ export default function PopulationVariation({
 					{targetR.toFixed(2)} · {es ? "muestra aceptada" : "accepted sample"}:{" "}
 					{sampleCorrelation(result.samples, a, b)?.toFixed(2) ?? "—"}
 				</p>
-				<label>
-					<span className="lens-value">
-						{es ? "Inspeccionar ojo" : "Inspect eye"}
-						<output>
-							{selected + 1} / {result.samples.length}
-						</output>
-					</span>
-					<input
-						aria-label={es ? "Inspeccionar ojo" : "Inspect eye"}
-						type="range"
-						min="0"
-						max={result.samples.length - 1}
-						step="1"
-						value={selected}
-						onChange={(e) => setSelected(Number(e.target.value))}
-					/>
-				</label>
+				<ParameterControl
+					value={selected}
+					initial={defaults.selected}
+					onReset={setSelected}
+					label="selected synthetic eye"
+					lang={lang}
+				>
+					<label>
+						<span className="lens-value">
+							{es ? "Inspeccionar ojo" : "Inspect eye"}
+							<output>
+								{selected + 1} / {result.samples.length}
+							</output>
+						</span>
+						<input
+							aria-label={es ? "Inspeccionar ojo" : "Inspect eye"}
+							type="range"
+							min="0"
+							max={result.samples.length - 1}
+							step="1"
+							value={selected}
+							onChange={(e) => setSelected(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 			</div>
 			<ModelScene
 				eye={eye}
@@ -234,9 +276,17 @@ export default function PopulationVariation({
 					{(337.5 / result.samples[selected]![0]).toFixed(2)} mm
 				</p>
 				<div className="lens-buttons">
-					<button type="button" onClick={() => setSeed((s) => (s + 1) >>> 0)}>
-						{es ? "Nueva población" : "New population"}
-					</button>
+					<ParameterControl
+						value={seed}
+						initial={defaults.seed}
+						onReset={setSeed}
+						label="random seed"
+						lang={lang}
+					>
+						<button type="button" onClick={() => setSeed((s) => (s + 1) >>> 0)}>
+							{es ? "Nueva población" : "New population"}
+						</button>
+					</ParameterControl>
 					<button type="button" onClick={download}>
 						{es ? "Descargar JSON" : "Download JSON"}
 					</button>

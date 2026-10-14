@@ -1,0 +1,22 @@
+.parameter-control { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.parameter-field { flex: 1; min-width: 0; }
+.parameter-field > label { display: block; }
+.parameter-tools { display: flex; flex: none; align-items: center; }
+.parameter-icon[type="button"] {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 36px; padding: 0; min-width: 0;
+  color: var(--muted-foreground); background: transparent; border: 0;
+  border-radius: 4px; cursor: pointer; pointer-events: auto;
+}
+.parameter-icon[type="button"]:disabled { opacity: .25; cursor: default; }
+.parameter-icon[type="button"]:not(:disabled):hover { color: var(--foreground); background: var(--muted); }
+.parameter-icon[type="button"]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.parameter-info {
+  position: fixed; inset: auto; margin: 0; padding: 12px; z-index: 10000;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--popover);
+  color: var(--popover-foreground); font: 12px/1.6 var(--font-sans);
+  box-shadow: 0 4px 18px #0002; pointer-events: auto; max-height: 60dvh; overflow-y: auto;
+}
+.parameter-info p { margin: 4px 0; }
+.parameter-info a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+@media (pointer: coarse) { .parameter-icon[type="button"] { height: 44px; width: 36px; } }

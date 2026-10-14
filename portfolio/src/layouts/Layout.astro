@@ -8,10 +8,12 @@ import { ClientRouter } from "astro:transitions";
 import Footer from "@/components/Footer.astro";
 import Header from "@/components/Header.astro";
 import RouteLoader from "@/components/RouteLoader.astro";
-import ShortcutsModal from "@/components/ShortcutsModal";
+import CommandPalette from "@/components/CommandPalette";
 import { includeUnpublished } from "@/lib/blog";
 
 interface Props {
+	article?: Record<string, unknown> | null;
+	skipIntro?: boolean;
 	title?: string;
 	description?: string;
 	image?: string;
@@ -21,7 +23,7 @@ interface Props {
 	};
 }
 
-const { title, description, image, content } = Astro.props;
+const { title, description, image, content, article, skipIntro = false } = Astro.props;
 const pageTitle = title || content?.title || "Miguel García";
 const pageDescription =
 	description || content?.description || "Product Specialist & Researcher";
@@ -57,11 +59,15 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
     </script>
 
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={article ? "article" : "website"} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDescription} />
     <meta property="og:image" content={ogImage} />
+
+    {article && <script type="application/ld+json" set:html={JSON.stringify(article).replace(/</g, "\\u003c")} />}
+    {article?.datePublished && <meta property="article:published_time" content={String(article.datePublished)} />}
+    {article?.dateModified && <meta property="article:modified_time" content={String(article.dateModified)} />}
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
@@ -106,44 +112,14 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
         document.body.style.paddingRight = "";
       });
 
-      document.addEventListener("keydown", (e) => {
-        if (e.metaKey || e.ctrlKey) {
-          if (e.key.toLowerCase() === "k") {
-            e.preventDefault();
-            const current =
-              localStorage.getItem("theme") ||
-              (window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light");
-            const next = current === "dark" ? "light" : "dark";
-            localStorage.setItem("theme", next);
-            document.documentElement.classList.toggle("dark", next === "dark");
-            const meta = document.getElementById("theme-color-meta");
-            if (meta) meta.setAttribute("content", next === "dark" ? "#001e19" : "#f6fffd");
-          } else if (e.key.toLowerCase() === "j") {
-            e.preventDefault();
-            const isEs = window.location.pathname.startsWith("/es");
-            let newPath = window.location.pathname;
-            if (isEs) {
-              newPath = newPath.replace(/^\/es/, "") || "/";
-            } else {
-              newPath = "/es" + newPath;
-            }
-            window.location.href = newPath;
-          } else if (e.key.toLowerCase() === "b") {
-            e.preventDefault();
-            const isEs = window.location.pathname.startsWith("/es");
-            window.location.href = isEs ? "/es/blog" : "/blog";
-          }
-        }
-      });
+
     </script>
     <ClientRouter />
   </head>
   <body class="bg-background font-sans text-foreground antialiased selection:bg-accent selection:text-accent-foreground">
     <div class="min-h-[100dvh] flex flex-col relative">
-      <RouteLoader />
-      <ShortcutsModal client:load />
+      {!skipIntro && <RouteLoader />}
+      <CommandPalette client:load />
       <Header />
       <main class="flex-1">
         <slot />

@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./retina.css";
 import { useMemo, useState } from "react";
@@ -40,6 +42,15 @@ export default function RetinaSampling({
 		foldedFrequency: model.alias,
 		samples: model.samples,
 	});
+	const defaults = useInitialParameters(
+		{ frequency, count, shift },
+		(initial) => {
+			setFrequency(initial.frequency);
+			setCount(initial.count);
+			setShift(initial.shift);
+		},
+		root,
+	);
 	return (
 		<div ref={root} className="lens-demo retina-demo">
 			<div className="lens-heading">
@@ -100,46 +111,71 @@ export default function RetinaSampling({
 				</span>
 			</div>
 			<div className="lens-controls">
-				<label>
-					<span className="lens-value">
-						{es
-							? "Franjas (ciclos en el panel)"
-							: "Stripes (cycles across panel)"}
-						<output>{frequency.toFixed(1)}</output>
-					</span>
-					<input
-						aria-label={es ? "Frecuencia de las franjas" : "Stripe frequency"}
-						type="range"
-						min="1"
-						max="24"
-						step="0.5"
-						value={frequency}
-						onChange={(e) => setFrequency(Number(e.target.value))}
-					/>
-				</label>
-				<label>
-					<span className="lens-value">
-						{es ? "Número de muestras" : "Number of samples"}
-						<output>{count}</output>
-					</span>
-					<input
-						aria-label={es ? "Número de muestras" : "Number of samples"}
-						type="range"
-						min="8"
-						max="32"
-						step="8"
-						value={count}
-						onChange={(e) => setCount(Number(e.target.value))}
-					/>
-				</label>
+				<ParameterControl
+					value={frequency}
+					initial={defaults.frequency}
+					onReset={setFrequency}
+					label="stripe frequency"
+					lang={lang}
+					context={parameterContext.sampling}
+				>
+					<label>
+						<span className="lens-value">
+							{es
+								? "Franjas (ciclos en el panel)"
+								: "Stripes (cycles across panel)"}
+							<output>{frequency.toFixed(1)}</output>
+						</span>
+						<input
+							aria-label={es ? "Frecuencia de las franjas" : "Stripe frequency"}
+							type="range"
+							min="1"
+							max="24"
+							step="0.5"
+							value={frequency}
+							onChange={(e) => setFrequency(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
+				<ParameterControl
+					value={count}
+					initial={defaults.count}
+					onReset={setCount}
+					label="sample count"
+					lang={lang}
+				>
+					<label>
+						<span className="lens-value">
+							{es ? "Número de muestras" : "Number of samples"}
+							<output>{count}</output>
+						</span>
+						<input
+							aria-label={es ? "Número de muestras" : "Number of samples"}
+							type="range"
+							min="8"
+							max="32"
+							step="8"
+							value={count}
+							onChange={(e) => setCount(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={shift}
-						onClick={() => setShift(!shift)}
+					<ParameterControl
+						value={shift}
+						initial={defaults.shift}
+						onReset={setShift}
+						label="stripe phase"
+						lang={lang}
 					>
-						{es ? "Desplazar ¼ de ciclo" : "Shift ¼ cycle"}
-					</button>
+						<button
+							type="button"
+							aria-pressed={shift}
+							onClick={() => setShift(!shift)}
+						>
+							{es ? "Desplazar ¼ de ciclo" : "Shift ¼ cycle"}
+						</button>
+					</ParameterControl>
 				</div>
 				<p className="lens-note">
 					{aliases

@@ -1,3 +1,4 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import "./cornea.css";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -293,36 +294,52 @@ export default function CorneaLayered({ lang = "en" }: { lang?: "en" | "es" }) {
 		};
 	}, []);
 
+	const defaults = useInitialParameters(
+		{ exploded, active },
+		(initial) => {
+			setExploded(initial.exploded);
+			setActive(initial.active);
+		},
+		mountRef,
+	);
 	return (
 		<div className="cornea-demo relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
 			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[260px]">
 				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
 					{t("Corneal layers (model)")}
 				</span>
-				<div className="flex flex-col gap-1 w-full text-xs">
-					{LAYERS.map((l) => (
-						<div
-							key={l.id}
-							onClick={() => setActive(active === l.id ? null : l.id)}
-							className={`flex justify-between items-center px-1.5 py-0.5 rounded cursor-pointer transition-colors ${active === l.id ? "bg-primary/20 border border-primary/50" : "hover:bg-muted/40"}`}
-						>
-							<div className="flex items-center gap-1.5">
-								<span
-									className="w-2.5 h-2.5 rounded-full"
-									style={{
-										backgroundColor: `#${l.color.toString(16).padStart(6, "0")}`,
-									}}
-								></span>
-								<span className="font-semibold text-foreground text-[11px]">
-									{t(l.name)}
+				<ParameterControl
+					value={active}
+					initial={defaults.active}
+					onReset={setActive}
+					label="selected layer"
+					lang={lang}
+				>
+					<div className="flex flex-col gap-1 w-full text-xs">
+						{LAYERS.map((l) => (
+							<div
+								key={l.id}
+								onClick={() => setActive(active === l.id ? null : l.id)}
+								className={`flex justify-between items-center px-1.5 py-0.5 rounded cursor-pointer transition-colors ${active === l.id ? "bg-primary/20 border border-primary/50" : "hover:bg-muted/40"}`}
+							>
+								<div className="flex items-center gap-1.5">
+									<span
+										className="w-2.5 h-2.5 rounded-full"
+										style={{
+											backgroundColor: `#${l.color.toString(16).padStart(6, "0")}`,
+										}}
+									></span>
+									<span className="font-semibold text-foreground text-[11px]">
+										{t(l.name)}
+									</span>
+								</div>
+								<span className="font-mono text-[10px] text-muted-foreground font-bold ml-2">
+									{l.um} µm
 								</span>
 							</div>
-							<span className="font-mono text-[10px] text-muted-foreground font-bold ml-2">
-								{l.um} µm
-							</span>
-						</div>
-					))}
-				</div>
+						))}
+					</div>
+				</ParameterControl>
 				{active && (
 					<p className="text-[10px] text-muted-foreground leading-relaxed mt-1 pt-1 border-t border-border/40">
 						{t(LAYERS.find((l) => l.id === active)?.desc ?? "")}
@@ -330,12 +347,21 @@ export default function CorneaLayered({ lang = "en" }: { lang?: "en" | "es" }) {
 				)}
 			</div>
 
-			<button
-				onClick={() => setExploded((e) => !e)}
-				className="cornea-actions absolute bottom-4 md:left-1/2 md:-translate-x-1/2 z-20 px-5 py-2 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-xl hover:opacity-90 transition-opacity"
+			<ParameterControl
+				value={exploded}
+				initial={defaults.exploded}
+				onReset={setExploded}
+				label="layer separation"
+				className="cornea-actions absolute bottom-4 md:left-1/2 md:-translate-x-1/2 z-20"
+				lang={lang}
 			>
-				{exploded ? t("Collapse layers") : t("Explode layers")}
-			</button>
+				<button
+					onClick={() => setExploded((e) => !e)}
+					className="px-5 py-2 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-xl hover:opacity-90 transition-opacity"
+				>
+					{exploded ? t("Collapse layers") : t("Explode layers")}
+				</button>
+			</ParameterControl>
 
 			<div
 				ref={mountRef}

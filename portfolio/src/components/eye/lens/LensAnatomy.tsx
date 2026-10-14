@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import { createCiliaryApparatus } from "./ciliaryApparatus";
@@ -55,6 +57,15 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			view.dispose();
 		};
 	}, [lang]);
+	const defaults = useInitialParameters(
+		{ accommodation, cutaway, fibreMap },
+		(initial) => {
+			setAccommodation(initial.accommodation);
+			setCutaway(initial.cutaway);
+			setFibreMap(initial.fibreMap);
+		},
+		mount,
+	);
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
@@ -105,42 +116,69 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 					section={cutaway}
 					onView={(view) => viewRef.current?.setView(view)}
 				/>
-				<label>
-					<span className="lens-value">
-						<span>{es ? "Acomodación del modelo" : "Model accommodation"}</span>
-						<output>{accommodation.toFixed(1)} D</output>
-					</span>
-					<input
-						type="range"
-						min="0"
-						max={MAX_ACCOMMODATION}
-						step="0.1"
-						value={accommodation}
-						onChange={(e) => setAccommodation(Number(e.target.value))}
-					/>
-				</label>
+				<ParameterControl
+					value={accommodation}
+					initial={defaults.accommodation}
+					onReset={setAccommodation}
+					label="accommodation"
+					lang={lang}
+					context={parameterContext.accommodation}
+				>
+					<label>
+						<span className="lens-value">
+							<span>
+								{es ? "Acomodación del modelo" : "Model accommodation"}
+							</span>
+							<output>{accommodation.toFixed(1)} D</output>
+						</span>
+						<input
+							type="range"
+							min="0"
+							max={MAX_ACCOMMODATION}
+							step="0.1"
+							value={accommodation}
+							onChange={(e) => setAccommodation(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				<div className="lens-value lens-note">
 					<span>{es ? "Lejos" : "Distance"}</span>
 					<span>{es ? "Cerca" : "Near"}</span>
 				</div>
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={cutaway}
-						onClick={() => {
-							setCutaway(!cutaway);
-							viewRef.current?.setView(cutaway ? "reset" : "section");
-						}}
+					<ParameterControl
+						value={cutaway}
+						initial={defaults.cutaway}
+						onReset={setCutaway}
+						label="cutaway"
+						lang={lang}
 					>
-						{es ? "Sección abierta" : "Open section"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={fibreMap}
-						onClick={() => setFibreMap(!fibreMap)}
+						<button
+							type="button"
+							aria-pressed={cutaway}
+							onClick={() => {
+								setCutaway(!cutaway);
+								viewRef.current?.setView(cutaway ? "reset" : "section");
+							}}
+						>
+							{es ? "Sección abierta" : "Open section"}
+						</button>
+					</ParameterControl>
+					<ParameterControl
+						value={fibreMap}
+						initial={defaults.fibreMap}
+						onReset={setFibreMap}
+						label="fibre map"
+						lang={lang}
 					>
-						{es ? "Mapa muscular" : "Muscle map"}
-					</button>
+						<button
+							type="button"
+							aria-pressed={fibreMap}
+							onClick={() => setFibreMap(!fibreMap)}
+						>
+							{es ? "Mapa muscular" : "Muscle map"}
+						</button>
+					</ParameterControl>
 				</div>
 				<p className="lens-note" aria-live="polite">
 					{accommodation === 0

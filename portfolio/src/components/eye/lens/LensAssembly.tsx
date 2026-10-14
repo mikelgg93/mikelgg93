@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -115,8 +117,20 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 			view.invalidate();
 		}
 	}
+	const resetAnchor = useRef<HTMLDivElement>(null);
+	const defaults = useInitialParameters(
+		{ hideSupport, implant, mode, pupil, accommodation },
+		(initial) => {
+			setHideSupport(initial.hideSupport);
+			setImplant(initial.implant);
+			setMode(initial.mode);
+			setPupil(initial.pupil);
+			setAccommodation(initial.accommodation);
+		},
+		resetAnchor,
+	);
 	return (
-		<div className="lens-demo">
+		<div ref={resetAnchor} className="lens-demo">
 			<div className="lens-heading">
 				<strong>
 					{es ? "Las tres piezas, juntas" : "The three parts, together"}
@@ -150,93 +164,137 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 			<div className="lens-controls">
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={hideSupport}
-						onClick={() => setHideSupport(!hideSupport)}
+					<ParameterControl
+						value={hideSupport}
+						initial={defaults.hideSupport}
+						onReset={setHideSupport}
+						label="support visibility"
+						lang={lang}
 					>
-						{hideSupport
-							? es
-								? "Mostrar músculo y zónulas"
-								: "Show muscle & zonules"
-							: es
-								? "Ocultar músculo y zónulas"
-								: "Hide muscle & zonules"}
-					</button>
+						<button
+							type="button"
+							aria-pressed={hideSupport}
+							onClick={() => setHideSupport(!hideSupport)}
+						>
+							{hideSupport
+								? es
+									? "Mostrar músculo y zónulas"
+									: "Show muscle & zonules"
+								: es
+									? "Ocultar músculo y zónulas"
+									: "Hide muscle & zonules"}
+						</button>
+					</ParameterControl>
 				</div>
-				<label>
-					{es ? "Tipo de lente" : "Lens type"}
-					<select
-						value={implant ? "iol" : "natural"}
-						onChange={(e) => {
-							const useImplant = e.target.value === "iol";
-							setImplant(useImplant);
-							if (useImplant) changeMode("section");
-						}}
-					>
-						<option value="natural">
-							{es ? "Cristalino natural" : "Natural lens"}
-						</option>
-						<option value="iol">
-							{es ? "LIO y cápsula" : "IOL + capsule"}
-						</option>
-					</select>
-				</label>
-				<label>
-					{es ? "Disposición" : "Assembly view"}
-					<select
-						value={mode}
-						onChange={(e) => changeMode(e.target.value as typeof mode)}
-					>
-						<option value="assembled">{es ? "Juntas" : "Assembled"}</option>
-						<option value="section">
-							{es ? "Abrir el ojo" : "Open the eye"}
-						</option>
-						<option value="exploded">
-							{es ? "Separar las piezas" : "Separate the parts"}
-						</option>
-					</select>
-				</label>
+				<ParameterControl
+					value={implant}
+					initial={defaults.implant}
+					onReset={setImplant}
+					label="lens type"
+					lang={lang}
+				>
+					<label>
+						{es ? "Tipo de lente" : "Lens type"}
+						<select
+							value={implant ? "iol" : "natural"}
+							onChange={(e) => {
+								const useImplant = e.target.value === "iol";
+								setImplant(useImplant);
+								if (useImplant) changeMode("section");
+							}}
+						>
+							<option value="natural">
+								{es ? "Cristalino natural" : "Natural lens"}
+							</option>
+							<option value="iol">
+								{es ? "LIO y cápsula" : "IOL + capsule"}
+							</option>
+						</select>
+					</label>
+				</ParameterControl>
+				<ParameterControl
+					value={mode}
+					initial={defaults.mode}
+					onReset={setMode}
+					label="assembly view"
+					lang={lang}
+				>
+					<label>
+						{es ? "Disposición" : "Assembly view"}
+						<select
+							value={mode}
+							onChange={(e) => changeMode(e.target.value as typeof mode)}
+						>
+							<option value="assembled">{es ? "Juntas" : "Assembled"}</option>
+							<option value="section">
+								{es ? "Abrir el ojo" : "Open the eye"}
+							</option>
+							<option value="exploded">
+								{es ? "Separar las piezas" : "Separate the parts"}
+							</option>
+						</select>
+					</label>
+				</ParameterControl>
 				<LensViews
 					lang={lang}
 					section={mode === "section"}
 					onView={(v) => viewRef.current?.setView(v)}
 				/>
-				<label>
-					<span className="lens-value">
-						<span>{es ? "Diámetro pupilar" : "Pupil diameter"}</span>
-						<output>{pupil.toFixed(1)} mm</output>
-					</span>
-					<input
-						type="range"
-						min="2"
-						max="8"
-						step="0.1"
-						value={pupil}
-						onChange={(e) => setPupil(Number(e.target.value))}
-					/>
-				</label>
-				<label>
-					<span className="lens-value">
-						<span>{es ? "Acomodación del modelo" : "Model accommodation"}</span>
-						<output>
-							{implant
-								? es
-									? "Fija"
-									: "Fixed"
-								: `${accommodation.toFixed(1)} D`}
-						</output>
-					</span>
-					<input
-						type="range"
-						min="0"
-						disabled={implant}
-						max="8"
-						step="0.1"
-						value={accommodation}
-						onChange={(e) => setAccommodation(Number(e.target.value))}
-					/>
-				</label>
+				<ParameterControl
+					value={pupil}
+					initial={defaults.pupil}
+					onReset={setPupil}
+					label="pupil diameter"
+					lang={lang}
+					context={parameterContext.pupil}
+				>
+					<label>
+						<span className="lens-value">
+							<span>{es ? "Diámetro pupilar" : "Pupil diameter"}</span>
+							<output>{pupil.toFixed(1)} mm</output>
+						</span>
+						<input
+							type="range"
+							min="2"
+							max="8"
+							step="0.1"
+							value={pupil}
+							onChange={(e) => setPupil(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
+				<ParameterControl
+					value={accommodation}
+					initial={defaults.accommodation}
+					onReset={setAccommodation}
+					label="accommodation"
+					lang={lang}
+					context={parameterContext.accommodation}
+				>
+					<label>
+						<span className="lens-value">
+							<span>
+								{es ? "Acomodación del modelo" : "Model accommodation"}
+							</span>
+							<output>
+								{implant
+									? es
+										? "Fija"
+										: "Fixed"
+									: `${accommodation.toFixed(1)} D`}
+							</output>
+						</span>
+						<input
+							type="range"
+							min="0"
+							disabled={implant}
+							max="8"
+							step="0.1"
+							value={accommodation}
+							onChange={(e) => setAccommodation(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				{implant && (
 					<p className="lens-note">
 						{es

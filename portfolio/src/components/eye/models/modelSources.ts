@@ -1,5 +1,5 @@
 import { lensSources } from "../lens/lensSources";
-import debug from "../useViewerDebug.ts?raw";
+import { simulationSources } from "../simulationSources";
 import models from "./eyeModels.ts?raw";
 import comparison from "./ModelComparison.tsx?raw";
 import scene from "./ModelScene.tsx?raw";
@@ -28,6 +28,7 @@ const shared = lensSources.assembly.filter((f) =>
 	].includes(f.path),
 );
 const maths = [
+	...simulationSources,
 	file("eyeModels.ts", models),
 	file("populationModel.ts", statistics),
 ];
@@ -42,7 +43,6 @@ export const modelSources = {
 	comparison: [file("ModelComparison.tsx", comparison), ...common],
 	normal: [
 		file("NormalVariation.tsx", normal),
-		{ path: "eye/useViewerDebug.ts", code: debug, lang: "ts" as const },
 		...maths,
 		file("models.css", css),
 		...shared.filter(

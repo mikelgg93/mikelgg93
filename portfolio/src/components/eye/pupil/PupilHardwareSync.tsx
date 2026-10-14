@@ -1,4 +1,7 @@
 import { eyeText } from "../earlyText";
+import { ParameterInfo } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
+import { observeVisibility } from "../visibility";
 import "./pupil.css";
 import { ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +21,7 @@ export default function PupilHardwareSync({
 	const t = eyeText(lang);
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
-	const [deviceIp, setDeviceIp] = useState("192.168.18.39");
+	const [deviceIp, setDeviceIp] = useState("neon.local");
 	const [status, setStatus] = useState<
 		"disconnected" | "connecting" | "streaming" | "error"
 	>("disconnected");
@@ -36,6 +39,17 @@ export default function PupilHardwareSync({
 
 	useEffect(() => {
 		if (!mountRef.current) return;
+		const reset = mountRef.current
+			.closest(".interactive-viewer")
+			?.querySelector<HTMLButtonElement>(".viewer-reset");
+		if (reset) {
+			const label =
+				lang === "es"
+					? "Restablecer cámara; mantener conexión"
+					: "Reset camera; keep streaming";
+			reset.setAttribute("aria-label", label);
+			reset.title = label;
+		}
 		sceneRef.current = createIrisScene(mountRef.current, {
 			pupilRadius: 3.0 * (0.5 / 12.0),
 			pigmentation: 1,
@@ -75,10 +89,28 @@ export default function PupilHardwareSync({
 		let disposed = false;
 		let lastSampleAt = performance.now();
 		let receivedFirstSample = false;
+		let monitorStarted = false;
 		let animationFrame: number | null = null;
 		let latest: PupilSample | null = null;
+		let renderingVisible = false;
+		let schedulePresentation = () => {};
+		const stopVisibility = mountRef.current
+			? observeVisibility(
+					mountRef.current.closest(".pupil-demo") ?? mountRef.current,
+					(active) => {
+						renderingVisible = active;
+						if (active) schedulePresentation();
+						else if (animationFrame !== null) {
+							cancelAnimationFrame(animationFrame);
+							animationFrame = null;
+						}
+					},
+				)
+			: () => {};
 		let restoreStorage: (() => void) | null = null;
 		const watchdog = window.setInterval(() => {
+			// The browser permission prompt can remain open until the user responds.
+			if (!monitorStarted) return;
 			if (
 				performance.now() - lastSampleAt >
 				(receivedFirstSample ? 5000 : 15000)
@@ -94,6 +126,7 @@ export default function PupilHardwareSync({
 			if (disposed) return;
 			disposed = true;
 			abort.abort();
+			stopVisibility();
 			window.clearInterval(watchdog);
 			if (animationFrame !== null) cancelAnimationFrame(animationFrame);
 			for (const socket of sockets) socket.close();
@@ -149,24 +182,12 @@ export default function PupilHardwareSync({
 				),
 			);
 
-			const onSample = (sample: PupilSample) => {
-				if (disposed) return;
-				const left = validPupil(sample.left) ? sample.left : null;
-				const right = validPupil(sample.right) ? sample.right : null;
-				if (left === null && right === null) return;
-				lastSampleAt = performance.now();
-				if (!receivedFirstSample) {
-					receivedFirstSample = true;
-					setStatus("streaming");
-				}
-				latest = { left, right }; // preserve missing eyes as gaps, not invented measurements
-				historyRef.current.push(latest);
-				if (historyRef.current.length > 1000) historyRef.current.shift();
+			schedulePresentation = () => {
 				// Measurements may arrive at 200 Hz; presentation follows browser frames.
-				if (animationFrame === null)
+				if (!disposed && renderingVisible && latest && animationFrame === null)
 					animationFrame = requestAnimationFrame(() => {
 						animationFrame = null;
-						if (disposed || !latest) return;
+						if (disposed || !renderingVisible || !latest) return;
 						const values = [latest.left, latest.right].filter(validPupil);
 						const mean =
 							values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -185,6 +206,21 @@ export default function PupilHardwareSync({
 								graph.height,
 							);
 					});
+			};
+			const onSample = (sample: PupilSample) => {
+				if (disposed) return;
+				const left = validPupil(sample.left) ? sample.left : null;
+				const right = validPupil(sample.right) ? sample.right : null;
+				if (left === null && right === null) return;
+				lastSampleAt = performance.now();
+				if (!receivedFirstSample) {
+					receivedFirstSample = true;
+					setStatus("streaming");
+				}
+				latest = { left, right }; // preserve missing eyes as gaps, not invented measurements
+				historyRef.current.push(latest);
+				if (historyRef.current.length > 1000) historyRef.current.shift();
+				schedulePresentation();
 			};
 			frameWindow._neonObserve = (socket, url) => {
 				sockets.add(socket);
@@ -216,12 +252,29 @@ export default function PupilHardwareSync({
 				);
 			};
 
-			// 3. Fetch the device's webapp dynamically
-			const fetchOpts = {
+			// A user-initiated local fetch triggers Chromium's LNA prompt where
+			// supported. Other browsers ignore this hint; it grants no permission.
+			// https://developer.chrome.com/blog/local-network-access
+			const fetchOpts: RequestInit & { targetAddressSpace?: "local" } = {
 				signal: abort.signal,
-				cache: "no-store" as RequestCache,
+				cache: "no-store",
+				...(safeIp !== "localhost" && !safeIp.startsWith("127.")
+					? { targetAddressSpace: "local" as const }
+					: {}),
 			};
-			const htmlRes = await fetch(`http://${safeIp}:8080/`, fetchOpts);
+			const fetchMonitor = async (url: string) => {
+				try {
+					return await fetch(url, fetchOpts);
+				} catch (error) {
+					if (abort.signal.aborted) throw error;
+					throw new Error(
+						lang === "es"
+							? "No se pudo acceder a Neon. Comprueba la dirección, la Wi-Fi y los permisos del navegador."
+							: "Could not reach Neon. Check the address, Wi-Fi and browser permissions.",
+					);
+				}
+			};
+			const htmlRes = await fetchMonitor(`http://${safeIp}:8080/`);
 			if (!htmlRes.ok)
 				throw new Error(`Companion returned HTTP ${htmlRes.status}`);
 			const html = await htmlRes.text();
@@ -231,9 +284,8 @@ export default function PupilHardwareSync({
 				throw new Error("Could not find index.js in the Neon device response");
 
 			// 4. Fetch the JS bundle and sandbox its mount point & location
-			const jsRes = await fetch(
+			const jsRes = await fetchMonitor(
 				`http://${safeIp}:8080${scriptMatch[1]}`,
-				fetchOpts,
 			);
 			if (!jsRes.ok)
 				throw new Error(`Monitor bundle returned HTTP ${jsRes.status}`);
@@ -288,6 +340,8 @@ export default function PupilHardwareSync({
 			script.textContent = scriptText;
 			script.onerror = () =>
 				fail("Could not load the Companion Monitor bundle.");
+			lastSampleAt = performance.now();
+			monitorStarted = true;
 			frameDocument.body.appendChild(script);
 		} catch (error: unknown) {
 			fail(
@@ -299,7 +353,7 @@ export default function PupilHardwareSync({
 	return (
 		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
 			{/* Collapsible Settings Overlay */}
-			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 shadow-xl pointer-events-auto transition-all">
+			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 max-h-[calc(100%-2rem)] overflow-y-auto shadow-xl pointer-events-auto transition-all">
 				<div
 					className="flex items-center justify-between cursor-pointer select-none"
 					onClick={() => setIsSettingsOpen(!isSettingsOpen)}
@@ -308,6 +362,10 @@ export default function PupilHardwareSync({
 						<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
 						<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 							{t("Live Neon pupil data")}
+							<ParameterInfo
+								label="Neon pupil diameter"
+								context={parameterContext.neon}
+							/>
 						</span>
 					</div>
 					<div className="flex items-center gap-2">
@@ -348,11 +406,74 @@ export default function PupilHardwareSync({
 									? t("Cancel connection")
 									: t("Connect")}
 						</button>
+						<p className="text-[11px] leading-relaxed text-muted-foreground">
+							{lang === "es"
+								? "Los datos pupilares llegan directamente de Neon a través de tu Wi-Fi. Pulsa Conectar y permite el acceso a la red local si el navegador lo solicita."
+								: "Live pupil data comes directly from Neon on your Wi-Fi. Click Connect and allow local-network access if your browser asks."}
+						</p>
 						{errorMsg && (
-							<div className="text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20">
+							<div
+								role="alert"
+								className="text-xs text-red-500 font-semibold bg-red-500/10 p-2 rounded border border-red-500/20"
+							>
 								{t(errorMsg)}
 							</div>
 						)}
+						<details
+							open={status === "error"}
+							className="text-[11px] leading-relaxed text-muted-foreground"
+						>
+							<summary className="cursor-pointer py-1 text-foreground">
+								{lang === "es" ? "Ayuda de conexión" : "Connection help"}
+							</summary>
+							<p className="mt-2">
+								{lang === "es"
+									? "El navegador pide permiso para impedir que cualquier web acceda a los dispositivos de tu red sin tu consentimiento. Además, este blog usa HTTPS, pero el servicio local de Companion usa HTTP sin cifrar. Esa combinación puede bloquearse como contenido mixto; la excepción de contenido no seguro permite esa conexión, pero no la cifra."
+									: "Your browser asks permission to stop websites accessing devices on your network without your consent. This blog also uses HTTPS, while Companion’s local service uses unencrypted HTTP. That combination can be blocked as mixed content; the insecure-content exception permits that connection but does not encrypt it."}
+							</p>
+							<p className="mt-2">
+								{lang === "es"
+									? "Chrome y otros navegadores Chromium compatibles pueden solicitar permiso para acceder a la red local. Si lo denegaste, abre los controles del sitio junto a la dirección y permite el acceso a la red local; después vuelve a conectar."
+									: "Chrome and supported Chromium browsers can ask for local-network permission. If you denied it, open the site controls beside the address and allow local-network access, then reconnect."}
+							</p>
+							<p className="mt-2">
+								{lang === "es"
+									? "Si sigue bloqueado en Chrome o Edge de escritorio:"
+									: "If it is still blocked in desktop Chrome or Edge:"}
+							</p>
+							<ol className="list-decimal pl-4 space-y-1 mt-1">
+								<li>
+									{lang === "es"
+										? "Abre los controles junto a la dirección → Configuración del sitio (o Permisos de este sitio)."
+										: "Open the controls beside the address → Site settings (or Permissions for this site)."}
+								</li>
+								<li>
+									{lang === "es"
+										? "Cambia Contenido no seguro a Permitir, solo para este sitio de confianza."
+										: "Set Insecure content to Allow, only for this trusted site."}
+								</li>
+								<li>
+									{lang === "es"
+										? "Recarga la página y pulsa Conectar. Puedes revocar el permiso cuando termines."
+										: "Reload the page and click Connect. You can revoke the exception afterwards."}
+								</li>
+							</ol>
+							<p className="mt-2">
+								{lang === "es"
+									? "Los nombres y las opciones varían según el navegador. Safari/iPhone puede no ofrecer esta excepción; prueba una vista previa HTTP local. CORS, la red o la conexión WebSocket aún pueden impedir el acceso. Esta página no puede cambiar los permisos por ti."
+									: "Names and availability vary by browser. Safari/iPhone may not offer this exception; try a local HTTP preview. CORS, networking or the WebSocket connection may still block access. This page cannot change permissions for you."}
+							</p>
+							<a
+								className="underline"
+								href="https://developer.chrome.com/blog/local-network-access"
+								target="_blank"
+								rel="noreferrer"
+							>
+								{lang === "es"
+									? "Permisos de red local de Chrome"
+									: "Chrome local-network permissions"}
+							</a>
+						</details>
 					</div>
 				)}
 			</div>

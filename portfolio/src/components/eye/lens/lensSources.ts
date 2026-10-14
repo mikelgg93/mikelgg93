@@ -3,6 +3,7 @@
 import conic from "../cornea/conic.ts?raw";
 import dispose from "../disposeThree.ts?raw";
 import dimensions from "../eyeDimensions.ts?raw";
+import { simulationSources } from "../simulationSources";
 import resize from "../threeResize.ts?raw";
 import anterior from "./anteriorEyeGeometry.ts?raw";
 import apparatus from "./ciliaryApparatus.ts?raw";
@@ -34,6 +35,7 @@ const styles = local("lens.css", css);
 const opticalModel = local("lensOptics.ts", optics);
 const accommodation = local("lensModel.ts", model);
 const shared3D = [
+	...simulationSources,
 	file("eye/eyeDimensions.ts", dimensions),
 	local("LensViews.tsx", views),
 	local("lensScene.ts", scene),
@@ -55,7 +57,12 @@ export const lensSources = {
 		...shared3D,
 	],
 	domes: [local("LensDomes.tsx", domes), opticalModel, ...shared3D],
-	grin: [local("LensGrin.tsx", grin), opticalModel, styles],
+	grin: [
+		local("LensGrin.tsx", grin),
+		opticalModel,
+		styles,
+		...simulationSources,
+	],
 	anatomy: [
 		local("LensAnatomy.tsx", anatomy),
 		local("ciliaryGeometry.ts", geometry),
@@ -66,6 +73,7 @@ export const lensSources = {
 	],
 	focus: [
 		local("LensFocus.tsx", focus),
+		...simulationSources,
 		accommodation,
 		file("eye/eyeDimensions.ts", dimensions),
 		styles,

@@ -1,3 +1,4 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import "../lens/lens.css";
 import "./retina.css";
 import { useEffect, useRef, useState } from "react";
@@ -118,8 +119,20 @@ export default function RetinaAssembly({
 			view.dispose();
 		};
 	}, [lang]);
+	const resetAnchor = useRef<HTMLDivElement>(null);
+	const defaults = useInitialParameters(
+		{ section, anterior, choroid, sclera, nerve },
+		(initial) => {
+			setSection(initial.section);
+			setAnterior(initial.anterior);
+			setChoroid(initial.choroid);
+			setSclera(initial.sclera);
+			setNerve(initial.nerve);
+		},
+		resetAnchor,
+	);
 	return (
-		<div className="lens-demo retina-demo">
+		<div ref={resetAnchor} className="lens-demo retina-demo">
 			<div className="lens-heading">
 				<strong>
 					{es
@@ -196,24 +209,32 @@ export default function RetinaAssembly({
 			</div>
 			<div className="lens-controls">
 				<div className="lens-buttons">
-					<button
-						type="button"
-						onClick={() => {
-							setSection(false);
-							setAnterior(false);
-							setChoroid(false);
-							setSclera(false);
-							const view = viewRef.current;
-							if (!view) return;
-							view.setView("front");
-							view.camera.position.set(6, 2, 38);
-							view.controls.target.set(0, 0, -12);
-							view.controls.update();
-							view.invalidate();
-						}}
+					<ParameterControl
+						value={section}
+						initial={defaults.section}
+						onReset={setSection}
+						label="section view"
+						lang={lang}
 					>
-						{es ? "Ver retina" : "Retinal view"}
-					</button>
+						<button
+							type="button"
+							onClick={() => {
+								setSection(false);
+								setAnterior(false);
+								setChoroid(false);
+								setSclera(false);
+								const view = viewRef.current;
+								if (!view) return;
+								view.setView("front");
+								view.camera.position.set(6, 2, 38);
+								view.controls.target.set(0, 0, -12);
+								view.controls.update();
+								view.invalidate();
+							}}
+						>
+							{es ? "Ver retina" : "Retinal view"}
+						</button>
+					</ParameterControl>
 					<button
 						type="button"
 						aria-pressed={section}
@@ -225,38 +246,70 @@ export default function RetinaAssembly({
 				<details className="lens-display-options">
 					<summary>{es ? "Capas y restablecer" : "Layers and reset"}</summary>
 					<div className="lens-options">
-						<label>
-							<input
-								type="checkbox"
-								checked={choroid}
-								onChange={(e) => setChoroid(e.target.checked)}
-							/>
-							{es ? "Coroides" : "Choroid"}
-						</label>
-						<label>
-							<input
-								type="checkbox"
-								checked={sclera}
-								onChange={(e) => setSclera(e.target.checked)}
-							/>
-							{es ? "Esclerótica" : "Sclera"}
-						</label>
-						<label>
-							<input
-								type="checkbox"
-								checked={nerve}
-								onChange={(e) => setNerve(e.target.checked)}
-							/>
-							{es ? "Nervio óptico" : "Optic nerve"}
-						</label>
-						<label>
-							<input
-								type="checkbox"
-								checked={anterior}
-								onChange={(e) => setAnterior(e.target.checked)}
-							/>
-							{es ? "Córnea, iris y cristalino" : "Cornea, iris and lens"}
-						</label>
+						<ParameterControl
+							value={choroid}
+							initial={defaults.choroid}
+							onReset={setChoroid}
+							label="choroid visibility"
+							lang={lang}
+						>
+							<label>
+								<input
+									type="checkbox"
+									checked={choroid}
+									onChange={(e) => setChoroid(e.target.checked)}
+								/>
+								{es ? "Coroides" : "Choroid"}
+							</label>
+						</ParameterControl>
+						<ParameterControl
+							value={sclera}
+							initial={defaults.sclera}
+							onReset={setSclera}
+							label="sclera visibility"
+							lang={lang}
+						>
+							<label>
+								<input
+									type="checkbox"
+									checked={sclera}
+									onChange={(e) => setSclera(e.target.checked)}
+								/>
+								{es ? "Esclerótica" : "Sclera"}
+							</label>
+						</ParameterControl>
+						<ParameterControl
+							value={nerve}
+							initial={defaults.nerve}
+							onReset={setNerve}
+							label="optic nerve visibility"
+							lang={lang}
+						>
+							<label>
+								<input
+									type="checkbox"
+									checked={nerve}
+									onChange={(e) => setNerve(e.target.checked)}
+								/>
+								{es ? "Nervio óptico" : "Optic nerve"}
+							</label>
+						</ParameterControl>
+						<ParameterControl
+							value={anterior}
+							initial={defaults.anterior}
+							onReset={setAnterior}
+							label="anterior segment visibility"
+							lang={lang}
+						>
+							<label>
+								<input
+									type="checkbox"
+									checked={anterior}
+									onChange={(e) => setAnterior(e.target.checked)}
+								/>
+								{es ? "Córnea, iris y cristalino" : "Cornea, iris and lens"}
+							</label>
+						</ParameterControl>
 						<button
 							type="button"
 							onClick={() => {

@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./retina.css";
 import { useEffect, useRef, useState } from "react";
@@ -71,8 +73,17 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 			view.dispose();
 		};
 	}, [lang]);
+	const resetAnchor = useRef<HTMLDivElement>(null);
+	const defaults = useInitialParameters(
+		{ curvature, wire },
+		(initial) => {
+			setCurvature(initial.curvature);
+			setWire(initial.wire);
+		},
+		resetAnchor,
+	);
 	return (
-		<div className="lens-demo retina-demo">
+		<div ref={resetAnchor} className="lens-demo retina-demo">
 			<div className="lens-heading">
 				<strong>
 					{es ? "De una malla plana a una copa" : "From a flat mesh to a cup"}
@@ -103,29 +114,46 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 				</p>
 			</div>
 			<div className="lens-controls">
-				<label>
-					<span className="lens-value">
-						{es ? "Curvar la malla" : "Bend the mesh"}
-						<output>{Math.round(curvature * 100)}%</output>
-					</span>
-					<input
-						aria-label={es ? "Curvar la malla" : "Bend the mesh"}
-						type="range"
-						min="0"
-						max="1"
-						step="0.01"
-						value={curvature}
-						onChange={(e) => setCurvature(Number(e.target.value))}
-					/>
-				</label>
+				<ParameterControl
+					value={curvature}
+					initial={defaults.curvature}
+					onReset={setCurvature}
+					label="surface curvature"
+					lang={lang}
+					context={parameterContext.retinaCup}
+				>
+					<label>
+						<span className="lens-value">
+							{es ? "Curvar la malla" : "Bend the mesh"}
+							<output>{Math.round(curvature * 100)}%</output>
+						</span>
+						<input
+							aria-label={es ? "Curvar la malla" : "Bend the mesh"}
+							type="range"
+							min="0"
+							max="1"
+							step="0.01"
+							value={curvature}
+							onChange={(e) => setCurvature(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				<div className="lens-buttons">
-					<button
-						type="button"
-						aria-pressed={wire}
-						onClick={() => setWire(!wire)}
+					<ParameterControl
+						value={wire}
+						initial={defaults.wire}
+						onReset={setWire}
+						label="wireframe"
+						lang={lang}
 					>
-						{es ? "Triángulos" : "Triangles"}
-					</button>
+						<button
+							type="button"
+							aria-pressed={wire}
+							onClick={() => setWire(!wire)}
+						>
+							{es ? "Triángulos" : "Triangles"}
+						</button>
+					</ParameterControl>
 					<button
 						type="button"
 						onClick={() => {

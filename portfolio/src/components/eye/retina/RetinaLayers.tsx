@@ -1,3 +1,4 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import "../lens/lens.css";
 import "./retina.css";
 import { useState } from "react";
@@ -31,6 +32,14 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 			)
 			.join(" ") +
 		" Z";
+	const defaults = useInitialParameters(
+		{ pit, separate },
+		(initial) => {
+			setPit(initial.pit);
+			setSeparate(initial.separate);
+		},
+		root,
+	);
 	return (
 		<div ref={root} className="lens-demo retina-demo">
 			<div className="lens-heading">
@@ -112,16 +121,36 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 			</ol>
 			<div className="lens-controls">
 				<div className="lens-buttons">
-					<button type="button" aria-pressed={pit} onClick={() => setPit(!pit)}>
-						{es ? "Mostrar fóvea" : "Show fovea"}
-					</button>
-					<button
-						type="button"
-						aria-pressed={separate}
-						onClick={() => setSeparate(!separate)}
+					<ParameterControl
+						value={pit}
+						initial={defaults.pit}
+						onReset={setPit}
+						label="foveal pit view"
+						lang={lang}
 					>
-						{es ? "Separar bandas" : "Separate bands"}
-					</button>
+						<button
+							type="button"
+							aria-pressed={pit}
+							onClick={() => setPit(!pit)}
+						>
+							{es ? "Mostrar fóvea" : "Show fovea"}
+						</button>
+					</ParameterControl>
+					<ParameterControl
+						value={separate}
+						initial={defaults.separate}
+						onReset={setSeparate}
+						label="layer separation"
+						lang={lang}
+					>
+						<button
+							type="button"
+							aria-pressed={separate}
+							onClick={() => setSeparate(!separate)}
+						>
+							{es ? "Separar bandas" : "Separate bands"}
+						</button>
+					</ParameterControl>
 				</div>
 				<p className="lens-note">
 					{es

@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./lens.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GRIN_EDGE_INDEX, traceGrinRay } from "./lensOptics";
@@ -38,6 +40,13 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 				2,
 			);
 	}, [gradient, rays]);
+	const defaults = useInitialParameters(
+		{ gradient },
+		(initial) => {
+			setGradient(initial.gradient);
+		},
+		root,
+	);
 	return (
 		<div className="lens-demo" ref={root}>
 			<div className="lens-heading">
@@ -142,22 +151,33 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 							? "Sigue el rayo superior resaltado y compara su extremo dorado con el discontinuo de la derecha. El gradiente añade curvatura dentro de la lente."
 							: "Follow the highlighted upper ray and compare its golden tip with the dashed path on the right. The gradient adds bending inside the lens."}
 				</p>
-				<label>
-					<span className="lens-value">
-						<span>
-							{es ? "Incremento del índice central" : "Central index increase"}
+				<ParameterControl
+					value={gradient}
+					initial={defaults.gradient}
+					onReset={setGradient}
+					label="index gradient"
+					lang={lang}
+					context={parameterContext.grin}
+				>
+					<label>
+						<span className="lens-value">
+							<span>
+								{es
+									? "Incremento del índice central"
+									: "Central index increase"}
+							</span>
+							<output>{gradient.toFixed(3)}</output>
 						</span>
-						<output>{gradient.toFixed(3)}</output>
-					</span>
-					<input
-						type="range"
-						min="0"
-						max="0.06"
-						step="0.001"
-						value={gradient}
-						onChange={(e) => setGradient(Number(e.target.value))}
-					/>
-				</label>
+						<input
+							type="range"
+							min="0"
+							max="0.06"
+							step="0.001"
+							value={gradient}
+							onChange={(e) => setGradient(Number(e.target.value))}
+						/>
+					</label>
+				</ParameterControl>
 				<div className="lens-value">
 					<span>
 						{es ? "Borde" : "Edge"}: {GRIN_EDGE_INDEX.toFixed(3)}

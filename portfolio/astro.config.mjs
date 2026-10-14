@@ -8,6 +8,7 @@ import rehypeKatex from "rehype-katex";
 import remarkDirective from "remark-directive";
 import remarkGithubBlockquoteAlert from "remark-github-blockquote-alert";
 import remarkMath from "remark-math";
+import articleHeadings from "./src/lib/article-headings.mjs";
 
 // https://astro.build/config
 export default defineConfig({
@@ -38,7 +39,7 @@ export default defineConfig({
 		react(),
 		mdx({
 			remarkPlugins: [remarkMath, remarkDirective, remarkGithubBlockquoteAlert],
-			rehypePlugins: [rehypeKatex],
+			rehypePlugins: [rehypeKatex, articleHeadings],
 		}),
 	],
 	prefetch: {
@@ -47,6 +48,6 @@ export default defineConfig({
 	},
 	markdown: {
 		remarkPlugins: [remarkMath, remarkDirective, remarkGithubBlockquoteAlert],
-		rehypePlugins: [rehypeKatex],
+		rehypePlugins: [rehypeKatex, articleHeadings],
 	},
 });

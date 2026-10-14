@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./cornea.css";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -211,6 +213,13 @@ export default function CorneaAspheric({
 		updateRef.current?.(preset.q, preset.hex);
 	}, [preset]);
 
+	const defaults = useInitialParameters(
+		{ preset },
+		(initial) => {
+			setPreset(initial.preset);
+		},
+		mountRef,
+	);
 	return (
 		<div className="cornea-demo relative w-full h-[450px] md:h-[550px] bg-transparent overflow-hidden rounded-lg group">
 			<div className="cornea-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[240px]">
@@ -235,22 +244,32 @@ export default function CorneaAspheric({
 				</div>
 			</div>
 
-			<div className="cornea-actions absolute bottom-4 md:left-1/2 md:-translate-x-1/2 z-20 flex gap-2 bg-card/80 backdrop-blur-md border border-border p-2 rounded-2xl shadow-xl">
-				{PRESETS.map((p) => (
-					<button
-						key={p.id}
-						onClick={() => setPreset(p)}
-						className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${preset.id === p.id ? "text-white" : "text-muted-foreground hover:text-foreground"}`}
-						style={
-							preset.id === p.id
-								? { backgroundColor: `#${p.hex.toString(16)}` }
-								: undefined
-						}
-					>
-						{t(p.label)}
-					</button>
-				))}
-			</div>
+			<ParameterControl
+				value={preset}
+				initial={defaults.preset}
+				onReset={setPreset}
+				label="corneal shape preset"
+				lang={lang}
+				context={parameterContext.asphericity}
+				className="cornea-actions absolute bottom-4 md:left-1/2 md:-translate-x-1/2 z-20 flex gap-2 bg-card/80 backdrop-blur-md border border-border p-2 rounded-2xl shadow-xl"
+			>
+				<div className="flex flex-wrap gap-2 justify-center">
+					{PRESETS.map((p) => (
+						<button
+							key={p.id}
+							onClick={() => setPreset(p)}
+							className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${preset.id === p.id ? "text-white" : "text-muted-foreground hover:text-foreground"}`}
+							style={
+								preset.id === p.id
+									? { backgroundColor: `#${p.hex.toString(16)}` }
+									: undefined
+							}
+						>
+							{t(p.label)}
+						</button>
+					))}
+				</div>
+			</ParameterControl>
 
 			<div
 				ref={mountRef}

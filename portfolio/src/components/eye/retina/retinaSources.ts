@@ -1,5 +1,5 @@
 import { lensSources } from "../lens/lensSources";
-import debug from "../useViewerDebug.ts?raw";
+import { simulationSources } from "../simulationSources";
 import posterior from "./posteriorEye.ts?raw";
 import assembly from "./RetinaAssembly.tsx?raw";
 import cup from "./RetinaCup.tsx?raw";
@@ -19,7 +19,11 @@ function file(path: string, code: string) {
 			: "ts";
 	return { path: `eye/retina/${path}`, code, lang };
 }
-const shared = [file("retinaModel.ts", model), file("retina.css", css)];
+const shared = [
+	file("retinaModel.ts", model),
+	file("retina.css", css),
+	...simulationSources,
+];
 const common3D = lensSources.assembly.filter((f) =>
 	[
 		"eye/eyeDimensions.ts",
@@ -30,11 +34,6 @@ const common3D = lensSources.assembly.filter((f) =>
 	].includes(f.path),
 );
 const styles = common3D.filter((f) => f.lang === "css");
-const debugSource = {
-	path: "eye/useViewerDebug.ts",
-	code: debug,
-	lang: "ts" as const,
-};
 export const retinaSources = {
 	cup: [
 		file("RetinaCup.tsx", cup),
@@ -42,14 +41,9 @@ export const retinaSources = {
 		...shared,
 		...common3D,
 	],
-	layers: [file("RetinaLayers.tsx", layers), debugSource, ...shared, ...styles],
+	layers: [file("RetinaLayers.tsx", layers), ...shared, ...styles],
 	mosaic: [file("RetinaMosaic.tsx", mosaic), ...shared, ...common3D],
-	sampling: [
-		file("RetinaSampling.tsx", sampling),
-		debugSource,
-		...shared,
-		...styles,
-	],
+	sampling: [file("RetinaSampling.tsx", sampling), ...shared, ...styles],
 	assembly: [
 		file("RetinaAssembly.tsx", assembly),
 		file("posteriorEye.ts", posterior),
@@ -58,6 +52,7 @@ export const retinaSources = {
 		...lensSources.assembly.filter(
 			(f) =>
 				![
+					...simulationSources.map((file) => file.path),
 					"eye/lens/LensAssembly.tsx",
 					"eye/lens/intraocularLens.ts",
 					"eye/lens/LensViews.tsx",

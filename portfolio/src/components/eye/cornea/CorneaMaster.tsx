@@ -1,3 +1,5 @@
+import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { parameterContext } from "../parameterContext";
 import "./cornea.css";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -466,6 +468,16 @@ function CorneaMasterInner({ lang = "en" }: { lang?: "en" | "es" }) {
 		</svg>
 	);
 
+	const defaults = useInitialParameters(
+		{ k1, k2, asphericity, thickness },
+		(initial) => {
+			setK1(initial.k1);
+			setK2(initial.k2);
+			setAsphericity(initial.asphericity);
+			setThickness(initial.thickness);
+		},
+		mountRef,
+	);
 	return (
 		<div className="cornea-demo relative w-full h-[500px] md:h-[600px] bg-transparent overflow-hidden rounded-lg group">
 			<div
@@ -544,78 +556,113 @@ function CorneaMasterInner({ lang = "en" }: { lang?: "en" | "es" }) {
 							? ` Radio de apertura limitado a ${conicAperture(5, k1, k2, asphericity).toFixed(2)} mm para esta cónica.`
 							: ` Surface radius limited to ${conicAperture(5, k1, k2, asphericity).toFixed(2)} mm for this conic.`)}
 				</p>
-				<div>
-					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>{t("Radius X")}</span>
-						<span className="text-muted-foreground">
-							{k1.toFixed(1)} mm / {(337.5 / k1).toFixed(1)} D
-						</span>
-					</label>
-					<input
-						aria-label={t("Radius X")}
-						type="range"
-						min="6.0"
-						max="9.0"
-						step="0.1"
-						value={k1}
-						onChange={(e) => setK1(parseFloat(e.target.value))}
-						className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-					/>
-				</div>
-				<div>
-					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>{t("Radius Y")}</span>
-						<span className="text-muted-foreground">
-							{k2.toFixed(1)} mm / {(337.5 / k2).toFixed(1)} D
-						</span>
-					</label>
-					<input
-						aria-label={t("Radius Y")}
-						type="range"
-						min="6.0"
-						max="9.0"
-						step="0.1"
-						value={k2}
-						onChange={(e) => setK2(parseFloat(e.target.value))}
-						className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-					/>
-				</div>
-				<div>
-					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>{t("Asphericity (Q)")}</span>
-						<span className="text-muted-foreground">
-							{asphericity.toFixed(2)}
-						</span>
-					</label>
-					<input
-						aria-label={t("Asphericity (Q)")}
-						type="range"
-						min="-1.0"
-						max="1.0"
-						step="0.01"
-						value={asphericity}
-						onChange={(e) => setAsphericity(parseFloat(e.target.value))}
-						className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-					/>
-				</div>
-				<div>
-					<label className="flex justify-between mb-1 font-medium text-foreground/80">
-						<span>{t("Thickness")}</span>
-						<span className="text-muted-foreground">
-							{Math.round(thickness * 1000)} µm
-						</span>
-					</label>
-					<input
-						aria-label={t("Thickness")}
-						type="range"
-						min="0.4"
-						max="0.7"
-						step="0.01"
-						value={thickness}
-						onChange={(e) => setThickness(parseFloat(e.target.value))}
-						className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-					/>
-				</div>
+				<ParameterControl
+					value={k1}
+					initial={defaults.k1}
+					onReset={setK1}
+					label="corneal radius X"
+					lang={lang}
+					context={parameterContext.cornealRadius}
+				>
+					<div>
+						<label className="flex justify-between mb-1 font-medium text-foreground/80">
+							<span>{t("Radius X")}</span>
+							<span className="text-muted-foreground">
+								{k1.toFixed(1)} mm / {(337.5 / k1).toFixed(1)} D
+							</span>
+						</label>
+						<input
+							aria-label={t("Radius X")}
+							type="range"
+							min="6.0"
+							max="9.0"
+							step="0.1"
+							value={k1}
+							onChange={(e) => setK1(parseFloat(e.target.value))}
+							className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+						/>
+					</div>
+				</ParameterControl>
+				<ParameterControl
+					value={k2}
+					initial={defaults.k2}
+					onReset={setK2}
+					label="corneal radius Y"
+					lang={lang}
+				>
+					<div>
+						<label className="flex justify-between mb-1 font-medium text-foreground/80">
+							<span>{t("Radius Y")}</span>
+							<span className="text-muted-foreground">
+								{k2.toFixed(1)} mm / {(337.5 / k2).toFixed(1)} D
+							</span>
+						</label>
+						<input
+							aria-label={t("Radius Y")}
+							type="range"
+							min="6.0"
+							max="9.0"
+							step="0.1"
+							value={k2}
+							onChange={(e) => setK2(parseFloat(e.target.value))}
+							className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+						/>
+					</div>
+				</ParameterControl>
+				<ParameterControl
+					value={asphericity}
+					initial={defaults.asphericity}
+					onReset={setAsphericity}
+					label="corneal asphericity"
+					lang={lang}
+					context={parameterContext.asphericity}
+				>
+					<div>
+						<label className="flex justify-between mb-1 font-medium text-foreground/80">
+							<span>{t("Asphericity (Q)")}</span>
+							<span className="text-muted-foreground">
+								{asphericity.toFixed(2)}
+							</span>
+						</label>
+						<input
+							aria-label={t("Asphericity (Q)")}
+							type="range"
+							min="-1.0"
+							max="1.0"
+							step="0.01"
+							value={asphericity}
+							onChange={(e) => setAsphericity(parseFloat(e.target.value))}
+							className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+						/>
+					</div>
+				</ParameterControl>
+				<ParameterControl
+					value={thickness}
+					initial={defaults.thickness}
+					onReset={setThickness}
+					label="central corneal thickness"
+					lang={lang}
+					context={parameterContext.thickness}
+				>
+					<div>
+						<label className="flex justify-between mb-1 font-medium text-foreground/80">
+							<span>{t("Thickness")}</span>
+							<span className="text-muted-foreground">
+								{Math.round(thickness * 1000)} µm
+							</span>
+						</label>
+						<input
+							aria-label={t("Thickness")}
+							type="range"
+							min="0.4"
+							max="0.7"
+							step="0.01"
+							value={thickness}
+							onChange={(e) => setThickness(parseFloat(e.target.value))}
+							className="w-full h-1 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+						/>
+					</div>
+				</ParameterControl>
 			</div>
 		</div>
 	);

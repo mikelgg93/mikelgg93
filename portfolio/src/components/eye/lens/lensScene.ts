@@ -4,6 +4,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { disposeThree } from "../disposeThree";
 import { LENS_BACK_FACTOR, LENS_FRONT_FACTOR } from "../eyeDimensions";
 import { observeThreeResize } from "../threeResize";
+import { observeVisibility } from "../visibility";
 
 export type LensView = "front" | "side" | "back" | "section" | "reset";
 type FrameState = {
@@ -48,9 +49,10 @@ export function createLensScene(
 	);
 	camera.position.set(distance * 0.52, distance * 0.23, distance * 0.82);
 	const initialCamera = camera.position.clone();
+	const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 	function makeControls() {
 		const orbit = new OrbitControls(camera, renderer.domElement);
-		orbit.enableDamping = true;
+		orbit.enableDamping = !reducedMotion.matches;
 		orbit.enablePan = false;
 		orbit.minDistance = distance * 0.8;
 		orbit.maxDistance = distance * 1.6;
@@ -65,14 +67,13 @@ export function createLensScene(
 	orientation.className = "lens-orientation";
 	orientation.setAttribute("aria-hidden", "true");
 	container.appendChild(orientation);
-	const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 	const viewer = container.closest(".interactive-viewer");
 	const debug = viewer?.querySelector(".debug-output");
-	let visible = true,
+	let visible = false,
 		disposed = false,
 		rendering = false,
 		frame = 0;
-	let lastTime = performance.now();
+	let lastTime = 0;
 	let update: ((dt: number, reducedMotion: boolean) => FrameState) | undefined;
 	function publishDebug(state: object, snapshot = "rendered-frame") {
 		if (debug)
@@ -109,7 +110,9 @@ export function createLensScene(
 		frame = 0;
 		if (disposed || !visible || document.hidden || !update) return;
 		rendering = true;
-		const dt = Math.max(0, Math.min((now - lastTime) / 1000, 0.1));
+		const dt = lastTime
+			? Math.max(0, Math.min((now - lastTime) / 1000, 0.1))
+			: 0;
 		lastTime = now;
 		const result = update(dt, reducedMotion.matches);
 		const cameraChanged = controls.update();
@@ -180,18 +183,21 @@ export function createLensScene(
 	}
 	renderer.domElement.addEventListener("keydown", keyboardOrbit);
 	const resize = observeThreeResize(container, renderer, camera, invalidate);
-	const observer = new IntersectionObserver(([entry]) => {
-		visible = entry?.isIntersecting ?? false;
-		if (visible) invalidate();
+	const stopVisibility = observeVisibility(container, (active) => {
+		visible = active;
+		lastTime = 0;
+		if (active) invalidate();
 		else {
 			cancelAnimationFrame(frame);
 			frame = 0;
 		}
 	});
-	observer.observe(container);
 	controls.addEventListener("change", invalidate);
-	document.addEventListener("visibilitychange", invalidate);
-	reducedMotion.addEventListener("change", invalidate);
+	function motionChanged() {
+		controls.enableDamping = !reducedMotion.matches;
+		invalidate();
+	}
+	reducedMotion.addEventListener("change", motionChanged);
 	function restoreEnvironment() {
 		environment.dispose();
 		environment = createEnvironment();
@@ -202,7 +208,9 @@ export function createLensScene(
 		"webglcontextrestored",
 		restoreEnvironment,
 	);
-	return {
+	const reset = () => api.setView("reset");
+	viewer?.addEventListener("eye:reset", reset);
+	const api = {
 		scene,
 		camera,
 		get controls() {
@@ -247,11 +255,11 @@ export function createLensScene(
 			disposed = true;
 			viewer?.removeEventListener("eye:inspect", inspect);
 			cancelAnimationFrame(frame);
-			observer.disconnect();
+			stopVisibility();
+			viewer?.removeEventListener("eye:reset", reset);
 			resize.disconnect();
 			controls.removeEventListener("change", invalidate);
-			document.removeEventListener("visibilitychange", invalidate);
-			reducedMotion.removeEventListener("change", invalidate);
+			reducedMotion.removeEventListener("change", motionChanged);
 			renderer.domElement.removeEventListener(
 				"webglcontextrestored",
 				restoreEnvironment,
@@ -267,6 +275,7 @@ export function createLensScene(
 			orientation.remove();
 		},
 	};
+	return api;
 }
 
 export function createLensGeometry() {

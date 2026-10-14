@@ -25,7 +25,9 @@ export default function MobileArticleToc({
 
 	useEffect(() => {
 		setIsEs(document.documentElement.lang === "es");
-		setHasContents(Boolean(document.querySelector("article h2")));
+		setHasContents(
+			Boolean(document.querySelector("article h2[data-article-heading]")),
+		);
 	}, []);
 
 	useEffect(() => {
@@ -156,38 +158,15 @@ export default function MobileArticleToc({
 					{sections.map((section) => (
 						<a
 							key={section.id}
-							href={`#${section.id}`}
+							href={`#${encodeURIComponent(section.id)}`}
 							aria-current={section.id === active ? "location" : undefined}
 							className={`block rounded-xl px-3 py-3 leading-snug hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-tertiary ${section.id === active ? "font-semibold" : "text-popover-foreground/85"}`}
-							onClick={(event) => {
-								const heading = document.getElementById(section.id);
-								if (!heading) return;
-								event.preventDefault();
+							onClick={() => {
 								panel.current?.hidePopover();
-								const offset =
-									(document
-										.getElementById("main-header")
-										?.getBoundingClientRect().height ?? 0) + 16;
-								const top =
-									window.scrollY + heading.getBoundingClientRect().top - offset;
-								if (!heading.hasAttribute("tabindex")) {
-									heading.tabIndex = -1;
-									heading.addEventListener(
-										"blur",
-										() => heading.removeAttribute("tabindex"),
-										{ once: true },
-									);
-								}
-								heading.focus({ preventScroll: true });
-								window.scrollTo({
-									top,
-									behavior: window.matchMedia(
-										"(prefers-reduced-motion: reduce)",
-									).matches
-										? "instant"
-										: "smooth",
-								});
-								history.replaceState(null, "", `#${section.id}`);
+								// Keep native hash/history navigation, including Back and Forward.
+								document
+									.getElementById(section.id)
+									?.focus({ preventScroll: true });
 							}}
 						>
 							{section.label}

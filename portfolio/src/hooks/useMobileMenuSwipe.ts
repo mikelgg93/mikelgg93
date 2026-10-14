@@ -4,30 +4,32 @@ import { useEffect } from "react";
 
 // Leave scene rotation, sliders, code/table scrolling and browser edge gestures
 // to their existing owners. Only a deliberate left swipe over page prose opens
-// the menu; a right swipe closes the sidebar or returns an article to its blog
-// directory. Passive listeners never prevent ordinary vertical scrolling.
+// the menu; a right swipe closes the sidebar or goes from article to directory
+// to homepage. Passive listeners never prevent ordinary vertical scrolling.
 export function useMobileMenuSwipe(
 	open: boolean,
 	setOpen: (open: boolean) => void,
 	blogPath: string,
+	homePath: string,
 ) {
 	// Pages serves directory routes with a trailing slash; avoid a redirect on
 	// the gesture's navigation and use the same URL for its prefetch.
 	const directoryPath = `${blogPath.replace(/\/$/, "")}/`;
+	const homepagePath = `${homePath.replace(/\/$/, "")}/`;
 
 	useEffect(() => {
-		// The hidden menu's Blog link rarely receives hover on a phone. Warm the
-		// directory after initial rendering, respecting Astro's data-saver checks.
+		// Hidden menu links rarely receive hover on a phone. Warm the return
+		// destination after rendering, respecting Astro's data-saver checks.
 		const timer = window.setTimeout(() => {
-			if (
-				window.matchMedia("(max-width: 767px)").matches &&
-				document.querySelector("article #blog-toc")
-			) {
-				prefetch(directoryPath);
-			}
+			if (!window.matchMedia("(max-width: 767px)").matches) return;
+			if (document.querySelector("article #blog-toc")) prefetch(directoryPath);
+			else if (
+				`${window.location.pathname.replace(/\/$/, "")}/` === directoryPath
+			)
+				prefetch(homepagePath);
 		}, 1000);
 		return () => window.clearTimeout(timer);
-	}, [directoryPath]);
+	}, [directoryPath, homepagePath]);
 
 	useEffect(() => {
 		const mobile = window.matchMedia("(max-width: 767px)");
@@ -36,7 +38,7 @@ export function useMobileMenuSwipe(
 			x: number;
 			y: number;
 			time: number;
-			inArticle: boolean;
+			returnPath: string | null;
 		} | null = null;
 		const excluded = (target: EventTarget | null) => {
 			if (!(target instanceof Element)) return true;
@@ -78,15 +80,25 @@ export function useMobileMenuSwipe(
 			const touch = event.touches[0];
 			if (!touch) return;
 			if (touch.clientX < 24 || touch.clientX > window.innerWidth - 24) return;
+			const target = event.target;
+			if (!(target instanceof Element)) return;
+			// Listing previews also use <article>; only a full post has a TOC.
+			const inArticle = Boolean(
+				target.closest("article")?.querySelector("#blog-toc"),
+			);
+			const inDirectory =
+				`${window.location.pathname.replace(/\/$/, "")}/` === directoryPath &&
+				Boolean(target.closest("main"));
 			start = {
 				id: touch.identifier,
 				x: touch.clientX,
 				y: touch.clientY,
 				time: event.timeStamp,
-				// Listing previews also use <article>; only a full post has a TOC.
-				inArticle:
-					event.target instanceof Element &&
-					Boolean(event.target.closest("article")?.querySelector("#blog-toc")),
+				returnPath: inArticle
+					? directoryPath
+					: inDirectory
+						? homepagePath
+						: null,
 			};
 		};
 		const onMove = (event: TouchEvent) => {
@@ -106,11 +118,11 @@ export function useMobileMenuSwipe(
 			const dx = touch.clientX - start.x;
 			if (
 				!open &&
-				start.inArticle &&
+				start.returnPath &&
 				dx > 24 &&
 				Math.abs(touch.clientY - start.y) < dx * 0.4
 			) {
-				prefetch(directoryPath);
+				prefetch(start.returnPath);
 			}
 		};
 		const onEnd = (event: TouchEvent) => {
@@ -134,7 +146,7 @@ export function useMobileMenuSwipe(
 					return;
 				}
 				if (dx > 0) {
-					if (origin.inArticle) void navigate(directoryPath);
+					if (origin.returnPath) void navigate(origin.returnPath);
 					return;
 				}
 				document
@@ -161,5 +173,5 @@ export function useMobileMenuSwipe(
 			document.removeEventListener("touchcancel", reset);
 			mobile.removeEventListener("change", onResize);
 		};
-	}, [open, setOpen, directoryPath]);
+	}, [open, setOpen, directoryPath, homepagePath]);
 }
