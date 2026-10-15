@@ -1,6 +1,6 @@
 ---
 // src/components/ui/InteractiveViewer.astro
-interface Props { lang?: 'en' | 'es' }
+interface Props { lang?: 'en' | 'es'; reset?: boolean }
 const es = (Astro.props.lang ?? (Astro.url.pathname.startsWith('/es/') ? 'es' : 'en')) === 'es';
 const id = `viewer-${crypto.randomUUID()}`;
 const tabs = [['preview', es ? 'Vista previa' : 'Preview'], ['code', es ? 'Código' : 'Code'], ['debug', es ? 'Depuración' : 'Debug']];
@@ -12,9 +12,9 @@ const tabs = [['preview', es ? 'Vista previa' : 'Preview'], ['code', es ? 'Códi
     {tabs.map(([key, label]) => <button type="button" role="tab" id={`${id}-${key}-tab`} aria-controls={`${id}-${key}`} aria-selected={key === 'preview'} tabindex={key === 'preview' ? 0 : -1}
       class:list={['tab-btn rounded text-sm font-medium transition-colors', key === 'preview' ? 'bg-background shadow-sm text-foreground active-tab' : 'text-muted-foreground hover:bg-background/50 hover:text-foreground']} data-tab={key}>{label}</button>)}
   </div>
-  <button type="button" class="viewer-reset px-2 min-h-11 text-muted-foreground hover:text-foreground rounded focus-visible:outline-2 focus-visible:outline-primary" aria-label={es ? 'Restablecer simulación' : 'Reset simulation'} title={es ? 'Restablecer simulación' : 'Reset simulation'}>
+  {Astro.props.reset !== false && <button type="button" class="viewer-reset px-2 min-h-11 text-muted-foreground hover:text-foreground rounded focus-visible:outline-2 focus-visible:outline-primary" aria-label={es ? 'Restablecer simulación' : 'Reset simulation'} title={es ? 'Restablecer simulación' : 'Reset simulation'}>
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7" /></svg>
-  </button>
+  </button>}
   </div>
 
   <div class="tab-content relative w-full" id={`${id}-preview`} role="tabpanel" aria-labelledby={`${id}-preview-tab`} data-content="preview">

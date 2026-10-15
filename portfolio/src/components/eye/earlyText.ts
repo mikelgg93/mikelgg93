@@ -84,6 +84,7 @@ const spanish: Record<string, string> = {
 	Albino: "Albino",
 	"Optic Chiasm": "Quiasma óptico",
 	"Pretectal Nucleus": "Núcleo pretectal",
+	"Olivary Pretectal Nucleus": "Núcleo olivar pretectal",
 	"Edinger-Westphal Nucleus": "Núcleo de Edinger-Westphal",
 	"Ciliary Ganglion": "Ganglio ciliar",
 	"Sensory (Optic Nerve)": "Sensitiva (nervio óptico)",
@@ -93,6 +94,7 @@ const spanish: Record<string, string> = {
 	"Pathway labels": "Estructuras de la vía",
 	"2. Optic Chiasm": "2. Quiasma óptico",
 	"3. Pretectal Nucleus": "3. Núcleo pretectal",
+	"3. Olivary Pretectal Nucleus": "3. Núcleo olivar pretectal",
 	"4. Edinger-Westphal Nucleus": "4. Núcleo de Edinger-Westphal",
 	"5. Ciliary Ganglion": "5. Ganglio ciliar",
 	"Pupil stream stopped. Reconnect to try again.":

@@ -102,3 +102,78 @@ export function drawPupilGraph(
 		ctx.stroke();
 	}
 }
+
+// Keep Monitor's binaryType: its own message handlers may require Blob data.
+// ArrayBuffers parse synchronously; Blob conversion has one bounded FIFO, not
+// an ever-growing promise chain. Stop rather than silently lose RTP fragments.
+export function createPupilMessageReader(
+	onSample: (sample: PupilSample) => void,
+	onError: () => void,
+) {
+	const receive = createPupilReceiver(onSample);
+	const queue: (ArrayBuffer | Blob)[] = [];
+	let queuedBytes = 0;
+	let busy = false;
+	let disposed = false;
+	const dispose = () => {
+		disposed = true;
+		queue.length = 0;
+		queuedBytes = 0;
+	};
+	const fail = () => {
+		if (!disposed) {
+			dispose();
+			onError();
+		}
+	};
+	const drain = () => {
+		if (busy || disposed) return;
+		while (queue.length) {
+			const data = queue.shift()!;
+			if (Object.prototype.toString.call(data) === "[object ArrayBuffer]") {
+				queuedBytes -= (data as ArrayBuffer).byteLength;
+				try {
+					receive(new Uint8Array(data as ArrayBuffer));
+				} catch {
+					fail();
+					return;
+				}
+			} else {
+				busy = true;
+				const blob = data as Blob;
+				blob
+					.arrayBuffer()
+					.then((buffer) => {
+						if (!disposed) receive(new Uint8Array(buffer));
+					})
+					.catch(fail)
+					.finally(() => {
+						if (disposed) return;
+						queuedBytes -= blob.size;
+						busy = false;
+						drain();
+					});
+				return;
+			}
+		}
+	};
+	return {
+		dispose,
+		push(data: unknown) {
+			if (disposed || typeof data === "string") return;
+			const kind = Object.prototype.toString.call(data);
+			if (kind !== "[object ArrayBuffer]" && kind !== "[object Blob]") return;
+			const size =
+				kind === "[object Blob]"
+					? (data as Blob).size
+					: (data as ArrayBuffer).byteLength;
+			if (queue.length >= 64 || queuedBytes + size > 1024 * 1024) {
+				fail();
+				return;
+			}
+			queue.push(data as ArrayBuffer | Blob);
+			queuedBytes += size;
+			drain();
+		},
+	};
+}

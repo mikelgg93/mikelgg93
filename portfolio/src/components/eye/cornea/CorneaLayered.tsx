@@ -309,6 +309,7 @@ export default function CorneaLayered({ lang = "en" }: { lang?: "en" | "es" }) {
 					{t("Corneal layers (model)")}
 				</span>
 				<ParameterControl
+					hideReset
 					value={active}
 					initial={defaults.active}
 					onReset={setActive}
@@ -348,6 +349,7 @@ export default function CorneaLayered({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 
 			<ParameterControl
+				hideReset
 				value={exploded}
 				initial={defaults.exploded}
 				onReset={setExploded}

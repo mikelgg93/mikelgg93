@@ -89,9 +89,9 @@ for (let r = 0; r <= validR; r += step) {
 }
 ```
 
-Use the buttons below to switch between a typical human cornea, a spherical cornea, and an oblate / post-myopic-LASIK example. The color runs from green at the center to the shape's color at the rim, to help you compare their shapes; these colors do not calculate refraction.
+Use the dropdown below to switch between a typical human cornea, a spherical cornea, and an oblate / post-myopic-LASIK example. The color runs from green at the center to the shape's color at the rim, to help you compare their shapes; these colors do not calculate refraction.
 
-<InteractiveViewer>
+<InteractiveViewer reset={false}>
   <div slot="preview">
     <CorneaAspheric client:visible />
   </div>
@@ -143,7 +143,7 @@ The cornea is usually described as five layers. Here we also distinguish the pro
 
 The model below is a **schematic cross-section with approximately proportional layer thicknesses**, so you can see just how much of the cornea is stroma. The stroma's interwoven lamellae are simplified to alternating fiber directions (think plywood), and the mostly hexagonal endothelial mosaic is enlarged for visibility. The exploded view separates and rescales the layers. Press the button to pull the layers apart.
 
-<InteractiveViewer>
+<InteractiveViewer reset={false}>
   <div slot="preview">
     <CorneaLayered client:visible />
   </div>

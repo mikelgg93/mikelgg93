@@ -1,16 +1,37 @@
 import { eyeText } from "../earlyText";
 import "./pupil.css";
 import { Html, OrbitControls } from "@react-three/drei";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { createDemoLoop } from "../demoLoop";
+import type { OrbitControls as OrbitControlsImpl } from "three/examples/jsm/controls/OrbitControls.js";
 import { disposeThree } from "../disposeThree";
+import { observeVisibility } from "../visibility";
 
 function PathwayScene({ lang = "en" }: { lang?: "en" | "es" }) {
 	const t = eyeText(lang);
-	const { scene, camera, gl, invalidate } = useThree();
-	const uniformsListRef = useRef<any[]>([]);
+	const { scene, camera, gl, invalidate, setFrameloop, get } = useThree();
+	const uniformsListRef = useRef<
+		{
+			uTime: { value: number };
+			uColor: { value: THREE.Color };
+			uOffset: { value: number };
+		}[]
+	>([]);
+	const timing = useRef({
+		elapsed: 0,
+		resumed: true,
+		reduced: false,
+		active: false,
+	});
+	useFrame((_state, dt) => {
+		const time = timing.current;
+		if (!time.active) return;
+		if (!time.reduced && !time.resumed) time.elapsed += Math.min(dt, 0.1);
+		time.resumed = false;
+		for (const uniforms of uniformsListRef.current)
+			uniforms.uTime.value = time.reduced ? 0 : time.elapsed;
+	});
 
 	useEffect(() => {
 		const group = new THREE.Group();
@@ -186,31 +207,72 @@ function PathwayScene({ lang = "en" }: { lang?: "en" | "es" }) {
 		createTract([ganglionL, eyeL], colMotor, 0.04, -0.8);
 		createTract([ganglionR, eyeR], colMotor, 0.04, -0.8);
 
-		const loop = createDemoLoop(gl.domElement, {
-			continuous: (reducedMotion) => !reducedMotion,
-			draw: (_dt, elapsed, reducedMotion) => {
-				for (const u of uniformsListRef.current)
-					u.uTime.value = reducedMotion ? 0 : elapsed;
-				invalidate();
-				return false;
-			},
-			inspect: () => ({
-				model: "Schematic pupillary light reflex pathway",
-				afferent: "Retina → optic nerve/chiasm/tract → pretectal nuclei",
-				efferent:
-					"Edinger–Westphal → CN III → ciliary ganglion → short ciliary nerves → sphincter",
-				bilateralProjection: true,
-				pulseSpeed: "Illustrative; not measured neural conduction",
-				camera: camera.position.toArray(),
-			}),
+		const viewer = gl.domElement.closest(".interactive-viewer");
+		const motion = matchMedia("(prefers-reduced-motion: reduce)");
+		const updateLoop = () => {
+			timing.current.reduced = motion.matches;
+			timing.current.resumed = true;
+			const controls = get().controls as OrbitControlsImpl | null;
+			if (controls) controls.enableDamping = !motion.matches;
+			setFrameloop(
+				!timing.current.active ? "never" : motion.matches ? "demand" : "always",
+			);
+			if (timing.current.active) invalidate();
+		};
+		const stopVisibility = observeVisibility(gl.domElement, (active) => {
+			timing.current.active = active;
+			updateLoop();
 		});
+		const inspect = () => {
+			const output = viewer?.querySelector(".debug-output");
+			if (output)
+				output.textContent = JSON.stringify(
+					{
+						model: "Schematic pupillary light reflex pathway",
+						afferent:
+							"Retina → optic nerve/chiasm/tract → olivary pretectal nuclei",
+						efferent:
+							"Edinger–Westphal (preganglionic) → CN III → ciliary ganglion → short ciliary nerves → sphincter",
+						bilateralProjection: true,
+						pulseSpeed: "Illustrative; not measured neural conduction",
+						camera: camera.position.toArray(),
+					},
+					null,
+					2,
+				);
+		};
+		const reset = () => {
+			timing.current.elapsed = 0;
+			timing.current.resumed = true;
+			const controls = get().controls as OrbitControlsImpl | null;
+			if (controls) {
+				const damping = controls.enableDamping;
+				controls.enableDamping = false;
+				controls.update();
+				camera.position.set(0, 8, 10);
+				controls.target.set(0, 0, 1.5);
+				controls.update();
+				controls.enableDamping = damping;
+			}
+			invalidate();
+			inspect();
+		};
+		viewer?.addEventListener("eye:inspect", inspect);
+		viewer?.addEventListener("eye:reset", reset);
+		viewer?.addEventListener("eye:reset-camera", reset);
+		motion.addEventListener("change", updateLoop);
+		inspect();
 		return () => {
-			loop.dispose();
+			stopVisibility();
+			viewer?.removeEventListener("eye:inspect", inspect);
+			viewer?.removeEventListener("eye:reset", reset);
+			viewer?.removeEventListener("eye:reset-camera", reset);
+			motion.removeEventListener("change", updateLoop);
 			scene.remove(group);
 			disposeThree(group);
 			uniformsListRef.current = [];
 		};
-	}, [scene, camera, gl, invalidate]);
+	}, [scene, camera, gl, invalidate, setFrameloop, get]);
 
 	return (
 		<>
@@ -229,7 +291,9 @@ function PathwayScene({ lang = "en" }: { lang?: "en" | "es" }) {
 			<Html position={[-0.8, 0.3, 0]} center zIndexRange={[100, 0]}>
 				<div className="text-[10px] font-bold tracking-widest uppercase text-white bg-black/60 px-2 py-1 rounded border border-white/20 backdrop-blur-sm whitespace-nowrap pointer-events-none">
 					<span className="md:hidden">3</span>
-					<span className="hidden md:inline">{t("Pretectal Nucleus")}</span>
+					<span className="hidden md:inline">
+						{t("Olivary Pretectal Nucleus")}
+					</span>
 				</div>
 			</Html>
 			<Html position={[-0.4, 0.6, -0.4]} center zIndexRange={[100, 0]}>
@@ -284,6 +348,7 @@ export default function NervePathway({ lang = "en" }: { lang?: "en" | "es" }) {
 				>
 					<PathwayScene lang={lang} />
 					<OrbitControls
+						makeDefault
 						enableDamping
 						dampingFactor={0.05}
 						target={[0, 0, 1.5]}
@@ -296,7 +361,7 @@ export default function NervePathway({ lang = "en" }: { lang?: "en" | "es" }) {
 			>
 				<li>1. Retina</li>
 				<li>{t("2. Optic Chiasm")}</li>
-				<li>{t("3. Pretectal Nucleus")}</li>
+				<li>{t("3. Olivary Pretectal Nucleus")}</li>
 				<li>{t("4. Edinger-Westphal Nucleus")}</li>
 				<li>{t("5. Ciliary Ganglion")}</li>
 			</ol>

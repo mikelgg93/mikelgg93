@@ -1,6 +1,7 @@
 import { eyeText } from "../earlyText";
 import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import { parameterContext } from "../parameterContext";
+import { SampleRing } from "./sampleRing";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -30,20 +31,19 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 			pupilRadius: 6.0 * (0.5 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
-			stilesCrawford: false,
 		});
 		sceneRef.current = s;
 
-		const history: { targetD: number; actualD: number; time: number }[] = [];
-		const queue: { time: number; targetD: number }[] = [];
+		const history = new SampleRing(2048);
+		const queue = new SampleRing(256);
 		let currentD = 6.0;
 
 		const viewer = mountRef.current.closest(".interactive-viewer");
 		const initialDiameter = currentD;
 		const resetDynamics = () => {
 			currentD = initialDiameter;
-			queue.length = 0;
-			history.length = 0;
+			queue.clear();
+			history.clear();
 		};
 		viewer?.addEventListener("eye:reset", resetDynamics);
 
@@ -65,16 +65,8 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 			const targetD = pupilFromLuminance(p.targetLuminance);
 
 			const delay = p.latencyActive ? 0.22 : 0.0;
-			queue.push({ time: now, targetD });
-			while (queue.length && queue[0]!.time < now - 1.0) queue.shift();
-			let delayedTargetD = currentD;
-			const targetTime = now - delay;
-			for (let i = queue.length - 1; i >= 0; i--) {
-				if (queue[i]!.time <= targetTime) {
-					delayedTargetD = queue[i]!.targetD;
-					break;
-				}
-			}
+			queue.push(now, targetD);
+			const delayedTargetD = queue.atOrBefore(now - delay, currentD);
 
 			const diff = delayedTargetD - currentD;
 			if (Math.abs(diff) > 0.001) {
@@ -84,19 +76,22 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 			}
 			s.params.pupilRadius = currentD * (0.5 / 12.0);
 
-			history.push({ targetD, actualD: currentD, time: now });
-			while (history.length && history[0]!.time < now - 4) history.shift();
+			history.push(now, targetD, currentD);
 
 			const canvas = canvasRef.current;
 			const ctx = canvas?.getContext("2d");
 			if (canvas && ctx) {
-				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				const dpr = Math.min(window.devicePixelRatio || 1, 2);
+				const width = canvas.width / dpr,
+					height = canvas.height / dpr;
+				ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+				ctx.clearRect(0, 0, width, height);
 				ctx.strokeStyle = "rgba(120,130,150,0.25)";
 				ctx.lineWidth = 1;
-				for (let y = 0; y <= canvas.height; y += canvas.height / 4) {
+				for (let y = 0; y <= height; y += height / 4) {
 					ctx.beginPath();
 					ctx.moveTo(0, y);
-					ctx.lineTo(canvas.width, y);
+					ctx.lineTo(width, y);
 					ctx.stroke();
 				}
 				if (history.length > 1) {
@@ -105,18 +100,26 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 					const plot = (
 						key: "targetD" | "actualD",
 						color: string,
-						width: number,
+						lineWidth: number,
 						dash: number[],
 					) => {
 						ctx.setLineDash(dash);
 						ctx.strokeStyle = color;
-						ctx.lineWidth = width;
+						ctx.lineWidth = lineWidth;
 						ctx.beginPath();
-						history.forEach((pt, i) => {
-							const x = ((pt.time - t0) / win) * canvas.width;
-							const y = canvas.height - ((pt[key] - 1.5) / 7.0) * canvas.height;
-							i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-						});
+						let started = false;
+						for (let i = 0; i < history.length; i++) {
+							const time = history.time(i);
+							if (time < t0) continue;
+							const x = ((time - t0) / win) * width;
+							const y =
+								height -
+								((history.value(i, key === "targetD" ? 0 : 1) - 1.5) / 7) *
+									height;
+							if (started) ctx.lineTo(x, y);
+							else ctx.moveTo(x, y);
+							started = true;
+						}
 						ctx.stroke();
 					};
 					plot("targetD", "#f59e0b", 1.5, [4, 4]);
@@ -127,9 +130,11 @@ export default function PupilStep2({ lang = "en" }: { lang?: "en" | "es" }) {
 
 		const canvasResize = new ResizeObserver(() => {
 			if (!canvasRef.current) return;
-			canvasRef.current.width =
-				canvasRef.current.parentElement?.clientWidth || 400;
-			canvasRef.current.height = 140;
+			const dpr = Math.min(window.devicePixelRatio || 1, 2);
+			canvasRef.current.width = Math.round(
+				(canvasRef.current.parentElement?.clientWidth || 400) * dpr,
+			);
+			canvasRef.current.height = Math.round(140 * dpr);
 		});
 		if (canvasRef.current?.parentElement)
 			canvasResize.observe(canvasRef.current.parentElement);

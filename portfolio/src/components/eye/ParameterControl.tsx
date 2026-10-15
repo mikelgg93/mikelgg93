@@ -152,6 +152,7 @@ export default function ParameterControl<T>({
 	children,
 	lang = "en",
 	className = "",
+	hideReset = false,
 }: {
 	value: T;
 	initial: T;
@@ -161,22 +162,25 @@ export default function ParameterControl<T>({
 	children: ReactNode;
 	lang?: "en" | "es";
 	className?: string;
+	hideReset?: boolean;
 }) {
 	return (
 		<div className={`parameter-control ${className}`}>
 			<div className="parameter-field">{children}</div>
 			<div className="parameter-tools">
 				{context && <ParameterInfo label={label} context={context} />}
-				<button
-					type="button"
-					className="parameter-icon"
-					aria-label={`${lang === "es" ? "Restablecer" : "Reset"} ${label}`}
-					title={lang === "es" ? "Valor inicial" : "Original value"}
-					disabled={Object.is(value, initial)}
-					onClick={() => onReset(initial)}
-				>
-					<RotateCcw size={14} aria-hidden="true" />
-				</button>
+				{!hideReset && (
+					<button
+						type="button"
+						className="parameter-icon"
+						aria-label={`${lang === "es" ? "Restablecer" : "Reset"} ${label}`}
+						title={lang === "es" ? "Valor inicial" : "Original value"}
+						disabled={Object.is(value, initial)}
+						onClick={() => onReset(initial)}
+					>
+						<RotateCcw size={14} aria-hidden="true" />
+					</button>
+				)}
 			</div>
 		</div>
 	);
