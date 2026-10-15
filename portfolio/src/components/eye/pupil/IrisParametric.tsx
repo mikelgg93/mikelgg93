@@ -1,6 +1,7 @@
 import { eyeText } from "../earlyText";
 import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import { parameterContext } from "../parameterContext";
+import { SCE_RHO_E, sceEffectiveArea } from "./pupilOptics";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -24,10 +25,7 @@ export default function IrisParametric({
 
 	const L = 10 ** logL;
 	const area = (Math.PI * diameter * diameter) / 4;
-	// Simplified centered SCE weighting exp(-rho*r²), with rho in mm⁻².
-	const rho = 0.085;
-	const effArea =
-		(Math.PI / rho) * (1 - Math.exp((-rho * diameter * diameter) / 4));
+	const effArea = sceEffectiveArea(diameter);
 	const trolands = L * area;
 	const effTrolands = L * effArea;
 	const scEff = effArea / area;
@@ -38,11 +36,12 @@ export default function IrisParametric({
 			pupilRadius: 4.0 * (0.5 / 12.0),
 			pigmentation: 0,
 			showMuscles: false,
-			stilesCrawford: true,
 		});
 		sceneRef.current = s;
 		s.setDebug(() => ({
 			diameter,
+			diameterBasis: "Entrance pupil (illustrative)",
+			sceRhoNaturalMmMinus2: SCE_RHO_E,
 			area: +area.toFixed(1),
 			trolands: +trolands.toFixed(0),
 			effTrolands: +effTrolands.toFixed(0),
@@ -59,10 +58,11 @@ export default function IrisParametric({
 		const s = sceneRef.current;
 		if (!s) return;
 		s.params.pupilRadius = diameter * (0.5 / 12.0);
-		s.params.stilesCrawford = stilesCrawford;
 		s.params.pigmentation = pigment;
 		s.setDebug(() => ({
 			diameter,
+			diameterBasis: "Entrance pupil (illustrative)",
+			sceRhoNaturalMmMinus2: SCE_RHO_E,
 			area: +area.toFixed(1),
 			trolands: +trolands.toFixed(0),
 			effTrolands: +effTrolands.toFixed(0),
@@ -139,7 +139,7 @@ export default function IrisParametric({
 						onReset={setDiameter}
 						label="pupil diameter"
 						lang={lang}
-						context={parameterContext.pupil}
+						context={parameterContext.entrancePupil}
 					>
 						<input
 							type="range"

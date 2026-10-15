@@ -22,7 +22,6 @@ export default function PupilStep1({ lang = "en" }: { lang?: "en" | "es" }) {
 			pupilRadius: 4.0 * (0.5 / 12.0),
 			pigmentation: 1,
 			showMuscles: true,
-			stilesCrawford: false,
 		});
 		sceneRef.current = s;
 		return () => {

@@ -1,6 +1,8 @@
 import { eyeText } from "../earlyText";
 import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import { parameterContext } from "../parameterContext";
+import { SCE_RHO_E, sceEffectiveArea } from "./pupilOptics";
+import { SampleRing } from "./sampleRing";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -62,11 +64,10 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			pupilRadius: 4.5 * (0.5 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
-			stilesCrawford: true,
 		});
 		sceneRef.current = s;
 
-		const queue: { time: number; targetDiameter: number }[] = [];
+		const queue = new SampleRing(256);
 		let currentDiameter = 4.5;
 		let lastHud = -Infinity;
 		let debugState: Record<string, unknown> = {};
@@ -82,7 +83,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 		const initialDiameter = currentDiameter;
 		const resetDynamics = () => {
 			currentDiameter = initialDiameter;
-			queue.length = 0;
+			queue.clear();
 			lastHud = -Infinity;
 			paramsRef.current.flashUntilTime = 0;
 			if (flashTimerRef.current !== null) clearTimeout(flashTimerRef.current);
@@ -103,16 +104,8 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			const L = isFlashing ? 10000 : p.luminance;
 
 			const targetSteadyD = pupilFromLuminance(L, p.baselineOffset);
-			queue.push({ time: elapsed, targetDiameter: targetSteadyD });
-			const targetTime = elapsed - 0.22;
-			while (queue.length && queue[0]!.time < targetTime - 0.5) queue.shift();
-			let delayedTargetD = currentDiameter;
-			for (let i = queue.length - 1; i >= 0; i--) {
-				if (queue[i]!.time <= targetTime) {
-					delayedTargetD = queue[i]!.targetDiameter;
-					break;
-				}
-			}
+			queue.push(elapsed, targetSteadyD);
+			const delayedTargetD = queue.atOrBefore(elapsed - 0.22, currentDiameter);
 
 			let kineticState = "Steady state";
 			const diff = delayedTargetD - currentDiameter;
@@ -136,16 +129,12 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 
 			const area = (Math.PI * actualD * actualD) / 4;
 			const trolands = L * area;
-			// Centered Gaussian SCE weighting exp(-rho*r²); illustrative coefficient in mm⁻².
-			const rho = 0.085;
-			const effArea =
-				(Math.PI / rho) * (1 - Math.exp((-rho * actualD * actualD) / 4));
+			const effArea = sceEffectiveArea(actualD);
 			const effTrolands = L * effArea;
 			const scEfficiency = effArea / area;
 
 			s.params.pupilRadius = actualD * (0.5 / 12.0);
 			s.params.pigmentation = PIGMENTATION_MAP[p.pigmentation];
-			s.params.stilesCrawford = p.stilesCrawford;
 
 			if (now - lastHud > 0.05) {
 				lastHud = now;
@@ -160,6 +149,8 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 				});
 				debugState = {
 					actualDiameterMm: +actualD.toFixed(3),
+					diameterBasis: "Entrance pupil (illustrative)",
+					sceRhoNaturalMmMinus2: SCE_RHO_E,
 					steadyTargetMm: +targetSteadyD.toFixed(3),
 					luminanceCdM2: L,
 					trolands,
