@@ -1,8 +1,9 @@
 name: Deploy Astro site to Pages
 
 on:
-  push:
-    branches: ["master"]
+  # Kept as manual backup only; production is now served via Cloudflare Pages
+  # push:
+  #   branches: ["master"]
   workflow_dispatch:
 
 permissions:
