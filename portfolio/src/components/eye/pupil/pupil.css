@@ -58,3 +58,48 @@
 		touch-action: pan-y !important;
 	}
 }
+
+/* Quiet controls and unboxed measurements, matching the article typography. */
+.pupil-readouts > div { background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; padding: .25rem .5rem; }
+.pupil-readouts { gap: .5rem; }
+.pupil-readouts .uppercase { text-transform: none; letter-spacing: normal; font-weight: 500; }
+.pupil-settings { position: absolute; bottom: 1rem; left: 1rem; right: 1rem; z-index: 20; margin: 0; border: 1px solid var(--border); border-radius: 8px; background: color-mix(in srgb, var(--card) 94%, transparent); backdrop-filter: blur(16px); }
+.pupil-settings > summary { display: flex; align-items: center; gap: .6rem; min-height: 44px; padding: .5rem 1rem; font-size: .8rem; cursor: pointer; list-style: none; }
+.pupil-settings > summary::-webkit-details-marker, .eye-settings-inline > summary::-webkit-details-marker { display: none; }
+.pupil-settings > summary svg:last-child { margin-left: auto; transition: transform .15s; }
+.pupil-settings[open] > summary svg:last-child { transform: rotate(180deg); }
+.pupil-settings-body { display: flex; flex-direction: column; gap: .75rem; padding: .25rem 1rem 1rem; max-height: 320px; overflow: auto; }
+.pupil-settings-body .uppercase { text-transform: none; letter-spacing: normal; }
+.pupil-settings-body .animate-pulse { animation: none; }
+.pupil-settings-body .bg-background\/50 { background: none; border: 0; border-radius: 0; padding: 0; }
+.pupil-settings-body select, .iris-caption select { color: var(--foreground); background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: .3rem .5rem; }
+.pupil-settings-body button { font-weight: 500; }
+.iris-caption { margin: 1rem 1.25rem 0; padding: .75rem 0; font-size: .8rem; line-height: 1.5; border-bottom: 1px solid var(--border); }
+.iris-caption strong { font-weight: 500; }
+.iris-caption p { margin: .35rem 0; color: var(--muted-foreground); }
+.eye-settings-inline summary { cursor: pointer; padding: .5rem 0; font-size: .75rem; color: var(--primary); }
+.eye-settings-inline[open] { max-width: 30rem; }
+.eye-setting-row { display: block; }
+.eye-setting-row > span { display: flex; justify-content: space-between; gap: 1rem; }
+.eye-checkbox { display: flex; align-items: center; gap: .5rem; padding-top: .5rem; }
+.eye-checkbox input { accent-color: var(--primary); }
+.iris-comparison { position: relative; width: 100%; height: 420px; overflow: hidden; }
+.comparison-labels { position: absolute; inset: .75rem 1.25rem auto; display: flex; justify-content: space-between; pointer-events: none; font-size: .7rem; color: var(--muted-foreground); }
+.muscle-divider { position: absolute; top: 0; bottom: 0; width: 44px; padding: 0; transform: translateX(-50%); border: 0; background: transparent; cursor: ew-resize; touch-action: none; }
+.muscle-divider::before { content: ''; position: absolute; top: 2rem; bottom: 1rem; left: 50%; width: 1px; background: color-mix(in srgb, var(--foreground) 40%, transparent); pointer-events: none; }
+.muscle-divider > span { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--card); border: 1px solid var(--border); width: 28px; height: 28px; display: grid; place-items: center; color: var(--foreground); font-size: 15px; }
+.muscle-divider:focus-visible { outline: 1px solid var(--primary); outline-offset: -2px; }
+.comparison-note { margin: 0 1.25rem 1rem; color: var(--muted-foreground); font-size: .7rem; line-height: 1.5; }
+@media (max-width: 767px) {
+ .pupil-demo > .pupil-settings { position: relative; inset: auto; width: calc(100% - 1.5rem); margin: .75rem; order: 3; transform: none; }
+ .pupil-settings-body { max-height: none; }
+ .iris-comparison { height: auto; aspect-ratio: 1; }
+ .pupil-readouts { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .pupil-readouts > div { padding: .25rem 0; }
+}
+.pupil-settings-body .parameter-control:has(input[type="range"]) { flex: 1; width: 100%; }
+@media (min-width: 768px) {
+ .pupil-demo:has(> .pupil-settings) { display: flex; flex-direction: column; height: auto; }
+ .pupil-demo:has(> .pupil-settings) > .pupil-scene { position: relative; inset: auto; height: 480px; order: 1; }
+ .pupil-demo > .pupil-settings { position: relative; inset: auto; width: calc(100% - 2rem); margin: 0 1rem 1rem; order: 2; }
+}

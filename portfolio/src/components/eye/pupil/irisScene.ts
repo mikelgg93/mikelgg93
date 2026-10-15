@@ -14,6 +14,7 @@ export interface IrisParams {
 	pupilRadius: number; // normalized radius on the iris disc (~0.08 to 0.34)
 	pigmentation: number; // 0 brown, 1 hazel, 2 blue, 3 albino
 	showMuscles: boolean;
+	muscleReveal?: number; // screen-space fraction, 0–1; defaults to the whole iris
 }
 
 export interface IrisScene {
@@ -29,10 +30,12 @@ export interface IrisScene {
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vNormal;
+varying vec4 vClipPosition;
 void main() {
   vUv = uv;
   vNormal = normalize(normalMatrix * normal);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vClipPosition = gl_Position;
 }
 `;
 
@@ -40,9 +43,11 @@ const fragmentShader = `
 uniform float uPupilRadius;
 uniform int uPigmentation;
 uniform bool uShowMuscles;
+uniform float uMuscleReveal;
 
 varying vec2 vUv;
 varying vec3 vNormal;
+varying vec4 vClipPosition;
 
 vec2 hash(vec2 p) {
   p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -117,7 +122,7 @@ void main() {
   finalColor += vec3(0.12, 0.10, 0.06) * crest;
 
   // Muscle map overlay: red sphincter ring near the pupil, blue radial dilator.
-  if (uShowMuscles) {
+  if (uShowMuscles && (vClipPosition.x / vClipPosition.w * 0.5 + 0.5) < uMuscleReveal) {
     if (dist < effectivePupilRadius + 0.04) {
       float ring = sin(radialNorm * 120.0) * 0.5 + 0.5;
       finalColor = mix(finalColor, vec3(1.0, 0.2, 0.2), 0.55 + 0.25 * ring);
@@ -259,6 +264,7 @@ export function createIrisScene(
 			uPupilRadius: { value: params.pupilRadius },
 			uPigmentation: { value: params.pigmentation },
 			uShowMuscles: { value: params.showMuscles },
+			uMuscleReveal: { value: params.muscleReveal ?? 1 },
 		},
 		side: THREE.DoubleSide,
 	});
@@ -296,6 +302,7 @@ export function createIrisScene(
 			irisMat.uniforms.uPupilRadius!.value = params.pupilRadius;
 			irisMat.uniforms.uPigmentation!.value = params.pigmentation;
 			irisMat.uniforms.uShowMuscles!.value = params.showMuscles;
+			irisMat.uniforms.uMuscleReveal!.value = params.muscleReveal ?? 1;
 			renderer.render(scene, camera);
 			return false;
 		},

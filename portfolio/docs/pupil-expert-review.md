@@ -58,3 +58,13 @@ Parts III–V were ancestors of master. All three branches were fast-forwarded t
 - Final diff and whitespace checked. Publication flags, dates, protected-preview configuration and unrelated site UI remain unchanged.
 
 Actual Neon hardware, iPhone hardware and authenticated Cloudflare preview access are unavailable in this workspace; protected previews are preserved, without a public tunnel.
+
+
+## Interface follow-up
+
+- Branch previews for III–V now select their own bilingual draft plus published posts using Cloudflare’s `CF_PAGES_BRANCH`; shared source is retained. Production visibility is unchanged.
+- Compact callout paragraph spacing, sentence-case info popovers, aligned icon controls and thin accent sliders.
+- Anatomy demo: pointer/keyboard muscle divider; starting diameter, pigment and optional illustrative motion inside caption settings. Reduced-motion preference suppresses motion.
+- Unboxed optical/simulator readouts and collapsible settings below the canvas, including on desktop so adjustments do not cover the pupil. Neon’s heading is now a keyboard-accessible disclosure with a separate info trigger; acquisition code is unchanged.
+- Conic presets use a dropdown with existing explanatory text. The conic and layer demos omit the requested reset buttons.
+- Follow-up verification: 47 tests passed; changed TypeScript/Biome checks passed; production build passed (43 pages). Scoped Part III build passed (64 pages), with III present and IV/V absent in both languages. 390px and 1200px Chromium checks covered dragging/keyboard reveal, diameter endpoints, settings, shaders, popover casing, Neon address, dropdowns, reset removal and overflow. Additional checks cover reduced motion and settings below the canvas. Existing repository-wide checker limitations above remain.

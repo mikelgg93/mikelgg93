@@ -392,33 +392,32 @@ export default function PupilHardwareSync({
 		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
 			{/* Collapsible Settings Overlay */}
 			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 max-h-[calc(100%-2rem)] overflow-y-auto shadow-xl pointer-events-auto transition-all">
-				<div
-					className="flex items-center justify-between cursor-pointer select-none"
-					onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-				>
-					<div className="flex items-center gap-2">
-						<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
-						<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-							{t("Live Neon pupil data")}
-							<ParameterInfo
-								label="Neon pupil diameter"
-								context={parameterContext.neon}
-							/>
-						</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<div
+				<div className="flex items-center gap-1">
+					<button
+						type="button"
+						aria-expanded={isSettingsOpen}
+						aria-label={t("Live Neon pupil data")}
+						onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+						className="flex flex-1 items-center gap-2 text-xs text-muted-foreground min-h-9 text-left"
+					>
+						<Settings2 size={14} className="shrink-0" aria-hidden="true" />
+						<span className="flex-1">{t("Live Neon pupil data")}</span>
+						<span
 							role="status"
 							aria-label={t(status)}
 							title={t(status)}
-							className={`w-2 h-2 rounded-full ${status === "streaming" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
+							className={`w-1.5 h-1.5 shrink-0 rounded-full ${status === "streaming" ? "bg-emerald-500" : status === "connecting" ? "bg-amber-500" : "bg-red-500"}`}
 						/>
 						{isSettingsOpen ? (
-							<ChevronUp className="w-3 h-3 text-muted-foreground" />
+							<ChevronUp size={14} aria-hidden="true" />
 						) : (
-							<ChevronDown className="w-3 h-3 text-muted-foreground" />
+							<ChevronDown size={14} aria-hidden="true" />
 						)}
-					</div>
+					</button>
+					<ParameterInfo
+						label="Neon pupil diameter"
+						context={parameterContext.neon}
+					/>
 				</div>
 
 				{isSettingsOpen && (

@@ -1,6 +1,7 @@
 import { eyeText } from "../earlyText";
 import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import { parameterContext } from "../parameterContext";
+import PupilSettings from "./PupilSettings";
 import { SCE_RHO_E, sceEffectiveArea } from "./pupilOptics";
 import { SampleRing } from "./sampleRing";
 import "./pupil.css";
@@ -189,7 +190,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			/>
 
 			{/* Metrics HUD */}
-			<div className="pupil-metrics absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 pointer-events-none">
+			<div className="pupil-metrics pupil-readouts absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 pointer-events-none">
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						{t("Pupil diameter")}
@@ -247,7 +248,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 
 			{/* Controls */}
-			<div className="pupil-controls absolute bottom-4 left-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl flex flex-col gap-3">
+			<PupilSettings lang={lang}>
 				<div className="flex flex-col md:flex-row md:items-center gap-4">
 					<div className="flex-1 flex flex-col gap-1">
 						<div className="flex flex-wrap gap-1 justify-between items-center text-xs font-semibold">
@@ -346,7 +347,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 								className="inline-flex h-5 w-9 items-center justify-center"
 							>
 								<span
-									className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${stilesCrawford ? "bg-emerald-500" : "bg-secondary"}`}
+									className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${stilesCrawford ? "bg-primary" : "bg-secondary"}`}
 								>
 									<span
 										className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${stilesCrawford ? "translate-x-4.5" : "translate-x-1"}`}
@@ -382,7 +383,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 						</ParameterControl>
 					</div>
 				</div>
-			</div>
+			</PupilSettings>
 		</div>
 	);
 }
