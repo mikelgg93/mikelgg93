@@ -1,6 +1,9 @@
 import { eyeText } from "../earlyText";
 import ParameterControl, { useInitialParameters } from "../ParameterControl";
 import { parameterContext } from "../parameterContext";
+import PupilSettings from "./PupilSettings";
+import { SCE_RHO_E, sceEffectiveArea } from "./pupilOptics";
+import { SampleRing } from "./sampleRing";
 import "./pupil.css";
 import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
@@ -62,11 +65,10 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			pupilRadius: 4.5 * (0.5 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
-			stilesCrawford: true,
 		});
 		sceneRef.current = s;
 
-		const queue: { time: number; targetDiameter: number }[] = [];
+		const queue = new SampleRing(256);
 		let currentDiameter = 4.5;
 		let lastHud = -Infinity;
 		let debugState: Record<string, unknown> = {};
@@ -82,7 +84,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 		const initialDiameter = currentDiameter;
 		const resetDynamics = () => {
 			currentDiameter = initialDiameter;
-			queue.length = 0;
+			queue.clear();
 			lastHud = -Infinity;
 			paramsRef.current.flashUntilTime = 0;
 			if (flashTimerRef.current !== null) clearTimeout(flashTimerRef.current);
@@ -103,16 +105,8 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			const L = isFlashing ? 10000 : p.luminance;
 
 			const targetSteadyD = pupilFromLuminance(L, p.baselineOffset);
-			queue.push({ time: elapsed, targetDiameter: targetSteadyD });
-			const targetTime = elapsed - 0.22;
-			while (queue.length && queue[0]!.time < targetTime - 0.5) queue.shift();
-			let delayedTargetD = currentDiameter;
-			for (let i = queue.length - 1; i >= 0; i--) {
-				if (queue[i]!.time <= targetTime) {
-					delayedTargetD = queue[i]!.targetDiameter;
-					break;
-				}
-			}
+			queue.push(elapsed, targetSteadyD);
+			const delayedTargetD = queue.atOrBefore(elapsed - 0.22, currentDiameter);
 
 			let kineticState = "Steady state";
 			const diff = delayedTargetD - currentDiameter;
@@ -136,16 +130,12 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 
 			const area = (Math.PI * actualD * actualD) / 4;
 			const trolands = L * area;
-			// Centered Gaussian SCE weighting exp(-rho*r²); illustrative coefficient in mm⁻².
-			const rho = 0.085;
-			const effArea =
-				(Math.PI / rho) * (1 - Math.exp((-rho * actualD * actualD) / 4));
+			const effArea = sceEffectiveArea(actualD);
 			const effTrolands = L * effArea;
 			const scEfficiency = effArea / area;
 
 			s.params.pupilRadius = actualD * (0.5 / 12.0);
 			s.params.pigmentation = PIGMENTATION_MAP[p.pigmentation];
-			s.params.stilesCrawford = p.stilesCrawford;
 
 			if (now - lastHud > 0.05) {
 				lastHud = now;
@@ -160,6 +150,8 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 				});
 				debugState = {
 					actualDiameterMm: +actualD.toFixed(3),
+					diameterBasis: "Entrance pupil (illustrative)",
+					sceRhoNaturalMmMinus2: SCE_RHO_E,
 					steadyTargetMm: +targetSteadyD.toFixed(3),
 					luminanceCdM2: L,
 					trolands,
@@ -198,7 +190,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			/>
 
 			{/* Metrics HUD */}
-			<div className="pupil-metrics absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 pointer-events-none">
+			<div className="pupil-metrics pupil-readouts absolute top-4 left-4 right-4 z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 pointer-events-none">
 				<div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg">
 					<div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
 						{t("Pupil diameter")}
@@ -256,7 +248,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 
 			{/* Controls */}
-			<div className="pupil-controls absolute bottom-4 left-4 right-4 z-20 bg-card/80 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl flex flex-col gap-3">
+			<PupilSettings lang={lang}>
 				<div className="flex flex-col md:flex-row md:items-center gap-4">
 					<div className="flex-1 flex flex-col gap-1">
 						<div className="flex flex-wrap gap-1 justify-between items-center text-xs font-semibold">
@@ -355,7 +347,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 								className="inline-flex h-5 w-9 items-center justify-center"
 							>
 								<span
-									className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${stilesCrawford ? "bg-emerald-500" : "bg-secondary"}`}
+									className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${stilesCrawford ? "bg-primary" : "bg-secondary"}`}
 								>
 									<span
 										className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${stilesCrawford ? "translate-x-4.5" : "translate-x-1"}`}
@@ -391,7 +383,7 @@ export default function PupilReflex({ lang = "en" }: { lang?: "en" | "es" }) {
 						</ParameterControl>
 					</div>
 				</div>
-			</div>
+			</PupilSettings>
 		</div>
 	);
 }

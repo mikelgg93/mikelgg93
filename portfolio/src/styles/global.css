@@ -204,7 +204,7 @@
 
 @layer components {
   .markdown-alert {
-    @apply my-8 rounded-2xl p-5 md:p-6 text-[15px] leading-relaxed relative overflow-hidden transition-all duration-500;
+    @apply my-6 rounded-2xl px-5 py-3 md:px-6 md:py-4 text-[15px] leading-relaxed relative overflow-hidden transition-all duration-500;
     @apply bg-card/30 dark:bg-card/20;
     @apply backdrop-blur-[32px] backdrop-saturate-[1.5];
     @apply border border-border/40;
@@ -215,6 +215,9 @@
     @apply bg-card/40 dark:bg-card/30;
     @apply border-border/60;
   }
+
+  .markdown-alert > :nth-child(2) { margin-top: 0; }
+  .markdown-alert > :last-child { margin-bottom: 0; }
 
   .markdown-alert-title {
     display: none !important;
@@ -228,3 +231,9 @@
 
 /* Native fragment navigation leaves room for the fixed header. */
 #about, #experience, #publications, #contact { scroll-margin-top: calc(6rem + env(safe-area-inset-top, 0px)); }
+
+/* Keep prose paragraph margins from adding a second layer of callout padding. */
+.prose .markdown-alert > .markdown-alert-title + p { margin-top: 0; }
+.prose .markdown-alert > p:has(> strong:only-child),
+.prose .markdown-alert > p:has(> em:only-child) { margin-top: 0; margin-bottom: .5rem; }
+.prose .markdown-alert > :last-child { margin-bottom: 0; }
