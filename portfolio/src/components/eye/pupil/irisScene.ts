@@ -14,7 +14,7 @@ export interface IrisParams {
 	pupilRadius: number; // normalized radius on the iris disc (~0.08 to 0.34)
 	pigmentation: number; // 0 brown, 1 hazel, 2 blue, 3 albino
 	showMuscles: boolean;
-	stilesCrawford: boolean;
+	muscleReveal?: number; // screen-space fraction, 0–1; defaults to the whole iris
 }
 
 export interface IrisScene {
@@ -30,22 +30,24 @@ export interface IrisScene {
 const vertexShader = `
 varying vec2 vUv;
 varying vec3 vNormal;
+varying vec4 vClipPosition;
 void main() {
   vUv = uv;
   vNormal = normalize(normalMatrix * normal);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vClipPosition = gl_Position;
 }
 `;
 
 const fragmentShader = `
-uniform float uTime;
 uniform float uPupilRadius;
 uniform int uPigmentation;
 uniform bool uShowMuscles;
-uniform bool uStilesCrawford;
+uniform float uMuscleReveal;
 
 varying vec2 vUv;
 varying vec3 vNormal;
+varying vec4 vClipPosition;
 
 vec2 hash(vec2 p) {
   p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -78,15 +80,15 @@ void main() {
 
   float angle = atan(vUv.y - center.y, vUv.x - center.x);
   
-  // Make the pupil margin an irregular, dynamic ellipse
-  float constriction = smoothstep(0.35, 0.05, uPupilRadius);
+  // Static anatomical irregularity; diameter changes drive the deformation.
+  float constriction = (1.0 - smoothstep(0.05, 0.35, uPupilRadius));
   float pupilEllipse = (cos(angle*2.0 - 0.5)*0.003) * (constriction + 0.2); // very subtle elliptical stretch
-  float pupilIrregularity = (sin(angle*3.0)*0.0015 + cos(angle*7.0 + uTime*0.5)*0.001) * (constriction + 0.1);
+  float pupilIrregularity = (sin(angle*3.0)*0.0015 + cos(angle*7.0)*0.001) * (constriction + 0.1);
   float effectivePupilRadius = uPupilRadius + pupilEllipse + pupilIrregularity;
 
   if (dist < effectivePupilRadius) {
     if (uPigmentation == 3) {
-      float redGlow = 0.16 + 0.10 * sin(uTime * 1.5);
+      float redGlow = 0.16;
       gl_FragColor = vec4(redGlow, 0.02, 0.03, 1.0);
     } else {
       gl_FragColor = vec4(0.006, 0.006, 0.01, 1.0);
@@ -98,7 +100,7 @@ void main() {
 
   float stretch = mix(2.5, 6.0, clamp((0.35 - uPupilRadius) / 0.25, 0.0, 1.0));
   vec2 noiseUV = vec2(angle * 12.0, radialNorm * stretch);
-  float n1 = fbm(noiseUV + vec2(0.0, uTime * 0.01));
+  float n1 = fbm(noiseUV);
   float n2 = noise(vec2(angle * 30.0, radialNorm * 15.0));
   float fibers = sin(angle * 80.0 + n1 * 4.0) * 0.5 + 0.5;
   float collarette = 0.32 + 0.08 * noise(vec2(angle * 6.0, 0.0));
@@ -120,7 +122,7 @@ void main() {
   finalColor += vec3(0.12, 0.10, 0.06) * crest;
 
   // Muscle map overlay: red sphincter ring near the pupil, blue radial dilator.
-  if (uShowMuscles) {
+  if (uShowMuscles && (vClipPosition.x / vClipPosition.w * 0.5 + 0.5) < uMuscleReveal) {
     if (dist < effectivePupilRadius + 0.04) {
       float ring = sin(radialNorm * 120.0) * 0.5 + 0.5;
       finalColor = mix(finalColor, vec3(1.0, 0.2, 0.2), 0.55 + 0.25 * ring);
@@ -128,12 +130,6 @@ void main() {
       float spoke = sin(angle * 32.0) * 0.5 + 0.5;
       finalColor = mix(finalColor, vec3(0.2, 0.6, 1.0), 0.4 + 0.3 * spoke);
     }
-  }
-
-  // Stiles-Crawford efficiency falloff toward the pupil edge.
-  if (uStilesCrawford) {
-    float sc = exp(-0.085 * (dist * 24.0) * (dist * 24.0) / 4.0);
-    finalColor *= mix(vec3(0.45, 0.6, 1.0), vec3(1.0), sc);
   }
 
   // Simple shading from the dished geometry so the iris reads as 3D.
@@ -206,7 +202,8 @@ function corneaCap(R: number, maxR: number, apexZ: number) {
 			const b = a + 1;
 			const cc = (i + 1) * (seg + 1) + j;
 			const d = cc + 1;
-			idx.push(a, b, d, a, d, cc);
+			// Outward-facing winding for the anterior surface (+Z).
+			idx.push(a, d, b, a, cc, d);
 		}
 	}
 	const g = new THREE.BufferGeometry();
@@ -264,11 +261,10 @@ export function createIrisScene(
 		vertexShader,
 		fragmentShader,
 		uniforms: {
-			uTime: { value: 0 },
 			uPupilRadius: { value: params.pupilRadius },
 			uPigmentation: { value: params.pigmentation },
 			uShowMuscles: { value: params.showMuscles },
-			uStilesCrawford: { value: params.stilesCrawford },
+			uMuscleReveal: { value: params.muscleReveal ?? 1 },
 		},
 		side: THREE.DoubleSide,
 	});
@@ -285,27 +281,28 @@ export function createIrisScene(
 		metalness: 0.0,
 		clearcoat: 1.0,
 		clearcoatRoughness: 0.03,
-		transparent: true,
 		envMapIntensity: 1.3,
 		attenuationColor: new THREE.Color(0xeaf4ff),
 		attenuationDistance: 6,
-		side: THREE.DoubleSide,
+		side: THREE.FrontSide,
 	});
 	const cornea = new THREE.Mesh(corneaGeo, corneaMat);
 	scene.add(cornea);
 
-	const resizeObserver = observeThreeResize(mount, renderer, camera);
+	const resizeObserver = observeThreeResize(mount, renderer, camera, () =>
+		loop.invalidate(),
+	);
 
 	const loop = createDemoLoop(mount, {
 		controls: orbit,
-		continuous: (reducedMotion) => onFrame !== null || !reducedMotion,
+		// Keep the transmissive canvas refreshed while visible; visibility pauses it.
+		continuous: () => true,
 		draw: (dt, elapsed, reducedMotion) => {
 			onFrame?.(dt, elapsed, reducedMotion);
-			irisMat.uniforms.uTime!.value = reducedMotion ? 0 : elapsed;
 			irisMat.uniforms.uPupilRadius!.value = params.pupilRadius;
 			irisMat.uniforms.uPigmentation!.value = params.pigmentation;
 			irisMat.uniforms.uShowMuscles!.value = params.showMuscles;
-			irisMat.uniforms.uStilesCrawford!.value = params.stilesCrawford;
+			irisMat.uniforms.uMuscleReveal!.value = params.muscleReveal ?? 1;
 			renderer.render(scene, camera);
 			return false;
 		},
@@ -314,7 +311,6 @@ export function createIrisScene(
 			pupilDiameterMm: +(params.pupilRadius * 24).toFixed(3),
 			pigmentation: params.pigmentation,
 			muscleMap: params.showMuscles,
-			sceWeighting: params.stilesCrawford,
 			...debugCb?.(),
 			camera: camera.position.toArray(),
 			target: orbit.target.toArray(),

@@ -1,138 +1,199 @@
+import { useEffect, useRef, useState } from "react";
 import { eyeText } from "../earlyText";
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { ParameterInfo, useInitialParameters } from "../ParameterControl";
 import { parameterContext } from "../parameterContext";
-import "./pupil.css";
-import React, { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
+import "./pupil.css";
 
-// Anatomic iris: a 3D dished iris under a glassy cornea, with a toggle that
-// reveals the two muscle systems (circular sphincter, radial dilator).
 export default function PupilStep1({ lang = "en" }: { lang?: "en" | "es" }) {
 	const t = eyeText(lang);
+	const es = lang === "es";
 	const mountRef = useRef<HTMLDivElement>(null);
 	const sceneRef = useRef<IrisScene | null>(null);
-
-	const [diameter, setDiameter] = useState(4.0);
-	const [showMuscles, setShowMuscles] = useState(true);
+	const [diameter, setDiameter] = useState(4);
 	const [pigment, setPigment] = useState(1);
-
+	const [reveal, setReveal] = useState(0.5);
+	const [animate, setAnimate] = useState(true);
+	const settings = useRef({ diameter, pigment, reveal, animate });
+	settings.current = { diameter, pigment, reveal, animate };
 	useEffect(() => {
 		if (!mountRef.current) return;
 		const s = createIrisScene(mountRef.current, {
-			pupilRadius: 4.0 * (0.5 / 12.0),
+			pupilRadius: 4 / 24,
 			pigmentation: 1,
 			showMuscles: true,
-			stilesCrawford: false,
+			muscleReveal: 0.5,
 		});
 		sceneRef.current = s;
+		let current = 4;
+		s.setOnFrame((dt, elapsed, reduced) => {
+			const p = settings.current;
+			// An illustrative repeating light response, not a physiological measurement.
+			const phase = elapsed % 14;
+			const bright = phase >= 6 && phase < 9;
+			const target =
+				p.animate && !reduced
+					? Math.max(
+							2,
+							Math.min(
+								8,
+								p.diameter +
+									0.12 * Math.sin(elapsed * 2.3) -
+									(bright ? 1.4 : 0),
+							),
+						)
+					: p.diameter;
+			current =
+				p.animate && !reduced
+					? current +
+						(target - current) *
+							(1 - Math.exp(-dt / (target < current ? 0.35 : 1.1)))
+					: target;
+			s.params.pupilRadius = current / 24;
+			s.params.pigmentation = p.pigment;
+			s.params.muscleReveal = p.reveal;
+		});
+		s.setDebug(() => ({
+			startingDiameterMm: settings.current.diameter,
+			currentDiameterMm: current,
+			muscleReveal: settings.current.reveal,
+			motion: "Illustrative light-response cycle",
+		}));
 		return () => {
 			s.dispose();
 			sceneRef.current = null;
 		};
 	}, []);
-
-	useEffect(() => {
-		const s = sceneRef.current;
-		if (!s) return;
-		s.params.pupilRadius = diameter * (0.5 / 12.0);
-		s.params.showMuscles = showMuscles;
-		s.params.pigmentation = pigment;
-		s.invalidate();
-	}, [diameter, showMuscles, pigment]);
-
-	const defaults = useInitialParameters(
-		{ diameter, showMuscles, pigment },
+	useInitialParameters(
+		{ diameter, pigment, reveal, animate },
 		(initial) => {
 			setDiameter(initial.diameter);
-			setShowMuscles(initial.showMuscles);
 			setPigment(initial.pigment);
+			setReveal(initial.reveal);
+			setAnimate(initial.animate);
 		},
 		mountRef,
 	);
 	return (
-		<div className="pupil-demo relative w-full h-[450px] md:h-[550px] bg-transparent overflow-hidden rounded-lg group">
-			<div className="pupil-metrics absolute top-4 left-4 z-10 flex flex-col items-start gap-1 pointer-events-none bg-card/80 backdrop-blur-md border border-border p-3 rounded-xl shadow-lg max-w-[240px]">
-				<span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1 border-b border-border/50 pb-1 w-full text-center">
-					{t("Iris Anatomy")}
-				</span>
-				<div className="text-[11px] text-muted-foreground leading-snug">
+		<div className="pupil-demo pupil-anatomy relative w-full bg-transparent">
+			<div className="iris-caption">
+				<strong>{t("Iris Anatomy")}</strong>
+				<p>
 					{t("Two muscles set the pupil size: a circular")}{" "}
-					<span className="text-rose-400 font-semibold">{t("sphincter")}</span>{" "}
+					<span className="text-rose-400">{t("sphincter")}</span>{" "}
 					{t("that closes it and radial")}{" "}
-					<span className="text-sky-400 font-semibold">{t("dilator")}</span>{" "}
+					<span className="text-sky-400">{t("dilator")}</span>{" "}
 					{t("fibers that open it.")}
-				</div>
-			</div>
-
-			<div className="pupil-controls absolute bottom-4 left-1/2 md:-translate-x-1/2 z-20 flex flex-col md:flex-row items-center gap-3 bg-card/80 backdrop-blur-md border border-border p-3 rounded-2xl shadow-xl w-11/12 max-w-lg">
-				<div className="flex items-center gap-3 w-full md:flex-1">
-					<span className="text-xs font-semibold text-foreground whitespace-nowrap">
-						{t("Pupil")}{" "}
-						<span className="font-mono text-primary font-bold">
-							{diameter.toFixed(1)} mm
+				</p>
+				<details className="eye-settings-inline">
+					<summary>{es ? "Ajustes" : "Settings"}</summary>
+					<label className="eye-setting-row">
+						<span>
+							{es ? "Diámetro inicial" : "Starting diameter"}{" "}
+							<output>{diameter.toFixed(1)} mm</output>
 						</span>
-					</span>
-					<ParameterControl
-						value={diameter}
-						initial={defaults.diameter}
-						onReset={setDiameter}
-						label="pupil diameter"
-						lang={lang}
-						context={parameterContext.pupil}
-					>
 						<input
 							type="range"
 							aria-label={t("Pupil diameter")}
 							min="2"
 							max="8"
-							step="0.1"
+							step=".1"
 							value={diameter}
-							onChange={(e) => setDiameter(parseFloat(e.target.value))}
-							className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+							onChange={(e) => setDiameter(+e.target.value)}
 						/>
-					</ParameterControl>
-				</div>
-				<div className="flex flex-wrap items-center gap-2">
-					<ParameterControl
-						value={showMuscles}
-						initial={defaults.showMuscles}
-						onReset={setShowMuscles}
-						label="muscle overlay"
-						lang={lang}
-					>
-						<button
-							onClick={() => setShowMuscles(!showMuscles)}
-							className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${showMuscles ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
-						>
-							{showMuscles ? t("Muscles on") : t("Muscles off")}
-						</button>
-					</ParameterControl>
-					<ParameterControl
-						value={pigment}
-						initial={defaults.pigment}
-						onReset={setPigment}
-						label="iris pigmentation"
-						lang={lang}
-					>
-						<select
-							aria-label={t("Iris pigment")}
-							value={pigment}
-							onChange={(e) => setPigment(parseInt(e.target.value, 10))}
-							className="bg-card text-foreground font-semibold text-xs px-2.5 py-1.5 rounded-lg border border-border focus:outline-none cursor-pointer"
-						>
-							<option value={0}>{t("Brown")}</option>
-							<option value={1}>{t("Hazel")}</option>
-							<option value={2}>{t("Blue")}</option>
-							<option value={3}>{t("Albino")}</option>
-						</select>
-					</ParameterControl>
-				</div>
+					</label>
+					<div className="flex items-center justify-between gap-2">
+						<label>
+							{t("Iris pigment")}{" "}
+							<select
+								value={pigment}
+								onChange={(e) => setPigment(+e.target.value)}
+							>
+								{["Brown", "Hazel", "Blue", "Albino"].map((name, i) => (
+									<option key={name} value={i}>
+										{t(name)}
+									</option>
+								))}
+							</select>
+						</label>
+						<ParameterInfo
+							label="pupil diameter"
+							context={parameterContext.pupil}
+						/>
+					</div>
+					<label className="eye-checkbox">
+						<input
+							type="checkbox"
+							checked={animate}
+							onChange={(e) => setAnimate(e.target.checked)}
+						/>
+						{es
+							? "Respuesta a la luz ilustrativa"
+							: "Illustrative light response"}
+					</label>
+				</details>
 			</div>
-
-			<div
-				ref={mountRef}
-				className="pupil-scene w-full h-full cursor-grab active:cursor-grabbing"
-			/>
+			<div className="iris-comparison">
+				<div
+					ref={mountRef}
+					className="absolute inset-0 cursor-grab active:cursor-grabbing"
+				/>
+				<div className="comparison-labels">
+					<span>{es ? "Músculos" : "Muscles"}</span>
+					<span>{es ? "Superficie" : "Surface"}</span>
+				</div>
+				<button
+					type="button"
+					role="slider"
+					aria-label={es ? "Mostrar músculos" : "Reveal muscles"}
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-valuenow={Math.round(reveal * 100)}
+					aria-valuetext={`${Math.round(reveal * 100)}%`}
+					className="muscle-divider"
+					style={{ left: `${reveal * 100}%` }}
+					onKeyDown={(event) => {
+						const next =
+							event.key === "Home"
+								? 0
+								: event.key === "End"
+									? 1
+									: event.key === "ArrowLeft"
+										? reveal - 0.05
+										: event.key === "ArrowRight"
+											? reveal + 0.05
+											: null;
+						if (next !== null) {
+							event.preventDefault();
+							setReveal(Math.max(0, Math.min(1, next)));
+						}
+					}}
+					onPointerDown={(event) => {
+						event.currentTarget.setPointerCapture(event.pointerId);
+					}}
+					onPointerMove={(event) => {
+						if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+						const rect =
+							event.currentTarget.parentElement!.getBoundingClientRect();
+						setReveal(
+							Math.max(
+								0,
+								Math.min(1, (event.clientX - rect.left) / rect.width),
+							),
+						);
+					}}
+					onPointerUp={(event) =>
+						event.currentTarget.releasePointerCapture(event.pointerId)
+					}
+				>
+					<span aria-hidden="true">↔</span>
+				</button>
+			</div>
+			<p className="comparison-note">
+				{es
+					? "Arrastra el divisor. El movimiento ilustra pequeños cambios y una respuesta a luz más intensa."
+					: "Drag the divider. Motion illustrates small fluctuations and a response to brighter light."}
+			</p>
 		</div>
 	);
 }

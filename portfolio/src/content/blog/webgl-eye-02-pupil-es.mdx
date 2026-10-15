@@ -22,7 +22,7 @@ import PupilReflex from '../../components/eye/pupil/PupilReflex';
 import PupilHardwareSync from '../../components/eye/pupil/PupilHardwareSync';
 import NervePathway from '../../components/eye/pupil/NervePathway';
 
-En la [Parte 1](/es/blog/webgl-eye-01-cornea) moldeamos la córnea, la lente frontal fija del ojo. Pero una cámara necesita más que una lente: necesita una apertura, un orificio ajustable que controla cuánta luz entra. En el ojo ese orificio es la **pupila**, y el anillo de color a su alrededor, el **iris**, es el músculo que la abre y la cierra.
+En la [Parte 1](/es/blog/webgl-eye-01-cornea) moldeamos la córnea, la lente frontal fija del ojo. Pero una cámara necesita más que una lente: necesita una apertura, un orificio ajustable que controla cuánta luz entra. En el ojo ese orificio es la **pupila**, y el anillo de color a su alrededor, el **iris**, contiene los músculos que la abren y la cierran.
 
 > *Las mujeres del Renacimiento usaban gotas de belladona (Atropa belladonna, "hermosa dama") para dilatar sus pupilas con fines cosméticos, muchas veces sin saber que la planta las estaba envenenando silenciosamente.*
 
@@ -30,12 +30,14 @@ La pupila no es solo un orificio pasivo. Reacciona a la luz en una fracción de 
 
 ## El iris: Una apertura viva
 
-El iris es lo que da color a los ojos, pero para un ingeniero óptico es un músculo que cambia la pupila entre unos $2\ \text{mm}$ de ancho (con luz brillante) y $8\ \text{mm}$ de ancho (en la oscuridad). Lo hace con dos músculos opuestos:
+El iris es lo que da color a los ojos, pero para un ingeniero óptico es una apertura ajustable, con diámetros pupilares aparentes que suelen variar entre unos $2\ \text{mm}$ de ancho (con luz brillante) y $8\ \text{mm}$ de ancho (en la oscuridad). Lo hace con dos músculos opuestos:
 
 1. **El esfínter** es un anillo de músculo alrededor del borde de la pupila. Cuando se contrae hace que la pupila sea más pequeña (**constricción**). Funciona con el sistema nervioso parasimpático de "descanso y digestión".
 2. **El dilatador** es un conjunto de células mioepiteliales dispuestas como radios, que se extienden hacia afuera desde la pupila. Cuando se contrae abre la pupila (**dilatación**). Funciona con el sistema de "lucha o huida" simpático.
 
 El frente del iris está dividido en dos anillos por una cresta ondulada llamada **collarete**: una *zona pupilar* interna alrededor de la pupila y una *zona ciliar* externa hacia el blanco del ojo. Está salpicado de hoyos y pliegues llamados **criptas de Fuchs**, **nódulos de Wölfflin** en la periferia, y el **ribete pupilar** en el margen, junto con **surcos de contracción** concéntricos en la zona exterior. Estas características anatómicas son las que le dan a cada iris su textura única y fascinante.
+
+Hay dos pupilas que conviene distinguir: la abertura física del iris y su imagen vista a través de la córnea, la **pupila de entrada**. La córnea suele hacer que esa imagen parezca mayor y más anterior; el aumento depende de la geometría y del ángulo de observación. La **pupila de salida** es la imagen de la abertura vista a través de las ópticas posteriores. Esta primera demo representa la abertura del iris; su córnea vidriosa es un material ilustrativo, no una simulación óptica calibrada.
 
 Para capturar esta complejidad biológica en nuestra simulación, el modelo a continuación construye el iris en 3D bajo una córnea vidriosa (aunque, estrictamente hablando, la pupila suele ser ligeramente excéntrica). El iris en sí se dibuja en un shader cuya receta son esencialmente dos círculos: descartar todo lo que esté fuera del iris, pintar de negro el agujero en el medio, y rellenar el anillo entre ellos con ruido procedimental para simular las criptas y las fibras musculares.
 
@@ -49,7 +51,9 @@ if (dist < pupilRadius) {            // dentro de la pupila: el agujero oscuro
 // en el medio: el iris coloreado, texturizado con ruido en capas (fbm)
 ```
 
-Arrastra el control deslizante de diámetro para abrir y cerrar la pupila, enciende el mapa muscular para ver el anillo del esfínter rojo y las fibras dilatadoras radiales azules, y cambia el pigmento para ver cómo la melanina cambia el color. Arrastra la vista para orbitarla.
+Al mirar desde un lado, la pupila de entrada no se comporta exactamente como un disco plano: la refracción corneal altera su forma aparente ([Mathur et al., 2013](https://doi.org/10.1167/13.6.3)). Orbitar esta demo ilustra el volumen, no reproduce ese ajuste experimental.
+
+Arrastra el divisor para revelar el anillo rojo del esfínter y las fibras azules del dilatador. Abre Ajustes en la descripción para elegir el diámetro inicial y el pigmento, o pausar el ciclo ilustrativo de respuesta a la luz. Arrastra otra zona del ojo para orbitarlo.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -62,9 +66,20 @@ Arrastra el control deslizante de diámetro para abrir y cerrar la pupila, encie
 
 ## Calculando la luz
 
-¿Por qué importa tanto el tamaño de la pupila? Porque la cantidad de luz que llega a la retina depende del *área* del agujero. Pequeños cambios en el tamaño de la pupila tienen un gran efecto: pasar de una pupila de $2\ \text{mm}$ a la luz del sol a una pupila de $8\ \text{mm}$ en la oscuridad es un cambio de 4x en el diámetro, pero un cambio de 16x en el área. Sin embargo, el área no es toda la historia. El **efecto Stiles-Crawford de primer tipo (SCE-I)** demuestra que la luz que entra por el *borde* de una pupila ancha es menos efectiva que la luz que entra por el centro, por lo que el área pupilar *efectiva* crece más lentamente que el área geométrica. Esto ocurre porque la retina no es un sensor plano y uniforme; sus conos actúan como diminutas fibras ópticas orientadas hacia el centro de la pupila. El efecto Stiles-Crawford (Stiles y Crawford, 1933) está asociado principalmente a la visión mediada por los conos, por lo que su influencia es mucho menos relevante en condiciones plenamente escotópicas y dominadas por los bastones.
+¿Por qué importa tanto el tamaño de la pupila? Porque la cantidad de luz que llega a la retina depende del *área* de la pupila de entrada: la imagen del agujero formada por la córnea. Pequeños cambios en el tamaño de la pupila tienen un gran efecto: pasar de una pupila de $2\ \text{mm}$ a la luz del sol a una pupila de $8\ \text{mm}$ en la oscuridad es un cambio de 4x en el diámetro, pero un cambio de 16x en el área. Sin embargo, el área no es toda la historia. El **efecto Stiles-Crawford de primer tipo (SCE-I)** demuestra que la luz que entra por el *borde* de una pupila ancha es menos efectiva que la luz que entra por el centro, por lo que el área pupilar *efectiva* crece más lentamente que el área geométrica. Esto ocurre porque la retina no es un sensor plano y uniforme; sus conos son sensibles a la dirección de llegada de la luz. Sus propiedades de guía de onda ayudan a explicar por qué la luz oblicua se acopla de forma distinta; no son simples tubos de rayos. El efecto Stiles-Crawford (Stiles y Crawford, 1933) está asociado principalmente a la visión mediada por los conos, por lo que su influencia es mucho menos relevante en condiciones plenamente escotópicas y dominadas por los bastones.
 
-Más allá de simplemente dejar entrar la luz, la pupila actúa como la apertura del ojo para la nitidez. La **PSF** describe cómo se extiende la imagen de un punto; la **MTF**, cuánto contraste conservan los detalles de distintos tamaños. Ambas dependen del diámetro pupilar. Si la pupila es demasiado pequeña, la difracción desenfoca la imagen; si es demasiado grande, las aberraciones ópticas periféricas de la córnea y el cristalino arruinan el enfoque. Los diámetros de unos 3 a 4 mm suelen ofrecer un equilibrio útil entre difracción y aberraciones, pero el óptimo depende del ojo y de la tarea visual; el tamaño de reposo no es fijo.
+Para estos cálculos, el diámetro es el de la **pupila de entrada**. Un troland es una forma cómoda de combinar luminancia y apertura: $T=L A$, con $L$ en cd/m² y $A$ como área de la pupila de entrada en mm². No es una medida de potencia absorbida por la retina.
+
+Más allá de simplemente dejar entrar la luz, la pupila actúa como la apertura del ojo para la nitidez. La **PSF** describe cómo se extiende la imagen de un punto; la **MTF**, cuánto contraste conservan los detalles de distintos tamaños. Ambas dependen del diámetro pupilar. Si la pupila es demasiado pequeña, la difracción desenfoca la imagen; si es demasiado grande, las aberraciones de la córnea y el cristalino suelen reducir la calidad de la imagen. Los diámetros de unos 3 a 4 mm suelen ofrecer un equilibrio útil entre difracción y aberraciones, pero el óptimo depende del ojo y de la tarea visual; el tamaño de reposo no es fijo.
+
+<details>
+<summary>Un paso más: fase y calidad de imagen</summary>
+
+La apertura determina qué luz pasa; el frente de onda determina cómo se suma. La pupila generalizada es $P(x,y)=A(x,y)\exp(i2\pi W(x,y)/\lambda)$: $A$ es transmisión de amplitud, $W$ es error de frente de onda y $\lambda$ es longitud de onda. En óptica escalar monocromática, la PSF es proporcional a $|\mathcal{F}\{P\}|^2$. La OTF añade fase al contraste: $\mathrm{OTF}=\mathrm{MTF}\exp(i\,\mathrm{PTF})$. Algunas aberraciones producen inversiones de contraste, no solo desenfoque.
+
+El término cuártico de la aberración esférica primaria crece como $r^4$; no es una ley de escala para todos los coeficientes de Zernike. La compensación parcial entre córnea y cristalino tampoco fija un diámetro óptimo universal. Métricas como el Strehl visual (VSX) ponderan la PSF por sensibilidad neural; estas demos no calculan esa calidad retiniana ([Thibos et al., 2004](https://doi.org/10.1167/4.4.9)).
+
+</details>
 
 > [!NOTE]
 > **¿Afecta el color del iris a la cantidad de luz que entra?**
@@ -75,6 +90,8 @@ Más allá de simplemente dejar entrar la luz, la pupila actúa como la apertura
 
 $$d(L) = 4.9 - 3.0 \tanh\left(0.4 \log_{10}(L) + 0.4\right)$$
 
+El término $+0.4$ es un desplazamiento elegido para esta demo: no es la conversión publicada por Moon y Spencer a cd/m². Watson y Yellott revisan tanto su fórmula como las posteriores de Stanley y Davies y Barten.
+
 Esto da un diámetro ilustrativo en milímetros para escenas oscuras y brillantes, no una predicción individual. En código es una sola línea:
 
 ```ts
@@ -84,7 +101,9 @@ function pupilFromLuminance(L) {                 // L = luminancia de la escena 
 }
 ```
 
-En el modelo a continuación, configuras el tamaño de la pupila y el brillo de la escena a mano y lees la luz que llega a la retina: el área geométrica de la pupila, la iluminancia retiniana fotópica en trolands (Troland, 1917), y el **área efectiva ponderada por SCE**. Usamos un perfil gaussiano centrado simplificado, $\eta(r) = e^{-\rho r^2}$, con $\rho = 0.085\ \text{mm}^{-2}$ como parámetro del modelo. La ponderación cambia la eficacia visual estimada de la luz, no el tamaño físico de la pupila; el valor sin ponderar en trolands sigue siendo luminancia por área geométrica.
+En el modelo a continuación, configuras el tamaño de la pupila y el brillo de la escena a mano y lees la luz que llega a la retina: el área geométrica de la pupila, la iluminancia retiniana fotópica en trolands (Troland, 1917), y el **área efectiva ponderada por SCE**. Usamos un perfil gaussiano centrado simplificado, $\eta(r)=10^{-\rho_{10}r^2}=e^{-\rho_e r^2}$, eligiendo $\rho_{10}=0.05\ \text{mm}^{-2}$ y por tanto $\rho_e=\rho_{10}\ln 10\approx0.115\ \text{mm}^{-2}$. Es una elección ilustrativa convencional, no una constante individual; la direccionalidad varía con la longitud de onda, la posición retiniana y el observador ([Westheimer, 2008](https://pmc.ncbi.nlm.nih.gov/articles/PMC2572678/)). La ponderación cambia la eficacia visual estimada de la luz, no el tamaño físico de la pupila; el valor sin ponderar en trolands sigue siendo luminancia por área geométrica.
+
+El interruptor SCE cambia las lecturas, no el color del iris. El efecto de segundo tipo (SCE-II) se refiere a cambios de color percibido con el punto de entrada de la luz, y no se simula aquí.
 
 <InteractiveViewer>
   <div slot="preview">
@@ -97,7 +116,7 @@ En el modelo a continuación, configuras el tamaño de la pupila y el brillo de 
 
 ## El reflejo pupilar
 
-Sabemos cómo el tamaño de la pupila afecta a la luz entrante, pero ¿cómo regula realmente el cuerpo este tamaño para controlar la luz que entra? Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz** (RPL). Es un bucle de retroalimentación simple pero crítico. La información luminosa que impulsa el reflejo pupilar proviene de los bastones, los conos y las ipRGCs que expresan melanopsina. Los bastones y los conos proporcionan respuestas rápidas, mientras que la melanopsina aporta una contribución más lenta y sostenida al control de la pupila. La señal sube por el nervio óptico. Las señales retinianas llegan a los núcleos pretectales por los nervios y tractos ópticos, con un cruce parcial en el quiasma óptico. Las neuronas pretectales se proyectan a ambos núcleos de Edinger-Westphal, con conexiones cruzadas por la comisura posterior. Esto provoca el reflejo consensual en el ojo opuesto. Finalmente, la salida del núcleo de Edinger-Westphal viaja con el nervio craneal III hasta el ganglio ciliar, y las fibras posganglionares recorren los nervios ciliares cortos hasta el esfínter de la pupila. Se contrae, luego se relaja.
+Sabemos cómo el tamaño de la pupila afecta a la luz entrante, pero ¿cómo regula realmente el cuerpo este tamaño para controlar la luz que entra? Ilumina el ojo de alguien y su pupila se encoge. Ese es el **reflejo pupilar a la luz** (RPL). Es un bucle de retroalimentación simple pero crítico. La información luminosa que impulsa el reflejo pupilar proviene de los bastones, los conos y las ipRGCs que expresan melanopsina. Los bastones y los conos proporcionan respuestas rápidas, mientras que la melanopsina aporta una contribución más lenta y sostenida al control de la pupila. La señal sube por el nervio óptico. Las señales retinianas llegan a los núcleos olivares pretectales (OPN) por los nervios y tractos ópticos, con un cruce parcial en el quiasma óptico. Las neuronas pretectales se proyectan a ambos grupos celulares preganglionares de Edinger-Westphal (EWpg), con conexiones cruzadas por la comisura posterior. Esto provoca el reflejo consensual en el ojo opuesto. Finalmente, la salida del núcleo de Edinger-Westphal viaja con el nervio craneal III hasta el ganglio ciliar, y las fibras posganglionares recorren los nervios ciliares cortos hasta el esfínter de la pupila. Se contrae, luego se relaja.
 
 Debido a que este circuito neuronal atraviesa profundamente el tronco encefálico, actúa como una ventana diagnóstica hacia el cerebro (Loewenfeld, 1993). Si un paciente ha sufrido una lesión cerebral traumática, un médico iluminará sus ojos con una linterna; una pupila que permanece fija y dilatada puede indicar una presión grave sobre el tronco encefálico. El reflejo también está fuertemente influenciado por las drogas, por lo que los opiáceos causan pupilas puntiformes y algunos estimulantes pueden producir dilatación pupilar.
 
@@ -152,7 +171,11 @@ Aunque el reflejo a la luz es el conductor más fuerte de la pupila, no es el ú
 
 </div>
 
+La vía simpática desciende del hipotálamo al centro cilioespinal en C8–T2, releva en el ganglio cervical superior y alcanza el dilatador principalmente por los nervios ciliares largos. Su interrupción puede causar miosis y ptosis, como en el síndrome de Horner (Loewenfeld, 1993; McDougal y Gamlin, 2015).
+
 Las pupilas suelen dilatarse durante tareas cognitivas exigentes. Pueden contribuir tanto la actividad simpática como la reducción del impulso parasimpático; el tamaño y el momento de la respuesta dependen del nivel de activación, las condiciones visuales, el tamaño pupilar basal y la estructura de la tarea (Beatty, 1982).
+
+El sistema locus coeruleus–noradrenalina participa en la relación entre activación y pupila, pero el diámetro pupilar no mide directamente su actividad: intervienen varios circuitos ([Joshi y Gold, 2020](https://pmc.ncbi.nlm.nih.gov/articles/PMC7271902/)).
 
 Los diseñadores de interfaces de usuario, psicólogos e investigadores usan rastreadores oculares para estudiar respuestas pupilares asociadas a la demanda cognitiva. Aunque algunos han propuesto utilizar la pupilometría para monitorizar la **fatiga en el lugar de trabajo** o la **sobrecarga cognitiva** en entornos de alto riesgo como quirófanos o control de tráfico aéreo, la realidad es increíblemente compleja. El reflejo pupilar a la luz es abrumadoramente más fuerte que las respuestas cognitivas. Separar las diminutas dilataciones provocadas por la tarea (a menudo de solo una fracción de milímetro) de las fluctuaciones masivas causadas por los cambios en la iluminación ambiental, los parpadeos y el brillo de las pantallas en un entorno del mundo real es excepcionalmente difícil. Sin embargo, en entornos de laboratorio controlados, manteniendo la iluminación estrictamente constante y estableciendo una línea base rigurosa, los investigadores aún pueden medir de manera confiable estos sutiles marcadores de esfuerzo mental.
 
@@ -178,6 +201,8 @@ Con la córnea moldeada y la pupila ahora abriéndose y cerrándose por sí sola
 Ya que estamos hablando de pupilas, ¿por qué solo simularlas cuando puedes conducir el modelo 3D con tus ojos reales? Si tienes acceso a un par de gafas de seguimiento ocular [Pupil Labs Neon](https://pupil-labs.com/products/neon), ¡puedes conectarlas directamente a esta publicación del blog!
 
 Dado que la aplicación Neon Companion incluye la aplicación de monitor, podemos obtenerla e incrustarla en un iframe oculto cuyo ciclo de vida controlamos. Al leer silenciosamente el payload de la mirada desde su flujo de datos, tenemos todo lo que necesitamos sin integraciones complejas.
+
+Aquí cambia la convención: Pupil Labs describe el diámetro de Neon como una **estimación del tamaño físico de la pupila en mm**, no simplemente el diámetro aparente en el vídeo. Conservamos esa estimación sin añadir una corrección fija de aumento corneal. La imagen 3D es ilustrativa; no calibra el tamaño aparente ni convierte las medidas de Neon en trolands. Véase la [definición oficial de las medidas](https://docs.pupil-labs.com/neon/data-collection/data-streams/#pupil-diameters).
 
 En el [payload documentado de mirada con estado ocular de Neon](https://pupil-labs.github.io/pl-realtime-api/dev/guides/under-the-hood/#decoding-gaze-data), los diámetros pupilares izquierdo y derecho son Float32 big-endian en los bytes 9 y 37. Localizamos el payload tras la cabecera RTP, validamos ambos ojos y representamos las medidas disponibles. El gráfico conserva las últimas 1000 muestras; los valores ausentes aparecen como huecos. El flujo de medidas puede funcionar a 200 Hz según el Companion y las condiciones, mientras que el renderizado sigue los fotogramas de animación del navegador.
 

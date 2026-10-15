@@ -35,6 +35,10 @@ export const parameterContext = {
 		basis: "Illustrative",
 		text: "Pupil diameter in millimetres, chosen for this visualisation. It is independent of luminance here; no eye has been measured.",
 	},
+	entrancePupil: {
+		basis: "Illustrative",
+		text: "Entrance-pupil diameter in mm: the corneal image of the iris opening. Used for area and trolands here; the 3D material is not a calibrated magnification model.",
+	},
 	luminance: {
 		basis: "Illustrative",
 		text: "Scene luminance in cd/m² is an input to the demo, not a screen calibration or measurement. The reflex uses a simplified luminance-only relationship, not the full Watson–Yellott model.",
@@ -45,7 +49,7 @@ export const parameterContext = {
 	},
 	sce: {
 		basis: "Illustrative",
-		text: "A centred Gaussian weights rays by pupil entry position. This simplified SCE efficiency changes the effective area, not the physical pupil diameter.",
+		text: "A centred Gaussian in entrance-pupil coordinates uses rho10 = 0.05 mm⁻² (rhoE ≈ 0.115 mm⁻²). This simplified SCE efficiency changes the effective area, not the physical pupil diameter.",
 		source: {
 			label: "Stiles & Crawford (1933)",
 			href: "https://doi.org/10.1098/rspb.1933.0019",
@@ -127,10 +131,10 @@ export const parameterContext = {
 	},
 	neon: {
 		basis: "Measured",
-		text: "Valid left/right pupil diameters in millimetres from the connected Neon eye-state stream. Missing eyes remain gaps. Pausing offscreen drawing does not stop acquisition.",
+		text: "Neon estimates physical left/right pupil diameters in millimetres, not simply apparent video diameters. Missing eyes remain gaps. Pausing offscreen drawing does not stop acquisition.",
 		source: {
 			label: "Pupil Labs: Neon real-time data",
-			href: "https://docs.pupil-labs.com/neon/real-time-api/",
+			href: "https://docs.pupil-labs.com/neon/data-collection/data-streams/#pupil-diameters",
 		},
 	},
 } satisfies Record<string, ParameterContext>;

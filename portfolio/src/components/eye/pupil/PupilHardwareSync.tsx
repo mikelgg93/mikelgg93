@@ -7,7 +7,7 @@ import { ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createIrisScene, type IrisScene } from "./irisScene";
 import {
-	createPupilReceiver,
+	createPupilMessageReader,
 	drawPupilGraph,
 	type PupilSample,
 	validPupil,
@@ -54,7 +54,6 @@ export default function PupilHardwareSync({
 			pupilRadius: 3.0 * (0.5 / 12.0),
 			pigmentation: 1,
 			showMuscles: false,
-			stilesCrawford: false,
 		});
 
 		return () => {
@@ -85,6 +84,7 @@ export default function PupilHardwareSync({
 
 		const abort = new AbortController();
 		const sockets = new Set<WebSocket>();
+		const readers = new Set<ReturnType<typeof createPupilMessageReader>>();
 		let frame: HTMLIFrameElement | null = null;
 		let disposed = false;
 		let lastSampleAt = performance.now();
@@ -92,6 +92,7 @@ export default function PupilHardwareSync({
 		let monitorStarted = false;
 		let animationFrame: number | null = null;
 		let latest: PupilSample | null = null;
+		let lastHudAt = -Infinity;
 		let renderingVisible = false;
 		let schedulePresentation = () => {};
 		const stopVisibility = mountRef.current
@@ -129,6 +130,8 @@ export default function PupilHardwareSync({
 			stopVisibility();
 			window.clearInterval(watchdog);
 			if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+			for (const reader of readers) reader.dispose();
+			readers.clear();
 			for (const socket of sockets) socket.close();
 			sockets.clear();
 			frame?.remove(); // destroys the Monitor document's listeners and timers
@@ -213,7 +216,11 @@ export default function PupilHardwareSync({
 							sceneRef.current.params.pupilRadius = mean * (0.5 / 12.0);
 							sceneRef.current.invalidate();
 						}
-						setPupilMm(latest);
+						const now = performance.now();
+						if (now - lastHudAt >= 100) {
+							setPupilMm(latest);
+							lastHudAt = now;
+						}
 						const graph = canvasRef.current;
 						const ctx = graph?.getContext("2d");
 						if (graph && ctx)
@@ -247,21 +254,14 @@ export default function PupilHardwareSync({
 				// Do not compare hostnames: the Monitor resolves `neon.local` to the
 				// device IP (from /api/status) before opening its stream sockets.
 				if (new URL(url).pathname.includes("status")) return;
-				const receive = createPupilReceiver(onSample);
-				// Preserve message order even if the Monitor uses Blob rather than ArrayBuffer.
-				let pending = Promise.resolve();
-				socket.addEventListener("message", (event) => {
-					if (typeof event.data === "string") return;
-					pending = pending
-						.then(async () => {
-							if (disposed) return;
-							const data =
-								typeof event.data?.arrayBuffer === "function"
-									? await event.data.arrayBuffer()
-									: event.data;
-							if (!disposed) receive(new Uint8Array(data));
-						})
-						.catch(() => fail("Could not read the pupil stream."));
+				const reader = createPupilMessageReader(onSample, () =>
+					fail("Could not read the pupil stream. Reconnect to try again."),
+				);
+				readers.add(reader);
+				socket.addEventListener("message", (event) => reader.push(event.data));
+				socket.addEventListener("close", () => {
+					reader.dispose();
+					readers.delete(reader);
 				});
 				socket.addEventListener("error", () =>
 					fail("Neon stream connection failed."),
@@ -392,33 +392,32 @@ export default function PupilHardwareSync({
 		<div className="pupil-demo relative w-full h-[500px] md:h-[580px] bg-transparent overflow-hidden rounded-lg group border border-border">
 			{/* Collapsible Settings Overlay */}
 			<div className="pupil-metrics absolute top-4 left-4 p-3 rounded-xl bg-card/80 backdrop-blur-md border border-border flex flex-col z-10 w-64 max-h-[calc(100%-2rem)] overflow-y-auto shadow-xl pointer-events-auto transition-all">
-				<div
-					className="flex items-center justify-between cursor-pointer select-none"
-					onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-				>
-					<div className="flex items-center gap-2">
-						<Settings2 className="w-3.5 h-3.5 text-muted-foreground" />
-						<span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-							{t("Live Neon pupil data")}
-							<ParameterInfo
-								label="Neon pupil diameter"
-								context={parameterContext.neon}
-							/>
-						</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<div
+				<div className="flex items-center gap-1">
+					<button
+						type="button"
+						aria-expanded={isSettingsOpen}
+						aria-label={t("Live Neon pupil data")}
+						onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+						className="flex flex-1 items-center gap-2 text-xs text-muted-foreground min-h-9 text-left"
+					>
+						<Settings2 size={14} className="shrink-0" aria-hidden="true" />
+						<span className="flex-1">{t("Live Neon pupil data")}</span>
+						<span
 							role="status"
 							aria-label={t(status)}
 							title={t(status)}
-							className={`w-2 h-2 rounded-full ${status === "streaming" ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" : status === "connecting" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
+							className={`w-1.5 h-1.5 shrink-0 rounded-full ${status === "streaming" ? "bg-emerald-500" : status === "connecting" ? "bg-amber-500" : "bg-red-500"}`}
 						/>
 						{isSettingsOpen ? (
-							<ChevronUp className="w-3 h-3 text-muted-foreground" />
+							<ChevronUp size={14} aria-hidden="true" />
 						) : (
-							<ChevronDown className="w-3 h-3 text-muted-foreground" />
+							<ChevronDown size={14} aria-hidden="true" />
 						)}
-					</div>
+					</button>
+					<ParameterInfo
+						label="Neon pupil diameter"
+						context={parameterContext.neon}
+					/>
 				</div>
 
 				{isSettingsOpen && (
