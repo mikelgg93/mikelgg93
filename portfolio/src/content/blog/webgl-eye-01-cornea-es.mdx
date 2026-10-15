@@ -89,9 +89,9 @@ for (let r = 0; r <= validR; r += step) {
 }
 ```
 
-Usa los botones a continuación para cambiar entre una córnea humana típica, una córnea esférica y un ejemplo oblato / post-LASIK miópico. El color va desde el verde en el centro hasta el color de la forma en el borde, para comparar las formas; estos colores no calculan la refracción.
+Usa el menú desplegable a continuación para cambiar entre una córnea humana típica, una córnea esférica y un ejemplo oblato / post-LASIK miópico. El color va desde el verde en el centro hasta el color de la forma en el borde, para comparar las formas; estos colores no calculan la refracción.
 
-<InteractiveViewer>
+<InteractiveViewer reset={false}>
   <div slot="preview">
     <CorneaAspheric lang="es" client:visible />
   </div>
@@ -143,7 +143,7 @@ La córnea suele describirse en cinco capas. Aquí también distinguimos la capa
 
 El modelo a continuación es una **sección transversal esquemática con espesores aproximadamente proporcionales**, para que puedas ver cuánta córnea es realmente estroma. Las láminas entrelazadas del estroma se simplifican a fibras con direcciones alternas (como contrachapado), y el mosaico endotelial, mayoritariamente hexagonal, se amplía para hacerlo visible. La vista separada cambia la escala de las capas. Presiona el botón para separar las capas.
 
-<InteractiveViewer>
+<InteractiveViewer reset={false}>
   <div slot="preview">
     <CorneaLayered lang="es" client:visible />
   </div>
