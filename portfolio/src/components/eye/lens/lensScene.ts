@@ -23,6 +23,8 @@ export function createLensScene(
 	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 	renderer.setSize(container.clientWidth, container.clientHeight);
 	renderer.localClippingEnabled = true;
+	renderer.toneMapping = THREE.ACESFilmicToneMapping;
+	renderer.toneMappingExposure = 1.1;
 	container.appendChild(renderer.domElement);
 	const scene = new THREE.Scene();
 	// Transmission samples the WebGL background, not the CSS behind the canvas.
