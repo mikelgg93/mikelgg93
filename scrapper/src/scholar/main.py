@@ -86,30 +86,20 @@ async def ggscholar_scrap(
     )
 
     if not citations_per_year:
-        logging.info("No citation data available")
-    else:
-        img_path = (
-            os.path.join(out_path, "barplot.png")
-            if out_path
-            else os.path.join(os.curdir, "barplot.png")
+        raise RuntimeError(
+            "No citation data retrieved; the request may be blocked. "
+            "Existing data was preserved."
         )
-        bar_plot(citations_per_year, title, UPath(img_path))
 
-    if not citations_per_year:
-        logging.info("No data available")
-    else:
-        combined_data: dict = {
-            "perYear": citations_per_year,
-            "articles": publications_data,
-        }
-        file_path = (
-            os.path.join(out_path, "citations.json")
-            if out_path
-            else os.path.join(os.curdir, "citations.json")
-        )
-        with Path(file_path).open("w") as f:
-            json.dump(combined_data, f, indent=4)
-        logging.info("Updated JSON")
+    img_path = Path(out_path or ".") / "barplot.png"
+    bar_plot(citations_per_year, title, UPath(img_path))
+    combined_data = {
+        "perYear": citations_per_year,
+        "articles": publications_data,
+    }
+    with Path(file_path).open("w") as f:
+        json.dump(combined_data, f, indent=4)
+    logging.info("Updated JSON")
 
 
 @app.command()
