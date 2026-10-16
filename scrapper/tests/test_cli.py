@@ -108,9 +108,12 @@ async def test_ggscholar_scrap_writes_files(tmp_path):
 @pytest.mark.asyncio
 async def test_ggscholar_scrap_no_data_no_barplot(tmp_path):
     """When playwright returns no citations, no barplot.png should be created."""
-    with patch(
-        "scholar.main.playwright_getweb",
-        new=AsyncMock(return_value=([], [], None)),
+    with (
+        patch(
+            "scholar.main.playwright_getweb",
+            new=AsyncMock(return_value=([], [], None)),
+        ),
+        pytest.raises(RuntimeError, match="No citation data"),
     ):
         await ggscholar_scrap("TESTID", "profile", str(tmp_path))
 
