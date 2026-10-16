@@ -51,6 +51,8 @@ const mobileHint = hasMobileModelControls
       <div class="w-full h-[40vh] min-h-[300px] overflow-hidden relative">
         <Image
           id="blog-hero-image"
+          loading="eager"
+          fetchpriority="high"
           src={frontmatter.image}
           width={1200}
           height={630}

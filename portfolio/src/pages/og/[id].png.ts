@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { getVisiblePosts } from "@/lib/blog";
 import satori from "satori";
+import sharp from "sharp";
 import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -39,9 +40,11 @@ export const GET: APIRoute = async ({ props }) => {
       } else {
         const imagePathRaw = post.data.image.startsWith("/") ? post.data.image.slice(1) : post.data.image;
         const absoluteImagePath = path.resolve(process.cwd(), "public", imagePathRaw);
-        const imageBuf = await fs.readFile(absoluteImagePath);
+        let imageBuf = await fs.readFile(absoluteImagePath);
         const ext = path.extname(absoluteImagePath).toLowerCase().replace(".", "") || "png";
-        const mime = ext === "jpg" ? "jpeg" : ext;
+        // Social cards need a static PNG; preserve animation in the page hero.
+        if (ext === "webp") imageBuf = await sharp(imageBuf).png().toBuffer();
+        const mime = ext === "webp" ? "png" : ext === "jpg" ? "jpeg" : ext;
         postImageBase64 = `data:image/${mime};base64,${imageBuf.toString("base64")}`;
       }
     } catch (e) {
