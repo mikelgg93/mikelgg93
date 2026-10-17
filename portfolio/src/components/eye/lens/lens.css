@@ -199,3 +199,20 @@
 		padding: 12px;
 	}
 }
+
+.lens-options {
+	width: 100%;
+	font-size: 13px;
+}
+.lens-options > summary {
+	cursor: pointer;
+	color: var(--muted-foreground);
+	padding: 4px 0;
+}
+.lens-options[open] > summary {
+	margin-bottom: 12px;
+}
+.lens-options > label {
+	display: block;
+	margin-bottom: 12px;
+}

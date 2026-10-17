@@ -137,8 +137,8 @@ export function createLensScene(
 		rendering = false;
 		if (result.animating || cameraChanged) invalidate();
 	}
-	// Focus the canvas to orbit without a pointer. The deck's slide shortcuts
-	// do not receive these events; elsewhere arrow keys retain page scrolling.
+	// Focus the canvas to orbit without a pointer. Outside the canvas,
+	// arrow keys retain normal page scrolling.
 	renderer.domElement.tabIndex = 0;
 	renderer.domElement.setAttribute(
 		"aria-label",

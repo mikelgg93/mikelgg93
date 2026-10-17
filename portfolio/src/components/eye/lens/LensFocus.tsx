@@ -1,5 +1,4 @@
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
+import { useInitialParameters } from "../ParameterControl";
 import "./lens.css";
 import { useEffect, useId, useRef, useState } from "react";
 import { RETINA_DISTANCE, reducedEye } from "./lensModel";
@@ -48,7 +47,7 @@ export default function LensFocus({
 			);
 	}, [demand, capacity]);
 
-	const defaults = useInitialParameters(
+	useInitialParameters(
 		{ demand, capacity },
 		(initial) => {
 			setDemand(initial.demand);
@@ -158,55 +157,39 @@ export default function LensFocus({
 				</text>
 			</svg>
 			<div className="lens-controls">
-				<ParameterControl
-					value={demand}
-					initial={defaults.demand}
-					onReset={setDemand}
-					label="accommodative demand"
-					lang={lang}
-					context={parameterContext.demand}
-				>
+				<label>
+					<span className="lens-value">
+						<span>{es ? "Distancia del objeto" : "Target distance"}</span>
+						<output>{distance}</output>
+					</span>
+					<input
+						type="range"
+						min="0"
+						max="8"
+						step="0.1"
+						value={demand}
+						aria-valuetext={distance}
+						onChange={(e) => setDemand(Number(e.target.value))}
+					/>
+				</label>
+
+				{showReserve && (
 					<label>
 						<span className="lens-value">
-							<span>{es ? "Distancia del objeto" : "Target distance"}</span>
-							<output>{distance}</output>
+							<span>
+								{es ? "Acomodación disponible" : "Available accommodation"}
+							</span>
+							<output>{capacity.toFixed(1)} D</output>
 						</span>
 						<input
 							type="range"
 							min="0"
 							max="8"
 							step="0.1"
-							value={demand}
-							aria-valuetext={distance}
-							onChange={(e) => setDemand(Number(e.target.value))}
+							value={capacity}
+							onChange={(e) => setCapacity(Number(e.target.value))}
 						/>
 					</label>
-				</ParameterControl>
-				{showReserve && (
-					<ParameterControl
-						value={capacity}
-						initial={defaults.capacity}
-						onReset={setCapacity}
-						label="accommodative reserve"
-						lang={lang}
-					>
-						<label>
-							<span className="lens-value">
-								<span>
-									{es ? "Acomodación disponible" : "Available accommodation"}
-								</span>
-								<output>{capacity.toFixed(1)} D</output>
-							</span>
-							<input
-								type="range"
-								min="0"
-								max="8"
-								step="0.1"
-								value={capacity}
-								onChange={(e) => setCapacity(Number(e.target.value))}
-							/>
-						</label>
-					</ParameterControl>
 				)}
 				<p className="lens-note">
 					{es

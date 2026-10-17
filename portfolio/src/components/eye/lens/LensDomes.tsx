@@ -1,9 +1,7 @@
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
+import { useInitialParameters } from "../ParameterControl";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import LensViews from "./LensViews";
 import { capHeight, DOME_APERTURE } from "./lensOptics";
 import { createLensScene } from "./lensScene";
 
@@ -140,7 +138,7 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 			view.dispose();
 		};
 	}, [lang]);
-	const defaults = useInitialParameters(
+	useInitialParameters(
 		{ radius, separated, wireframe },
 		(initial) => {
 			setRadius(initial.radius);
@@ -182,64 +180,40 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 				<span>{es ? "Violeta: copia invertida" : "Violet: reversed copy"}</span>
 			</div>
 			<div className="lens-controls">
-				<LensViews
-					lang={lang}
-					onView={(view) => viewRef.current?.setView(view)}
-				/>
-				<ParameterControl
-					value={radius}
-					initial={defaults.radius}
-					onReset={setRadius}
-					label="surface radius"
-					lang={lang}
-					context={parameterContext.domes}
-				>
-					<label>
-						<span className="lens-value">
-							<span>
-								{es ? "Radio de ambas superficies" : "Radius of both surfaces"}
-							</span>
-							<output>{radius.toFixed(1)} mm</output>
+				<label>
+					<span className="lens-value">
+						<span>
+							{es ? "Radio de ambas superficies" : "Radius of both surfaces"}
 						</span>
-						<input
-							type="range"
-							min="6"
-							max="14"
-							step="0.1"
-							value={radius}
-							onChange={(e) => setRadius(Number(e.target.value))}
-						/>
-					</label>
-				</ParameterControl>
+						<output>{radius.toFixed(1)} mm</output>
+					</span>
+					<input
+						type="range"
+						min="6"
+						max="14"
+						step="0.1"
+						value={radius}
+						onChange={(e) => setRadius(Number(e.target.value))}
+					/>
+				</label>
+
 				<div className="lens-buttons">
-					<ParameterControl
-						value={separated}
-						initial={defaults.separated}
-						onReset={setSeparated}
-						label="dome separation"
-						lang={lang}
+					<button
+						type="button"
+						aria-pressed={!separated}
+						onClick={() => setSeparated(!separated)}
 					>
-						<button
-							type="button"
-							aria-pressed={!separated}
-							onClick={() => setSeparated(!separated)}
-						>
-							{separated
-								? es
-									? "Unir las cúpulas"
-									: "Join the domes"
-								: es
-									? "Separar las cúpulas"
-									: "Separate the domes"}
-						</button>
-					</ParameterControl>
-					<ParameterControl
-						value={wireframe}
-						initial={defaults.wireframe}
-						onReset={setWireframe}
-						label="wireframe"
-						lang={lang}
-					>
+						{separated
+							? es
+								? "Unir las cúpulas"
+								: "Join the domes"
+							: es
+								? "Separar las cúpulas"
+								: "Separate the domes"}
+					</button>
+
+					<details className="lens-options">
+						<summary>{es ? "Detalles" : "Details"}</summary>
 						<button
 							type="button"
 							aria-pressed={wireframe}
@@ -247,7 +221,7 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 						>
 							{es ? "Malla" : "Wireframe"}
 						</button>
-					</ParameterControl>
+					</details>
 				</div>
 				<p className="lens-note">
 					{es

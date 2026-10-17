@@ -1,5 +1,4 @@
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
+import { useInitialParameters } from "../ParameterControl";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -11,7 +10,6 @@ import {
 } from "./anteriorEyeGeometry";
 import { createCiliaryApparatus } from "./ciliaryApparatus";
 import { createIntraocularLens } from "./intraocularLens";
-import LensViews from "./LensViews";
 import { createLensScene } from "./lensScene";
 
 type Mode = "assembled" | "section" | "exploded";
@@ -118,7 +116,7 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 		}
 	}
 	const resetAnchor = useRef<HTMLDivElement>(null);
-	const defaults = useInitialParameters(
+	useInitialParameters(
 		{ hideSupport, implant, mode, pupil, accommodation },
 		(initial) => {
 			setHideSupport(initial.hideSupport);
@@ -164,90 +162,58 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 			<div className="lens-controls">
 				<div className="lens-buttons">
-					<ParameterControl
-						value={hideSupport}
-						initial={defaults.hideSupport}
-						onReset={setHideSupport}
-						label="support visibility"
-						lang={lang}
+					<button
+						type="button"
+						aria-pressed={hideSupport}
+						onClick={() => setHideSupport(!hideSupport)}
 					>
-						<button
-							type="button"
-							aria-pressed={hideSupport}
-							onClick={() => setHideSupport(!hideSupport)}
-						>
-							{hideSupport
-								? es
-									? "Mostrar músculo y zónulas"
-									: "Show muscle & zonules"
-								: es
-									? "Ocultar músculo y zónulas"
-									: "Hide muscle & zonules"}
-						</button>
-					</ParameterControl>
+						{hideSupport
+							? es
+								? "Mostrar músculo y zónulas"
+								: "Show muscle & zonules"
+							: es
+								? "Ocultar músculo y zónulas"
+								: "Hide muscle & zonules"}
+					</button>
 				</div>
-				<ParameterControl
-					value={implant}
-					initial={defaults.implant}
-					onReset={setImplant}
-					label="lens type"
-					lang={lang}
-				>
-					<label>
-						{es ? "Tipo de lente" : "Lens type"}
-						<select
-							value={implant ? "iol" : "natural"}
-							onChange={(e) => {
-								const useImplant = e.target.value === "iol";
-								setImplant(useImplant);
-								if (useImplant) changeMode("section");
-							}}
-						>
-							<option value="natural">
-								{es ? "Cristalino natural" : "Natural lens"}
-							</option>
-							<option value="iol">
-								{es ? "LIO y cápsula" : "IOL + capsule"}
-							</option>
-						</select>
-					</label>
-				</ParameterControl>
-				<ParameterControl
-					value={mode}
-					initial={defaults.mode}
-					onReset={setMode}
-					label="assembly view"
-					lang={lang}
-				>
-					<label>
-						{es ? "Disposición" : "Assembly view"}
-						<select
-							value={mode}
-							onChange={(e) => changeMode(e.target.value as typeof mode)}
-						>
-							<option value="assembled">{es ? "Juntas" : "Assembled"}</option>
-							<option value="section">
-								{es ? "Abrir el ojo" : "Open the eye"}
-							</option>
-							<option value="exploded">
-								{es ? "Separar las piezas" : "Separate the parts"}
-							</option>
-						</select>
-					</label>
-				</ParameterControl>
-				<LensViews
-					lang={lang}
-					section={mode === "section"}
-					onView={(v) => viewRef.current?.setView(v)}
-				/>
-				<ParameterControl
-					value={pupil}
-					initial={defaults.pupil}
-					onReset={setPupil}
-					label="pupil diameter"
-					lang={lang}
-					context={parameterContext.pupil}
-				>
+
+				<label>
+					{es ? "Tipo de lente" : "Lens type"}
+					<select
+						value={implant ? "iol" : "natural"}
+						onChange={(e) => {
+							const useImplant = e.target.value === "iol";
+							setImplant(useImplant);
+							if (useImplant) changeMode("section");
+						}}
+					>
+						<option value="natural">
+							{es ? "Cristalino natural" : "Natural lens"}
+						</option>
+						<option value="iol">
+							{es ? "LIO y cápsula" : "IOL + capsule"}
+						</option>
+					</select>
+				</label>
+
+				<label>
+					{es ? "Disposición" : "Assembly view"}
+					<select
+						value={mode}
+						onChange={(e) => changeMode(e.target.value as typeof mode)}
+					>
+						<option value="assembled">{es ? "Juntas" : "Assembled"}</option>
+						<option value="section">
+							{es ? "Abrir el ojo" : "Open the eye"}
+						</option>
+						<option value="exploded">
+							{es ? "Separar las piezas" : "Separate the parts"}
+						</option>
+					</select>
+				</label>
+
+				<details className="lens-options">
+					<summary>{es ? "Ajustes" : "Settings"}</summary>
 					<label>
 						<span className="lens-value">
 							<span>{es ? "Diámetro pupilar" : "Pupil diameter"}</span>
@@ -262,15 +228,7 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 							onChange={(e) => setPupil(Number(e.target.value))}
 						/>
 					</label>
-				</ParameterControl>
-				<ParameterControl
-					value={accommodation}
-					initial={defaults.accommodation}
-					onReset={setAccommodation}
-					label="accommodation"
-					lang={lang}
-					context={parameterContext.accommodation}
-				>
+
 					<label>
 						<span className="lens-value">
 							<span>
@@ -294,7 +252,7 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 							onChange={(e) => setAccommodation(Number(e.target.value))}
 						/>
 					</label>
-				</ParameterControl>
+				</details>
 				{implant && (
 					<p className="lens-note">
 						{es

@@ -9,7 +9,6 @@ image: "/images/blog/lens-banner.webp"
 ---
 
 import PublishedPost from "@/components/blog/PublishedPost.astro";
-import DraftOnly from "@/components/blog/DraftOnly.astro";
 
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { lensSources } from '../../components/eye/lens/lensSources';
@@ -111,7 +110,7 @@ El cristalino no contiene un músculo de enfoque. Sus fibras de suspensión tamp
 
 Ahora añadimos el cuerpo ciliar. Un músculo continuo y redondeado presenta un detalle sutil de sus haces; el mapa de color opcional localiza sus regiones entrelazadas. Los pliegues marrones son procesos ciliares; las zónulas amarillas pasan entre ellos hacia el cristalino. Omitimos el iris y la pared externa del ojo para ver el aparato.
 
-Mueve el control de **Lejos** a **Cerca**. Observa cómo el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. Las vistas anterior y lateral ayudan a orientarte: anterior es hacia la córnea; posterior, hacia la retina. Abre la sección para mirar de frente el músculo expuesto y el cristalino. Activa el mapa muscular para localizar las regiones sin separarlas en tres anillos. En el móvil, arrastra horizontalmente para girar y verticalmente para seguir leyendo.
+Mueve el control de **Lejos** a **Cerca**. Observa cómo el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. Arrastra para girar el modelo: anterior es hacia la córnea; posterior, hacia la retina. Abre la sección para mirar de frente el músculo expuesto y el cristalino. En **Detalles**, activa el mapa muscular para localizar las regiones sin separarlas en tres anillos. En el móvil, arrastra horizontalmente para girar y verticalmente para seguir leyendo.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy lang="es" client:visible /></div>
@@ -179,7 +178,7 @@ La transparencia del cristalino depende de su organización microscópica. Cuand
 
 La localización importa. Las cataratas **nucleares** afectan a la región central y pueden amarillear o tornarse marrones. Las opacidades **corticales** suelen formar radios o cuñas periféricas. Las **subcapsulares posteriores** están justo por delante de la cápsula posterior. Estos patrones pueden coexistir; no son tres etapas obligatorias de una misma secuencia (Aliancy & Mamalis, 2017).
 
-Alterna entre los patrones y compara cada uno con el modelo transparente. La vista lateral permite localizar la placa posterior. El control de opacidad modifica el dibujo, no un grado clínico de catarata.
+Alterna entre los patrones y compara cada uno con el modelo transparente. Elige **Transparente** para comparar, o gira el modelo para localizar cada opacidad. **Intensidad de la opacidad** modifica el dibujo, no un grado clínico de catarata.
 
 <InteractiveViewer>
   <div slot="preview"><LensCataract lang="es" client:visible /></div>
@@ -216,7 +215,7 @@ El control de reserva es un parámetro del modelo, no una escala de edad ni una 
 
 La córnea aporta la superficie refractora anterior. El iris define la abertura y el cristalino cambia de forma detrás. Aquí comparten por fin una misma escena.
 
-Empieza con las piezas juntas y elige **Abrir el ojo** en **Disposición** para ver su posición. **Separar las piezas** adelanta la córnea y el iris para inspeccionarlos. Los controles de pupila y acomodación son independientes, para seguir cada cambio. Usa **Ocultar músculo y zónulas** para despejar la vista del cristalino. **LIO y cápsula** sustituye el cristalino por una lente intraocular monofocal genérica, dentro del saco capsular conservado y detrás del iris: una posición habitual tras la cirugía de cataratas. Sus hápticos la sostienen en el saco. La cápsula conserva una abertura anterior y este implante no acomoda cambiando de forma. (Moorfields Eye Hospital).
+Empieza con las piezas juntas y elige **Abrir el ojo** en **Disposición** para ver su posición. **Separar las piezas** adelanta la córnea y el iris para inspeccionarlos. Los controles de pupila y acomodación, en **Ajustes**, son independientes, para seguir cada cambio. Usa **Ocultar músculo y zónulas** para despejar la vista del cristalino. **LIO y cápsula** sustituye el cristalino por una lente intraocular monofocal genérica, dentro del saco capsular conservado y detrás del iris: una posición habitual tras la cirugía de cataratas. Sus hápticos la sostienen en el saco. La cápsula conserva una abertura anterior y este implante no acomoda cambiando de forma. (Moorfields Eye Hospital).
 
 <InteractiveViewer>
   <div slot="preview"><LensAssembly lang="es" client:visible /></div>
@@ -226,12 +225,6 @@ Empieza con las piezas juntas y elige **Abrir el ojo** en **Disposición** para 
 Es una composición anatómica de nuestros modelos didácticos. Reúne la córnea cónica de la Parte 1, un iris pigmentado con una abertura real y nuestro cristalino con su aparato ciliar. El cristalino usa un material transparente, ligeramente cálido, con reflejos de estudio generados por código. Ese acabado no mide la transmisión de luz ni sustituye al cálculo GRIN. Los espacios y acabados son ilustrativos; la escena no combina sus cálculos ópticos ni predice una imagen retiniana.
 
 Hemos explorado tres mecanismos: una superficie anterior fija, una abertura ajustable y una lente que cambia el enfoque. En el ojo real, trabajan juntos para formar la imagen retiniana.
-
-<DraftOnly>
-
-Recorre la construcción paso a paso en la [presentación animada en HTML](/presentations/webgl-eye/) (en inglés), desde la cámara y la esfera hasta el ojo ensamblado.
-
-</DraftOnly>
 
 <PublishedPost id="webgl-eye-04-retina-es">
 

@@ -32,8 +32,8 @@ function bundleRelief(r: number, angle: number, z: number) {
 	const outer = THREE.MathUtils.smoothstep(r, 6.2, 6.85);
 	return (
 		outer *
-		(0.018 * Math.sin(angle * 29 + z * 0.9 + Math.sin(angle * 7)) +
-			0.011 * Math.sin(angle * 17 - z * 0.65))
+		(0.004 * Math.sin(angle * 29 + z * 0.9 + Math.sin(angle * 7)) +
+			0.003 * Math.sin(angle * 17 - z * 0.65))
 	);
 }
 
@@ -42,7 +42,7 @@ function tissueMaterial() {
 		color: 0xffffff,
 		vertexColors: true,
 		specular: 0x362b2b,
-		shininess: 12,
+		shininess: 7,
 		side: THREE.DoubleSide,
 	});
 	material.onBeforeCompile = (shader) => {
@@ -65,14 +65,14 @@ function tissueMaterial() {
    float longitudinal=tissueNoise(vec2(a*57.0 + sin(tissuePoint.z*1.3),tissuePoint.z*1.6));
    float circular=tissueNoise(vec2(a*3.0,tissuePoint.z*25.0 + sin(a*5.0)));
    float grain=mix(circular,longitudinal,outer);
-   diffuseColor.rgb *= 0.78 + 0.28*grain;
+   diffuseColor.rgb *= 0.94 + 0.06*grain;
   `,
 		);
 		shader.fragmentShader = shader.fragmentShader.replace(
 			"#include <normal_fragment_maps>",
 			`#include <normal_fragment_maps>
    // A small surface-gradient bump gives the bundles depth as the eye rotates.
-   float tissueHeight=0.009*grain;
+   float tissueHeight=0.0015*grain;
    vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition);
    vec3 tx=cross(sy,normal), ty=cross(normal,sx);
    float determinant=dot(sx,tx);
@@ -234,9 +234,9 @@ export function createCiliaryApparatus() {
 			lastAccommodation = accommodation;
 		}
 		if (map !== lastMap) {
-			const outer = new THREE.Color(map ? 0x995d7a : 0xb47b7c);
-			const middle = new THREE.Color(map ? 0xc58b56 : 0xbb8380);
-			const inner = new THREE.Color(map ? 0xe8a28a : 0xa9696d);
+			const outer = new THREE.Color(map ? 0x995d7a : 0x865651);
+			const middle = new THREE.Color(map ? 0xc58b56 : 0x93615a);
+			const inner = new THREE.Color(map ? 0xe8a28a : 0x794941);
 			const color = new THREE.Color();
 			for (const t of tissues) {
 				const colors = t.geometry.getAttribute("color");

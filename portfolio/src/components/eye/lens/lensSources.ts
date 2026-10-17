@@ -15,7 +15,6 @@ import cataract from "./LensCataract.tsx?raw";
 import domes from "./LensDomes.tsx?raw";
 import focus from "./LensFocus.tsx?raw";
 import grin from "./LensGrin.tsx?raw";
-import views from "./LensViews.tsx?raw";
 import css from "./lens.css?raw";
 import material from "./lensMaterial.ts?raw";
 import model from "./lensModel.ts?raw";
@@ -37,7 +36,6 @@ const accommodation = local("lensModel.ts", model);
 const shared3D = [
 	...simulationSources,
 	file("eye/eyeDimensions.ts", dimensions),
-	local("LensViews.tsx", views),
 	local("lensScene.ts", scene),
 	local("lensMaterial.ts", material),
 	file("eye/disposeThree.ts", dispose),
