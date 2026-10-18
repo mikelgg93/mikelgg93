@@ -16,7 +16,9 @@ import cataract from "./LensCataract.tsx?raw";
 import domes from "./LensDomes.tsx?raw";
 import focus from "./LensFocus.tsx?raw";
 import grin from "./LensGrin.tsx?raw";
+import surface from "./LensSurface.tsx?raw";
 import css from "./lens.css?raw";
+import construction from "./lensConstruction.ts?raw";
 import material from "./lensMaterial.ts?raw";
 import model from "./lensModel.ts?raw";
 import optics from "./lensOptics.ts?raw";
@@ -56,7 +58,16 @@ export const lensSources = {
 		opticalModel,
 		...shared3D,
 	],
-	domes: [local("LensDomes.tsx", domes), opticalModel, ...shared3D],
+	domes: [
+		local("LensDomes.tsx", domes),
+		local("lensConstruction.ts", construction),
+		...shared3D,
+	],
+	surface: [
+		local("LensSurface.tsx", surface),
+		local("lensConstruction.ts", construction),
+		...shared3D,
+	],
 	grin: [
 		local("LensGrin.tsx", grin),
 		opticalModel,

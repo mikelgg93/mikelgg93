@@ -16,6 +16,7 @@ import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
 import LensAnatomy from '../../components/eye/lens/LensAnatomy';
 import LensFocus from '../../components/eye/lens/LensFocus';
 import LensDomes from '../../components/eye/lens/LensDomes';
+import LensSurface from '../../components/eye/lens/LensSurface';
 import LensGrin from '../../components/eye/lens/LensGrin';
 import LensCataract from '../../components/eye/lens/LensCataract';
 import LensAssembly from '../../components/eye/lens/LensAssembly';
@@ -26,24 +27,68 @@ A camera often solves this by moving its lenses. The eye mainly changes the shap
 
 We'll start with a deliberately crude shape, give it an optical interior, then add the machinery that moves it. Finally, we'll look at how we measure a real lens and what changes when it loses transparency or flexibility.
 
-## First approximation: Two domes
+## First approximation: Two opposing domes
 
-We already have a useful building block from Part 1: a spherical dome. Duplicate it, flip the copy, and bring their rims together. There is our first **biconvex lens**.
+In [Part 1](/blog/webgl-eye-01-cornea), we already built a dome and used $Q$ to change its asphericity. We can reuse that construction here: make a second dome, turn it around, and bring the rims together. There is our first **biconvex lens**.
+
+The front of a relaxed lens is flatter than the back. We fix the central radii at **10.2 mm anterior** and **6 mm posterior**, taking their magnitudes from the unaccommodated Navarro schematic eye (Navarro et al., 1985). These are reference-model values, not universal anatomy. For this first mesh we keep $Q=0$ and a 9 mm rim diameter; we are borrowing the radii, not reproducing Navarro's aspheric prescription.
 
 ```ts
-const front = new THREE.Mesh(capGeometry, frontMaterial);
-const back = new THREE.Mesh(capGeometry, backMaterial);
-back.rotation.y = Math.PI; // the same dome, facing the other way
+const front = new THREE.Mesh(createTeachingCap(10.2), frontMaterial);
+const back = new THREE.Mesh(createTeachingCap(6), backMaterial);
+back.rotation.y = Math.PI;
+// Both rims lie at z = 0: the two domes meet here.
 ```
 
-This is an intentional oversimplification. The two surfaces share one radius, the rim is sharp, and the interior has no structure yet. A real crystalline lens has different anterior and posterior shapes, a rounded equator and a complex interior; it is not two corneas glued together.
-
-Join the domes below, change their curvature, then separate them again to see the construction. A smaller radius makes each dome more curved. We hold the rim diameter at an illustrative $9\ \text{mm}$ and only allow radii that keep the whole cap defined.
+Use **Join the domes**, then rotate the view. The rims meet, but their slopes do not: the seam is a sharp ridge. The two meshes also remain separate objects. Joining their positions is only the first construction step.
 
 <InteractiveViewer>
   <div slot="preview"><LensDomes client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.domes} /></div>
 </InteractiveViewer>
+
+## Round the equator
+
+A real lens has a rounded **equator**, where its front and back meet. Smoothing the normals alone would disguise our ridge without changing its silhouette. We need to change the profile itself.
+
+Keep the central spherical patches, stop them before the edge, and use a short **cubic Bézier curve** to turn each patch into the equator. The first control handle follows the dome's tangent. The last handle points along the optical axis, so the front and back arrive at the equator with a common tangent. Revolving this continuous profile gives us one closed lens surface.
+
+```ts
+const blend = new THREE.CubicBezierCurve(
+  domeEdge,
+  domeEdge.clone().add(new THREE.Vector2(dr, dr * slope)),
+  new THREE.Vector2(equatorRadius, handleHeight),
+  new THREE.Vector2(equatorRadius, 0),
+);
+// Sample both halves into one profile, then revolve it.
+const geometry = new THREE.LatheGeometry(profile, 96);
+geometry.rotateX(Math.PI / 2); // align the optical axis with z
+```
+
+We now set a **4 mm central thickness**, also a relaxed Navarro reference value, while keeping the illustrative 9 mm diameter. The blend handles and the anterior/posterior thickness split are drawing choices. This is a smooth anatomical approximation, not a fitted peripheral lens shape. The opaque material below makes that curved edge easier to inspect.
+
+<InteractiveViewer>
+  <div slot="preview"><LensSurface client:visible /></div>
+  <div slot="code"><SourceFiles files={lensSources.surface} /></div>
+</InteractiveViewer>
+
+## Give that surface a material
+
+Keep exactly the same mesh. Now replace the opaque material with a transmitting one: low roughness, a faint warm tint, and reflections from our procedural lighting. The shape is unchanged; only its response to light changes.
+
+```ts
+const lens = new THREE.Mesh(geometry, clearLensMaterial());
+lens.scale.set(4.5, 4.5, 2); // unit mesh → 9 mm wide, 4 mm thick
+```
+
+Inside `clearLensMaterial()`, Three.js supplies the physical-material shader. We use an approximate relative index of $1.40/1.336$ to suggest lens tissue immersed in ocular fluid. A small shader adjustment shortens the transmission path toward the equator, using an elliptical chord approximation. Tint, roughness and this path estimate control the appearance; they do not reproduce the full optical behaviour of the lens or its internal gradient.
+
+<InteractiveViewer>
+  <div slot="preview"><LensSurface material client:visible /></div>
+  <div slot="code"><SourceFiles files={lensSources.surface} /></div>
+</InteractiveViewer>
+
+That gives us a transparent surface. Next, we distinguish that rendered appearance from what light does **inside** the lens.
 
 ## Give the lens an interior: GRIN
 
@@ -92,7 +137,7 @@ The literature follows a similar progression, but each model answers a particula
 
 </details>
 
-Our identical domes are the mesh lesson. The quadratic GRIN example adds internal ray bending, while the following anatomy model adds asymmetric lens shape and mechanical relationships. These are deliberately separate demonstrations, not implementations of the full named models. A quantitative eye would need a consistent set of surfaces, index profiles, distances and accommodation rules, validated together. An optical prescription alone does not determine muscle forces or cataract scattering. A next step would be to reproduce one published model with its surfaces and GRIN coupled together.
+Our opposing domes and rounded equator are the mesh lesson. The quadratic GRIN example adds internal ray bending, while the following anatomy model adds accommodation and mechanical relationships. These are deliberately separate demonstrations, not implementations of the full named models. A quantitative eye would need a consistent set of surfaces, index profiles, distances and accommodation rules, validated together. An optical prescription alone does not determine muscle forces or cataract scattering. A next step would be to reproduce one published model with its surfaces and GRIN coupled together.
 
 ## The ciliary muscle: Pull less to focus closer
 
