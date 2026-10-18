@@ -6,6 +6,7 @@ import dimensions from "../eyeDimensions.ts?raw";
 import { simulationSources } from "../simulationSources";
 import resize from "../threeResize.ts?raw";
 import anterior from "./anteriorEyeGeometry.ts?raw";
+import profile from "./anteriorSegmentProfile.ts?raw";
 import apparatus from "./ciliaryApparatus.ts?raw";
 import geometry from "./ciliaryGeometry.ts?raw";
 import iol from "./intraocularLens.ts?raw";
@@ -34,6 +35,7 @@ const styles = local("lens.css", css);
 const opticalModel = local("lensOptics.ts", optics);
 const accommodation = local("lensModel.ts", model);
 const shared3D = [
+	local("anteriorSegmentProfile.ts", profile),
 	...simulationSources,
 	file("eye/eyeDimensions.ts", dimensions),
 	local("lensScene.ts", scene),

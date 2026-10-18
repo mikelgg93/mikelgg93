@@ -1,30 +1,25 @@
 import * as THREE from "three";
+import { CILIARY_BODY_PROFILE } from "./anteriorSegmentProfile";
 import { ciliaryPoint, deformCiliary, muscleGeometry } from "./ciliaryGeometry";
 import { clearLensMaterial } from "./lensMaterial";
 import { lensShape } from "./lensModel";
 import { createLensGeometry } from "./lensScene";
 
-// A continuous, rounded muscle body. Coordinates and bundle texture are
-// illustrative; smooth muscle does not have skeletal-muscle striations.
-const contour = new THREE.CatmullRomCurve3(
-	[
-		[7.04, 0, 1.02],
-		[7.1, 0, 0.55],
-		[7.08, 0, -2.55],
-		[6.97, 0, -2.7],
-		[6.63, 0, -1.95],
-		[6.2, 0, -0.8],
-		[5.86, 0, -0.22],
-		[5.85, 0, 0.42],
-		[6.02, 0, 0.88],
-		[6.52, 0, 1.08],
-	].map(([r, y, z]) => new THREE.Vector3(r, y, z)),
-	true,
-	"centripetal",
-);
-export const CILIARY_PROFILE = contour
-	.getPoints(64)
-	.map((p) => [p.x, p.z] as const);
+// A tapered ciliary-body envelope: the muscle occupies its outer part;
+// the processes project from the inner anterior portion. This is an exposed
+// teaching view, not a histological reconstruction of each tissue layer.
+export const CILIARY_PROFILE = CILIARY_BODY_PROFILE.flatMap((point, i) => {
+	const next = CILIARY_BODY_PROFILE[i + 1];
+	if (!next) return [point];
+	return Array.from(
+		{ length: 8 },
+		(_, j) =>
+			[
+				point[0] + ((next[0] - point[0]) * j) / 8,
+				point[1] + ((next[1] - point[1]) * j) / 8,
+			] as const,
+	);
+});
 
 // Shallow, irregular relief follows the long bundles instead of crossing them.
 // This is a drawing detail, not a measurement of individual muscle cells.
@@ -224,8 +219,8 @@ export function createCiliaryApparatus() {
 							(side > 0 ? 0.85 : 1.15) *
 							Math.sqrt(1 - a * a),
 					);
-					const origin = ciliaryPoint(6.58, angle, -1.95, s.fraction);
-					const guide = ciliaryPoint(5.72, angle, -0.32, s.fraction);
+					const origin = ciliaryPoint(7.95, angle, -2, s.fraction);
+					const guide = ciliaryPoint(6.0, angle, 0.05, s.fraction);
 					for (const p of [origin, guide, guide, end])
 						zonules.setXYZ(k++, p.x, p.y, p.z);
 				}

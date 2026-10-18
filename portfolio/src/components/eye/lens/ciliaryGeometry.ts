@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { ciliaryWallRadius } from "./anteriorSegmentProfile";
 import { finiteClamp } from "./lensOptics";
 
 // Interwoven muscle regions, separated by colour for teaching.
@@ -46,7 +47,11 @@ export function ciliaryPoint(
 ) {
 	const f = finiteClamp(fraction, 0, 1);
 	// Keep the outer attachment while the inner/anterior tissue moves inward.
-	const mobility = finiteClamp((7.1 - radius) / 1.1, 0, 1);
+	// Keep the iris root/anterior attachment and the posterior continuation fixed.
+	const anteriorAnchor = 1 - THREE.MathUtils.smoothstep(z, 0.9, 1.3);
+	const wallAnchor = finiteClamp((ciliaryWallRadius(z) - radius) / 0.4, 0, 1);
+	const mobility =
+		finiteClamp((7.1 - radius) / 1.1, 0, 1) * anteriorAnchor * wallAnchor;
 	const r = radius - 0.5 * f * mobility;
 	return new THREE.Vector3(
 		r * Math.cos(angle),

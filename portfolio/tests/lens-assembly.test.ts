@@ -4,6 +4,7 @@ import { disposeThree } from "../src/components/eye/disposeThree";
 import {
 	createAssemblyCornea,
 	createAssemblyIris,
+	createAssemblySclera,
 	updateAssemblyIris,
 } from "../src/components/eye/lens/anteriorEyeGeometry";
 import { createCiliaryApparatus } from "../src/components/eye/lens/ciliaryApparatus";
@@ -19,7 +20,7 @@ test("assembly iris leaves the requested opening throughout the pupil range", ()
 			Math.hypot(p.getX(i), p.getY(i)),
 		);
 		expect(Math.min(...radii)).toBeCloseTo(diameter / 2, 5);
-		expect(Math.max(...radii)).toBeCloseTo(5.6, 5);
+		expect(Math.max(...radii)).toBeCloseTo(6, 5);
 		expect(
 			[...geometry.getAttribute("normal").array].every(Number.isFinite),
 		).toBe(true);
@@ -115,4 +116,59 @@ test("generic IOL optic and haptics fit within the illustrative retained bag", (
 		});
 	}
 	disposeThree(group);
+});
+
+test("cornea and sclera share both limbal boundaries", () => {
+	const cornea = createAssemblyCornea(),
+		sclera = createAssemblySclera();
+	const edge = cornea.parameters.points.filter(
+		(p) => Math.abs(p.x - 5.8) < 1e-6,
+	);
+	expect(edge.length).toBe(2);
+	for (const p of edge)
+		expect(sclera.parameters.points.some((q) => q.distanceTo(p) < 1e-6)).toBe(
+			true,
+		);
+	cornea.dispose();
+	sclera.dispose();
+});
+
+test("iris root stays attached and iris clears the lens across pupil and accommodation ranges", () => {
+	const iris = createAssemblyIris();
+	for (const accommodation of [0, 4, 8])
+		for (const pupil of [2, 4, 8]) {
+			updateAssemblyIris(iris, pupil, accommodation);
+			const shape = lensShape(accommodation),
+				p = iris.getAttribute("position");
+			for (let i = 0; i < p.count; i++) {
+				const r = Math.hypot(p.getX(i), p.getY(i));
+				if (Math.abs(r - 6) < 1e-5) expect(p.getZ(i)).toBeCloseTo(1.3, 5);
+				if (r <= shape.lensRadius) {
+					const surface =
+						(shape.thickness / 2) *
+						0.85 *
+						Math.sqrt(1 - (r / shape.lensRadius) ** 2);
+					expect(p.getZ(i)).toBeGreaterThan(surface);
+				}
+			}
+		}
+	iris.dispose();
+});
+
+test("iris insertion in the ciliary body remains fixed during accommodation", () => {
+	const apparatus = createCiliaryApparatus();
+	const tissue = apparatus.support.children[0] as THREE.Mesh;
+	for (const value of [0, 4, 8]) {
+		apparatus.update(value, false, false);
+		const p = tissue.geometry.getAttribute("position");
+		expect(
+			Array.from(
+				{ length: p.count },
+				(_, i) =>
+					Math.abs(Math.hypot(p.getX(i), p.getY(i)) - 6) < 1e-5 &&
+					Math.abs(p.getZ(i) - 1.3) < 1e-5,
+			).some(Boolean),
+		).toBe(true);
+	}
+	disposeThree(apparatus.group);
 });

@@ -3,9 +3,16 @@ import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import {
+	CORNEAL_APEX_Z,
+	LENS_FRONT_FACTOR,
+	POSTERIOR_CORNEAL_APEX_Z,
+} from "../eyeDimensions";
+import {
 	assemblyIrisMaterial,
 	createAssemblyCornea,
 	createAssemblyIris,
+	createAssemblySclera,
+	createWallSection,
 	updateAssemblyIris,
 } from "./anteriorEyeGeometry";
 import { createCiliaryApparatus } from "./ciliaryApparatus";
@@ -32,13 +39,13 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
 		try {
-			view = createLensScene(mount.current, 33, lang);
+			view = createLensScene(mount.current, 40, lang);
 		} catch {
 			setError(true);
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(18, 13, 24);
+		view.camera.position.set(21.6, 15.6, 28.8);
 		const apparatus = createCiliaryApparatus();
 		view.scene.add(apparatus.group);
 		const iol = createIntraocularLens();
@@ -54,12 +61,29 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 		});
 		const cornea = new THREE.Mesh(createAssemblyCornea(), corneaMaterial);
 		view.scene.add(cornea);
+		const scleraMaterial = new THREE.MeshPhongMaterial({
+			color: 0xd9d6c9,
+			shininess: 12,
+			side: THREE.DoubleSide,
+		});
+		const sclera = new THREE.Mesh(createAssemblySclera(), scleraMaterial);
+		view.scene.add(sclera);
+		const wallSection = createWallSection(
+			sclera.geometry,
+			scleraMaterial.clone(),
+		);
+		const corneaSection = createWallSection(
+			cornea.geometry,
+			new THREE.MeshBasicMaterial({ color: 0x90bbba, side: THREE.DoubleSide }),
+		);
+		view.scene.add(wallSection, corneaSection);
 		const irisAppearance = assemblyIrisMaterial();
 		const iris = new THREE.Mesh(createAssemblyIris(), irisAppearance.material);
 		view.scene.add(iris);
 		const clipping = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
 		let shown = params.current.accommodation,
 			lastPupil = -1,
+			lastAccommodation = -1,
 			lastMode: Mode | undefined;
 		view.start((dt, reducedMotion) => {
 			const p = params.current;
@@ -67,21 +91,28 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 			shown +=
 				(target - shown) * (reducedMotion ? 1 : 1 - Math.exp(-dt / 0.25));
 			if (Math.abs(target - shown) < 1e-4) shown = target;
-			apparatus.update(shown, p.mode === "section", false);
+			const shape = apparatus.update(shown, p.mode === "section", false);
 			apparatus.support.visible = !p.hideSupport;
 			apparatus.lens.visible = !p.implant;
 			iol.group.visible = p.implant;
 			iol.setSection(p.mode === "section");
-			if (p.pupil !== lastPupil) {
-				updateAssemblyIris(iris.geometry, p.pupil);
+			if (p.pupil !== lastPupil || shown !== lastAccommodation) {
+				updateAssemblyIris(iris.geometry, p.pupil, shown);
+				lastAccommodation = shown;
 				irisAppearance.pupil.value = p.pupil / 2;
 				lastPupil = p.pupil;
 			}
 			if (p.mode !== lastMode) {
-				for (const m of [corneaMaterial, irisAppearance.material]) {
+				for (const m of [
+					corneaMaterial,
+					irisAppearance.material,
+					scleraMaterial,
+				]) {
 					m.clippingPlanes = p.mode === "section" ? clipping : [];
 					m.needsUpdate = true;
 				}
+				wallSection.visible = corneaSection.visible = p.mode === "section";
+				sclera.visible = p.mode !== "exploded";
 				cornea.position.z = p.mode === "exploded" ? 5 : 0;
 				iris.position.z = p.mode === "exploded" ? 2.7 : 0;
 				lastMode = p.mode;
@@ -95,6 +126,13 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 					accommodation: shown,
 					implant: p.implant,
 					hideSupport: p.hideSupport,
+					modelDimensionsMm: {
+						centralCornealThickness: CORNEAL_APEX_Z - POSTERIOR_CORNEAL_APEX_Z,
+						anteriorChamberDepth:
+							POSTERIOR_CORNEAL_APEX_Z -
+							(LENS_FRONT_FACTOR * shape.thickness) / 2,
+						lensThickness: shape.thickness,
+					},
 				},
 				animating: shown !== target,
 			};
@@ -148,13 +186,14 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 					role="img"
 					aria-label={
 						es
-							? "Modelo del segmento anterior con córnea, iris, cristalino y músculo ciliar"
-							: "Anterior-eye model with cornea, iris, lens and ciliary muscle"
+							? "Modelo del segmento anterior con córnea, esclera, iris, cristalino y cuerpo ciliar"
+							: "Anterior-eye model with cornea, sclera, iris, lens and ciliary body"
 					}
 				/>
 			)}
 			<div className="lens-legend">
 				<span>{es ? "Cúpula transparente: córnea" : "Clear dome: cornea"}</span>
+				<span>{es ? "Pared blanca: esclera" : "White wall: sclera"}</span>
 				<span>{es ? "Disco pigmentado: iris" : "Pigmented disc: iris"}</span>
 				<span>
 					{es ? "Detrás de la pupila: cristalino" : "Behind the pupil: lens"}
@@ -169,11 +208,11 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 					>
 						{hideSupport
 							? es
-								? "Mostrar músculo y zónulas"
-								: "Show muscle & zonules"
+								? "Mostrar cuerpo ciliar y zónulas"
+								: "Show ciliary body & zonules"
 							: es
-								? "Ocultar músculo y zónulas"
-								: "Hide muscle & zonules"}
+								? "Ocultar cuerpo ciliar y zónulas"
+								: "Hide ciliary body & zonules"}
 					</button>
 				</div>
 

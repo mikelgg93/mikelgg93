@@ -69,8 +69,8 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			<div className="lens-heading">
 				<strong>
 					{es
-						? "Músculo ciliar y suspensión zonular"
-						: "Ciliary muscle and zonular suspension"}
+						? "Cuerpo ciliar y suspensión zonular"
+						: "Ciliary body and zonular suspension"}
 				</strong>
 				<span className="lens-muted">
 					{es ? "Arrastra para girar" : "Drag to orbit"}
@@ -103,8 +103,8 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 				) : (
 					<span>
 						{es
-							? "Músculo liso · haces entrelazados"
-							: "Smooth muscle · interwoven bundles"}
+							? "Cuerpo ciliar · músculo y procesos"
+							: "Ciliary body · muscle and processes"}
 					</span>
 				)}
 			</div>

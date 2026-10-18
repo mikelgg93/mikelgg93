@@ -215,14 +215,16 @@ The reserve slider is a model parameter, not an age scale or a clinical test. It
 
 The cornea supplies the front refracting surface. The iris sets the opening, and the crystalline lens changes shape behind it. Here they finally share one scene.
 
-Start with the assembled view, then choose **Open the eye** under **Assembly view** to see how the parts sit together. **Separate the parts** pulls the cornea and iris forward for inspection. The pupil and accommodation sliders under **Settings** remain independent, so you can follow each change. Use **Hide muscle & zonules** to uncover the lens. **IOL + capsule** replaces it with a generic monofocal intraocular lens inside the retained capsular bag, behind the iris: a usual position after cataract surgery. Its haptics support it within the bag. The capsule has an opening at the front, and this implant does not accommodate by changing shape. (Moorfields Eye Hospital).
+The aqueous-filled **anterior chamber** lies between the posterior cornea and the iris, with the lens behind the pupil. It communicates with the posterior chamber through the pupil. The cornea continues into the sclera at the limbus, and the iris root joins the ciliary body near the chamber angle. A cutaway removes part of those boundaries to show the space; it does not mean that the chamber is open in an intact eye (AAO EyeWiki, *Gonioscopy*).
+
+Start with the assembled view, then choose **Open the eye** under **Assembly view** to see how the parts sit together. **Separate the parts** pulls the cornea and iris forward for inspection. The pupil and accommodation sliders under **Settings** remain independent, so you can follow each change. Use **Hide ciliary body & zonules** to uncover the lens. **IOL + capsule** replaces it with a generic monofocal intraocular lens inside the retained capsular bag, behind the iris: a usual position after cataract surgery. Its haptics support it within the bag. The capsule has an opening at the front, and this implant does not accommodate by changing shape. (Moorfields Eye Hospital).
 
 <InteractiveViewer>
   <div slot="preview"><LensAssembly client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.assembly} /></div>
 </InteractiveViewer>
 
-This is an anatomical assembly of our teaching models. It brings together the conic cornea from Part 1, a pigmented iris with a real opening, and our deforming lens and ciliary apparatus. The lens uses a clear, subtly warm material with procedurally generated studio reflections. That finish does not measure light transmission or replace the GRIN calculation. The spacing and surface finishes are illustrative; the scene does not combine their optical calculations or predict a retinal image.
+This is an anatomical assembly of our teaching models. It brings together the conic cornea from Part 1, a pigmented iris with a real opening, and our deforming lens and ciliary apparatus. The lens uses a clear, subtly warm material with procedurally generated studio reflections. That finish does not measure light transmission or replace the GRIN calculation. The ciliary-body envelope tapers posteriorly, with muscle in its outer portion and processes projecting inward. The posterior edge of this anterior-segment model is truncated. The dimensions and surface finishes are illustrative; the scene does not combine their optical calculations or predict a retinal image.
 
 We have now explored three mechanisms: a fixed front surface, an adjustable aperture and a lens that changes focus. In the real eye, they work together to form the retinal image.
 
@@ -251,3 +253,5 @@ Next, [Part 4: The retina](/blog/webgl-eye-04-retina/) builds the receiving surf
 15. **Artal, P., Guirao, A., Berrio, E., & Williams, D. R. (2001)**. [*Compensation of corneal aberrations by the internal optics in the human eye*](https://pubmed.ncbi.nlm.nih.gov/12678609/). Journal of Vision, 1, 1–8.
 16. **Crnej et al. (2017)**. [*Methods for assessing forward and backward light scatter in patients with cataract*](https://doi.org/10.1016/j.jcrs.2017.05.032). Journal of Cataract & Refractive Surgery.
 17. **Moorfields Eye Hospital**. [*Cataract surgery*](https://www.moorfields.nhs.uk/private/eye-conditions-and-treatments/cataract/surgery); [*Cataract service: patient information*](https://www.moorfields.nhs.uk/mediaLocal/ojzfucri/cataract-service_1.pdf), p. 4.
+
+18. **American Academy of Ophthalmology, EyeWiki**. [*Gonioscopy*](https://eyewiki.aao.org/Gonioscopy). Anterior chamber angle, scleral spur and iris-root relationships.
