@@ -5,11 +5,12 @@ import dispose from "../disposeThree.ts?raw";
 import dimensions from "../eyeDimensions.ts?raw";
 import { simulationSources } from "../simulationSources";
 import resize from "../threeResize.ts?raw";
+import cycle from "./accommodationCycle.ts?raw";
 import anterior from "./anteriorEyeGeometry.ts?raw";
 import profile from "./anteriorSegmentProfile.ts?raw";
 import apparatus from "./ciliaryApparatus.ts?raw";
 import geometry from "./ciliaryGeometry.ts?raw";
-import iol from "./intraocularLens.ts?raw";
+import cue from "./FocusCue.tsx?raw";
 import anatomy from "./LensAnatomy.tsx?raw";
 import assembly from "./LensAssembly.tsx?raw";
 import cataract from "./LensCataract.tsx?raw";
@@ -36,6 +37,11 @@ const local = (name: string, code: string) => file(`eye/lens/${name}`, code);
 const styles = local("lens.css", css);
 const opticalModel = local("lensOptics.ts", optics);
 const accommodation = local("lensModel.ts", model);
+const motionSources = [
+	local("accommodationCycle.ts", cycle),
+	local("FocusCue.tsx", cue),
+];
+const constructionSource = local("lensConstruction.ts", construction);
 const shared3D = [
 	local("anteriorSegmentProfile.ts", profile),
 	...simulationSources,
@@ -49,7 +55,7 @@ const shared3D = [
 export const lensSources = {
 	assembly: [
 		local("LensAssembly.tsx", assembly),
-		local("intraocularLens.ts", iol),
+		...motionSources,
 		local("anteriorEyeGeometry.ts", anterior),
 		file("eye/cornea/conic.ts", conic),
 		local("ciliaryApparatus.ts", apparatus),
@@ -58,16 +64,8 @@ export const lensSources = {
 		opticalModel,
 		...shared3D,
 	],
-	domes: [
-		local("LensDomes.tsx", domes),
-		local("lensConstruction.ts", construction),
-		...shared3D,
-	],
-	surface: [
-		local("LensSurface.tsx", surface),
-		local("lensConstruction.ts", construction),
-		...shared3D,
-	],
+	domes: [local("LensDomes.tsx", domes), constructionSource, ...shared3D],
+	surface: [local("LensSurface.tsx", surface), constructionSource, ...shared3D],
 	grin: [
 		local("LensGrin.tsx", grin),
 		opticalModel,
@@ -76,6 +74,7 @@ export const lensSources = {
 	],
 	anatomy: [
 		local("LensAnatomy.tsx", anatomy),
+		...motionSources,
 		local("ciliaryGeometry.ts", geometry),
 		local("ciliaryApparatus.ts", apparatus),
 		accommodation,
@@ -89,5 +88,9 @@ export const lensSources = {
 		file("eye/eyeDimensions.ts", dimensions),
 		styles,
 	],
-	cataract: [local("LensCataract.tsx", cataract), ...shared3D],
+	cataract: [
+		local("LensCataract.tsx", cataract),
+		constructionSource,
+		...shared3D,
+	],
 };

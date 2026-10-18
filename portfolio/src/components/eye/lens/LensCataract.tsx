@@ -2,20 +2,42 @@ import { useInitialParameters } from "../ParameterControl";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import {
+	createRoundedLensGeometry,
+	EQUATOR_RADIUS,
+	LENS_THICKNESS,
+	roundedLensProfile,
+} from "./lensConstruction";
 import { clearLensMaterial } from "./lensMaterial";
-import { createLensGeometry, createLensScene } from "./lensScene";
+import { createLensScene } from "./lensScene";
 
 type CataractType = "clear" | "nuclear" | "cortical" | "posterior";
 
 // A short ray integral through an illustrative density field. These patterns
 // locate opacity within the lens; they do not solve multiple scattering.
 function cloudMaterial(pattern: number, color: number) {
+	const profile = roundedLensProfile();
+	const bounds = Array.from({ length: 65 }, (_, i) => {
+		const r = (i / 64) * EQUATOR_RADIUS;
+		const hits: number[] = [];
+		for (let j = 1; j < profile.length; j++) {
+			const a = profile[j - 1]!,
+				b = profile[j]!;
+			if (r >= Math.min(a.x, b.x) && r <= Math.max(a.x, b.x) && a.x !== b.x)
+				hits.push(
+					(a.y + ((b.y - a.y) * (r - a.x)) / (b.x - a.x)) /
+						(LENS_THICKNESS / 2),
+				);
+		}
+		return new THREE.Vector2(Math.min(...hits), Math.max(...hits));
+	});
 	return new THREE.ShaderMaterial({
 		transparent: true,
 		depthWrite: false,
 		side: THREE.BackSide,
 		uniforms: {
 			amount: { value: 0.7 },
+			bounds: { value: bounds },
 			pattern: { value: pattern },
 			tint: { value: new THREE.Color(color) },
 		},
@@ -27,6 +49,7 @@ function cloudMaterial(pattern: number, color: number) {
 		}`,
 		fragmentShader: `varying vec3 point; varying vec3 eye;
 		uniform float amount; uniform float pattern; uniform vec3 tint;
+        uniform vec2 bounds[65];
 		float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1,311.7,74.7)))*43758.5453); }
 		float noise(vec3 p) {
 		 vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -34,7 +57,14 @@ function cloudMaterial(pattern: number, color: number) {
 		 mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
 		}
 		float density(vec3 p) {
-		 float r=length(p.xy), edge=1.0-smoothstep(0.88,1.0,length(p));
+		 float r=length(p.xy);
+         if(r>=1.0) return 0.0;
+         float index=r*64.0; int lo=int(floor(index));
+         vec2 limits=mix(bounds[lo],bounds[lo+1],fract(index));
+         if(p.z<=limits.x || p.z>=limits.y) return 0.0;
+         // Map depth inside the rounded lens to the density field's unit sphere.
+         p.z=((p.z-limits.x)/(limits.y-limits.x)*2.0-1.0)*sqrt(max(0.0,1.0-r*r));
+         float edge=1.0-smoothstep(0.88,1.0,length(p));
 		 if(pattern<0.5) {
 		  // Gradual central haze, without a separately outlined inner solid.
 		  return exp(-dot(p,p)*5.5)*(0.9+0.1*noise(p*5.0))*edge;
@@ -61,7 +91,7 @@ function cloudMaterial(pattern: number, color: number) {
 		}
 		void main() {
 		 vec3 ray=normalize(point-eye);
-		 float b=dot(eye,ray), c=dot(eye,eye)-1.0;
+		 float b=dot(eye,ray), c=dot(eye,eye)-1.44;
 		 float disc=b*b-c;
 		 if(disc<=0.0) discard;
 		 float root=sqrt(disc), start=max(0.0,-b-root), finish=-b+root;
@@ -101,30 +131,11 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 		}
 		viewRef.current = view;
 		view.camera.position.set(0, 0, 23);
-		const shape = createLensGeometry();
+		const shape = createRoundedLensGeometry();
 		const shell = new THREE.Mesh(shape, clearLensMaterial());
-		shell.scale.set(4.6, 4.6, 1.8);
+		shell.scale.set(EQUATOR_RADIUS, EQUATOR_RADIUS, LENS_THICKNESS / 2);
 		view.scene.add(shell);
-		const edge = new THREE.LineLoop(
-			new THREE.BufferGeometry().setFromPoints(
-				Array.from(
-					{ length: 128 },
-					(_, i) =>
-						new THREE.Vector3(
-							4.6 * Math.cos((i / 128) * Math.PI * 2),
-							4.6 * Math.sin((i / 128) * Math.PI * 2),
-							0,
-						),
-				),
-			),
-			new THREE.LineBasicMaterial({
-				color: 0xe6e6ca,
-				transparent: true,
-				opacity: 0.6,
-			}),
-		);
-		view.scene.add(edge);
-		const volume = new THREE.SphereGeometry(1, 48, 32);
+		const volume = shape;
 		const nuclearMaterial = cloudMaterial(0, 0xcbb984);
 		const corticalMaterial = cloudMaterial(1, 0xe2ded1);
 		const posteriorMaterial = cloudMaterial(2, 0xd8d3bc);
@@ -132,10 +143,12 @@ export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 		const cortical = new THREE.Mesh(volume, corticalMaterial);
 		const posterior = new THREE.Mesh(volume, posteriorMaterial);
 		for (const cloud of [nucleus, cortical, posterior]) {
-			// Stay within both asymmetric lens surfaces; the centre is shifted
-			// toward the posterior side, matching the shell's unequal caps.
-			cloud.scale.set(4.48, 4.48, 1.72);
-			cloud.position.z = -0.25;
+			// The haze follows the same rounded profile, just inside the clear shell.
+			cloud.scale.set(
+				EQUATOR_RADIUS * 0.985,
+				EQUATOR_RADIUS * 0.985,
+				(LENS_THICKNESS / 2) * 0.985,
+			);
 			// Composite the density after the clear transmissive shell, whose
 			// screen-space transmission buffer cannot include transparent volumes.
 			cloud.renderOrder = 1;

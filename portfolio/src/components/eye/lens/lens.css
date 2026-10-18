@@ -216,3 +216,22 @@
 	display: block;
 	margin-bottom: 12px;
 }
+
+.lens-animated-scene { position: relative; }
+.lens-focus-cue { position: absolute; inset: 0; pointer-events: none; --near-blur: 2.5px; --far-blur: 0px; }
+.lens-focus-picture { position: absolute; top: .8rem; left: .8rem; width: 110px; color: #b1c5c3; font-size: .65rem; }
+.lens-focus-picture svg { display: block; width: 100%; overflow: visible; }
+.focus-far { filter: blur(var(--far-blur)); }
+.focus-near { filter: blur(var(--near-blur)); }
+.lens-focus-readout { position: absolute; right: 1rem; bottom: 1rem; display: grid; justify-items: end; gap: .2rem; font-size: .65rem; color: #b1c5c3; }
+.lens-focus-readout output { font-size: 1.15rem; color: #dce9e7; font-variant-numeric: tabular-nums; }
+.lens-demo .lens-motion-pause { pointer-events: auto; padding: .25rem 0; background: transparent; border: 0; text-decoration: underline; text-underline-offset: 3px; }
+.lens-demo .lens-map-divider { position: absolute; top: 0; bottom: 0; width: 44px; padding: 0; transform: translateX(-50%); border: 0; border-radius: 0; background: transparent; cursor: ew-resize; touch-action: none; }
+.lens-demo .lens-map-divider::before { content: ''; position: absolute; top: 5.5rem; bottom: 4rem; left: 50%; width: 1px; background: #90aaa880; pointer-events: none; }
+.lens-demo .lens-map-divider > span { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #092a2a; border: 1px solid #90aaa8; width: 28px; height: 28px; display: grid; place-items: center; color: #dce9e7; font-size: 15px; }
+.lens-demo .lens-map-divider:focus-visible { outline: 1px solid var(--primary); outline-offset: -2px; }
+.lens-animation-note { padding: 0 1rem 1rem; }
+@media (prefers-reduced-motion: reduce) { .lens-demo .lens-motion-pause { display: none; } }
+.lens-focus-readout { z-index: 3; }
+
+.lens-demo .lens-motion-pause[aria-pressed] { background: transparent; color: #dce9e7; border: 0; border-radius: 0; }

@@ -155,16 +155,16 @@ El cristalino no contiene un músculo de enfoque. Sus fibras de suspensión tamp
 
 Ahora añadimos el cuerpo ciliar. Un músculo continuo y redondeado presenta un detalle sutil de sus haces; el mapa de color opcional localiza sus regiones entrelazadas. Los pliegues marrones son procesos ciliares; las zónulas amarillas pasan entre ellos hacia el cristalino. Omitimos el iris y la pared externa del ojo para ver el aparato.
 
-Mueve el control de **Lejos** a **Cerca**. Observa cómo el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. Arrastra para girar el modelo: anterior es hacia la córnea; posterior, hacia la retina. Abre la sección para mirar de frente el músculo expuesto y el cristalino. En **Detalles**, activa el mapa muscular para localizar las regiones sin separarlas en tres anillos. En el móvil, arrastra horizontalmente para girar y verticalmente para seguir leyendo.
+La sección ya está abierta. Observa cómo alterna entre un paisaje lejano y un libro cercano: el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. La pequeña ilustración sugiere el cambio de enfoque; el valor inferior derecho muestra la acomodación del modelo. Arrastra el divisor para comparar el mapa muscular con la superficie del tejido, o gira el modelo. El mapa identifica regiones entrelazadas, no tres anillos separados. Puedes pausar la animación para inspeccionar la forma.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.anatomy} lang="es" /></div>
 </InteractiveViewer>
 
-Para esta visualización, el control traduce $0$–$8\ \text{D}$ de acomodación del modelo en cambios de forma ilustrativos. Simplificamos los límites musculares, el número de pliegues y los trayectos de las fibras para facilitar la lectura. La malla no calcula su propia potencia ni resuelve la mecánica de los tejidos, y la longitud de una fibra no mide su fuerza.
+Para esta visualización, la secuencia automática traduce $0$–$6\ \text{D}$ de acomodación del modelo en cambios de forma ilustrativos. Simplificamos los límites musculares, el número de pliegues y los trayectos de las fibras para facilitar la lectura. La malla no calcula su propia potencia ni resuelve la mecánica de los tejidos, y la longitud de una fibra no mide su fuerza.
 
-En el código creamos la geometría una sola vez. Deformamos el músculo y actualizamos los búferes de las fibras, sin reconstruir las mallas cada vez que se mueve el control. La malla ilustrativa del cristalino mantiene su volumen al engrosarse y estrecharse. La transición usa una respuesta de primer orden:
+En el código creamos la geometría una sola vez. Deformamos el músculo y actualizamos los búferes de las fibras, sin reconstruir las mallas durante la animación. La malla ilustrativa del cristalino mantiene su volumen al engrosarse y estrecharse. La transición usa una respuesta de primer orden:
 
 ```ts
 const tau = 0.25; // segundos: parámetro de animación
@@ -215,7 +215,7 @@ La acomodación depende principalmente de la salida parasimpática. Las fibras p
 
 Comparte una vía de salida con el circuito pupilar de la Parte 2, pero los músculos hacen trabajos distintos. El esfínter del iris ajusta la apertura; el músculo ciliar cambia la carga sobre el cristalino.
 
-Al dirigir la mirada a un objeto cercano, la acomodación suele acompañarse de **convergencia** de los ojos y **constricción pupilar**: la respuesta de cerca. Una pupila menor puede aumentar la profundidad de foco, pero no devuelve la flexibilidad perdida al cristalino. Aquí aislamos la acomodación para que el efecto de cada control quede claro.
+Al dirigir la mirada a un objeto cercano, la acomodación suele acompañarse de **convergencia** de los ojos y **constricción pupilar**: la respuesta de cerca. Una pupila menor puede aumentar la profundidad de foco, pero no devuelve la flexibilidad perdida al cristalino. El experimento de enfoque siguiente aísla la acomodación; el montaje final añade la respuesta pupilar que la acompaña.
 
 ## Cataratas: Perder transparencia
 
@@ -262,7 +262,7 @@ La córnea aporta la superficie refractora anterior. El iris define la abertura 
 
 La **cámara anterior**, llena de humor acuoso, se encuentra entre la córnea posterior y el iris, con el cristalino detrás de la pupila. Se comunica con la cámara posterior a través de la pupila. La córnea continúa en la esclera a través del limbo, y la raíz del iris se une al cuerpo ciliar cerca del ángulo de la cámara. El corte retira parte de estos límites para mostrar el espacio; no significa que la cámara esté abierta en un ojo intacto (AAO EyeWiki, *Gonioscopy*).
 
-Empieza con las piezas juntas y elige **Abrir el ojo** en **Disposición** para ver su posición. **Separar las piezas** adelanta la córnea y el iris para inspeccionarlos. Los controles de pupila y acomodación, en **Ajustes**, son independientes, para seguir cada cambio. Usa **Ocultar cuerpo ciliar y zónulas** para despejar la vista del cristalino. **LIO y cápsula** sustituye el cristalino por una lente intraocular monofocal genérica, dentro del saco capsular conservado y detrás del iris: una posición habitual tras la cirugía de cataratas. Sus hápticos la sostienen en el saco. La cápsula conserva una abertura anterior y este implante no acomoda cambiando de forma. (Moorfields Eye Hospital).
+El ojo permanece abierto en sección. Al dirigir la atención al objeto cercano, el cristalino se engrosa y la pupila se contrae; al volver a mirar lejos, ambos regresan hacia su estado inicial. Ilustramos la respuesta de cerca con iluminación constante. El rango pupilar y los tiempos son parámetros del modelo, no una relación universal entre dioptrías y diámetro pupilar. La convergencia requeriría un segundo ojo y no se representa. Gira la vista o pausa la animación para inspeccionar las conexiones.
 
 <InteractiveViewer>
   <div slot="preview"><LensAssembly lang="es" client:visible /></div>

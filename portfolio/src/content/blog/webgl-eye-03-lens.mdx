@@ -155,16 +155,16 @@ The lens itself contains no focusing muscle. Nor do its supporting fibres detach
 
 We now add the ciliary body. A continuous, rounded muscle carries subtle bundle detail; the optional colour map locates its interwoven regions. The brown folds are ciliary processes; yellow zonules course between them toward the lens. The iris and outer eye wall are omitted so we can see the apparatus.
 
-Drag the slider from **Distance** to **Near**. Watch the inner ciliary tissue move inward and slightly forward while the lens rounds up. Drag to turn the model: front is toward the cornea, back toward the retina. Open the section to face the exposed muscle and lens. Under **Details**, turn on the muscle map to locate the regions without separating them into three rings. On a phone, drag horizontally to rotate and vertically to keep reading.
+The section is already open. Watch it alternate between a distant landscape and a nearby book: the inner ciliary tissue moves inward and slightly forward as the lens rounds up. The small illustration suggests the change in focus; the bottom-right readout shows model accommodation. Drag the divider to compare the muscle map with the tissue surface, or drag the model to turn it. The map identifies interwoven regions, not three separate rings. Pause at any point to inspect the shape.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.anatomy} /></div>
 </InteractiveViewer>
 
-For this visualisation, the slider maps $0$–$8\ \text{D}$ of model accommodation onto illustrative shape changes. Muscle boundaries, fold counts and fibre paths are simplified for readability. The mesh does not calculate its own optical power or solve tissue mechanics, and fibre length is not a measurement of zonular force.
+For this visualisation, the automatic sequence maps $0$–$6\ \text{D}$ of model accommodation onto illustrative shape changes. Muscle boundaries, fold counts and fibre paths are simplified for readability. The mesh does not calculate its own optical power or solve tissue mechanics, and fibre length is not a measurement of zonular force.
 
-In code, the geometry is allocated once. We deform the muscle and update the existing fibre buffers, rather than rebuilding meshes as the slider moves. The illustrative lens mesh keeps a constant volume as it thickens and narrows. The transition uses a first-order easing step:
+In code, the geometry is allocated once. We deform the muscle and update the existing fibre buffers, rather than rebuilding meshes during the animation. The illustrative lens mesh keeps a constant volume as it thickens and narrows. The transition uses a first-order easing step:
 
 ```ts
 const tau = 0.25; // seconds: an animation parameter
@@ -215,7 +215,7 @@ Accommodation is mainly driven by parasympathetic output. Preganglionic fibres f
 
 This shares an outgoing route with the pupil pathway from Part 2, but the muscles do different jobs. The iris sphincter adjusts the aperture; the ciliary muscle changes the loading of the lens.
 
-When we shift our gaze toward a near target, accommodation usually accompanies **convergence** of the eyes and **pupil constriction**: the near response. A smaller pupil can increase depth of focus, but it does not restore lost lens flexibility. Here we isolate accommodation so the effect of each control stays clear.
+When we shift our gaze toward a near target, accommodation usually accompanies **convergence** of the eyes and **pupil constriction**: the near response. A smaller pupil can increase depth of focus, but it does not restore lost lens flexibility. The focus experiment below isolates accommodation; the final assembly then adds the accompanying pupil response.
 
 ## Cataracts: Losing transparency
 
@@ -262,7 +262,7 @@ The cornea supplies the front refracting surface. The iris sets the opening, and
 
 The aqueous-filled **anterior chamber** lies between the posterior cornea and the iris, with the lens behind the pupil. It communicates with the posterior chamber through the pupil. The cornea continues into the sclera at the limbus, and the iris root joins the ciliary body near the chamber angle. A cutaway removes part of those boundaries to show the space; it does not mean that the chamber is open in an intact eye (AAO EyeWiki, *Gonioscopy*).
 
-Start with the assembled view, then choose **Open the eye** under **Assembly view** to see how the parts sit together. **Separate the parts** pulls the cornea and iris forward for inspection. The pupil and accommodation sliders under **Settings** remain independent, so you can follow each change. Use **Hide ciliary body & zonules** to uncover the lens. **IOL + capsule** replaces it with a generic monofocal intraocular lens inside the retained capsular bag, behind the iris: a usual position after cataract surgery. Its haptics support it within the bag. The capsule has an opening at the front, and this implant does not accommodate by changing shape. (Moorfields Eye Hospital).
+The eye stays open in section. As attention shifts toward the nearby object, the lens thickens and the pupil constricts; as it returns to distance, both relax toward their starting state. This illustrates the near response at constant lighting. The pupil range and timing are model parameters, not a universal relationship between dioptres and pupil diameter. Convergence would require a second eye and is not shown. Rotate the view or pause the animation to inspect the connections.
 
 <InteractiveViewer>
   <div slot="preview"><LensAssembly client:visible /></div>
