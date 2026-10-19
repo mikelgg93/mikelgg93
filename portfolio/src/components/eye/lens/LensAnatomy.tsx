@@ -12,6 +12,12 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [reveal, setReveal] = useState(0.5);
 	const [paused, setPaused] = useState(false);
+	const [near, setNear] = useState(false);
+	const nearRef = useRef(false);
+	useEffect(() => {
+		nearRef.current = near;
+		viewRef.current?.invalidate();
+	}, [near]);
 	const [error, setError] = useState(false);
 	const params = useRef({ reveal, paused });
 	useEffect(() => {
@@ -38,10 +44,24 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 		view.scene.add(apparatus.group);
 		let elapsed = 0,
 			shown = 0;
+		view.onReset(() => {
+			elapsed = 0;
+			nearRef.current = false;
+			setNear(false);
+			shown = 0;
+			params.current = { reveal: 0.5, paused: false };
+			setReveal(0.5);
+			setPaused(false);
+		});
 		view.start((dt, reducedMotion) => {
 			const moving = !params.current.paused && !reducedMotion;
 			if (moving) elapsed += dt;
-			const target = focusDemand(elapsed);
+			const target = reducedMotion
+				? nearRef.current
+					? 6
+					: 0
+				: focusDemand(elapsed);
+			if (reducedMotion) shown = target;
 			if (moving) shown += (target - shown) * (1 - Math.exp(-dt / 0.25));
 			const shape = apparatus.update(shown, true, params.current.reveal === 1);
 			updateFocusCue(cue.current, target, shown);
@@ -115,6 +135,8 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 					cueRef={cue}
 					lang={lang}
 					paused={paused}
+					near={near}
+					onNear={() => setNear(!near)}
 					onPause={() => setPaused(!paused)}
 				/>
 				<button

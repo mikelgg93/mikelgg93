@@ -61,13 +61,16 @@ const blend = new THREE.CubicBezierCurve(
   new THREE.Vector2(equatorRadius, 0),
 );
 // Muestreamos ambas mitades en un perfil y lo giramos.
-const geometry = new THREE.LatheGeometry(profile, 96);
+const normalizedProfile = profile.map(
+  p => new THREE.Vector2(p.x / 4.5, p.y / 2),
+);
+const geometry = new THREE.LatheGeometry(normalizedProfile, 96);
 geometry.rotateX(Math.PI / 2); // eje óptico alineado con z
 ```
 
 Ahora fijamos un **espesor central de 4 mm**, también un valor de referencia del modelo relajado de Navarro, y mantenemos el diámetro ilustrativo de 9 mm. Los puntos de control y el reparto anterior/posterior del espesor son decisiones de dibujo. Es una aproximación anatómica suave, no un ajuste de la periferia de un cristalino medido. Las líneas de construcción permiten inspeccionar mejor el borde curvo.
 
-Conservamos exactamente la misma malla. Sustituimos el material opaco por uno que transmite luz: poca rugosidad, un leve tinte cálido y reflejos de nuestra iluminación procedural. La forma no cambia; cambia su respuesta a la luz.
+El perfil anterior está en milímetros; dividimos sus coordenadas radial y axial por 4,5 y 2 para aplicar la escala siguiente. Conservamos la misma malla. Sobre las líneas de construcción sin relleno, revelamos un material que transmite luz: poca rugosidad, un leve tinte cálido y reflejos de nuestra iluminación procedural. La forma no cambia; cambia su respuesta a la luz.
 
 ```ts
 const lens = new THREE.Mesh(geometry, clearLensMaterial());
@@ -145,6 +148,8 @@ Según la explicación clásica de Helmholtz:
 3. El cristalino aumenta su espesor central y reduce su diámetro ecuatorial. Su potencia óptica aumenta.
 
 El cristalino no contiene un músculo de enfoque. Sus fibras de suspensión tampoco se desprenden al mirar de cerca. La red zonular real tiene varias regiones de inserción y una distribución de fuerzas más compleja que nuestros radios. La idea útil es el cambio de carga: el anillo se contrae mientras la lente se redondea. Los estudios de imagen miden estos cambios del cristalino y del músculo ciliar durante la acomodación (Richdale et al., 2013).
+
+Para la anatomía móvil siguiente, cambiamos el cristalino de construcción de 9 mm × 4 mm por una malla elipsoidal asimétrica, inicialmente de 9,2 mm de diámetro y 3,6 mm de espesor. Esta superficie deformable conserva el volumen al cambiar de forma; es otro modelo didáctico, no la continuación de un mismo cristalino ajustado.
 
 Ahora añadimos el cuerpo ciliar. Un músculo continuo y redondeado presenta un detalle sutil de sus haces; el mapa de color opcional localiza sus regiones entrelazadas. Los pliegues marrones son procesos ciliares; las zónulas amarillas pasan entre ellos hacia el cristalino. Omitimos el iris y la pared externa del ojo para ver el aparato.
 

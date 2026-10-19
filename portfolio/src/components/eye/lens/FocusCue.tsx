@@ -22,11 +22,15 @@ export default function FocusCue({
 	lang,
 	paused,
 	onPause,
+	near,
+	onNear,
 }: {
 	cueRef: RefObject<HTMLDivElement | null>;
 	lang: "en" | "es";
 	paused: boolean;
 	onPause: () => void;
+	near: boolean;
+	onNear: () => void;
 }) {
 	const es = lang === "es";
 	return (
@@ -70,6 +74,20 @@ export default function FocusCue({
 			<div className="lens-focus-readout">
 				<span>{es ? "Acomodación del modelo" : "Model accommodation"}</span>
 				<output data-focus-value>0.0 D</output>
+				<button
+					type="button"
+					className="lens-static-focus"
+					aria-pressed={near}
+					onClick={onNear}
+				>
+					{near
+						? es
+							? "Ver lejos"
+							: "Show distance"
+						: es
+							? "Ver cerca"
+							: "Show near"}
+				</button>
 				<button
 					className="lens-motion-pause"
 					type="button"

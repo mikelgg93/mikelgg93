@@ -61,13 +61,16 @@ const blend = new THREE.CubicBezierCurve(
   new THREE.Vector2(equatorRadius, 0),
 );
 // Sample both halves into one profile, then revolve it.
-const geometry = new THREE.LatheGeometry(profile, 96);
+const normalizedProfile = profile.map(
+  p => new THREE.Vector2(p.x / 4.5, p.y / 2),
+);
+const geometry = new THREE.LatheGeometry(normalizedProfile, 96);
 geometry.rotateX(Math.PI / 2); // align the optical axis with z
 ```
 
 We now set a **4 mm central thickness**, also a relaxed Navarro reference value, while keeping the illustrative 9 mm diameter. The blend handles and the anterior/posterior thickness split are drawing choices. This is a smooth anatomical approximation, not a fitted peripheral lens shape. The construction grid below makes that curved edge easier to inspect.
 
-Keep exactly the same mesh. Now replace the opaque material with a transmitting one: low roughness, a faint warm tint, and reflections from our procedural lighting. The shape is unchanged; only its response to light changes.
+The profile above is in millimetres; dividing its radial and axial coordinates by 4.5 and 2 prepares it for the scale below. Keep exactly the same mesh. Now reveal a transmitting material over the unfilled construction grid: low roughness, a faint warm tint, and reflections from our procedural lighting. The shape is unchanged; only its response to light changes.
 
 ```ts
 const lens = new THREE.Mesh(geometry, clearLensMaterial());
@@ -145,6 +148,8 @@ In the classical Helmholtz account of accommodation:
 3. The lens becomes thicker centrally and its equatorial diameter decreases. Its optical power increases.
 
 The lens itself contains no focusing muscle. Nor do its supporting fibres detach when you look near. The real zonular network has several attachment regions and a more complex distribution of forces than our radial spokes can show. The useful idea is the change in load: the ring contracts, while the lens rounds up. Imaging studies measure these accompanying changes in the lens and ciliary muscle (Richdale et al., 2013).
+
+For the moving anatomy below, we switch from the 9 mm × 4 mm construction lens to an asymmetric ellipsoidal mesh, initially 9.2 mm wide and 3.6 mm thick. This simpler deforming surface keeps volume constant as it changes shape; it is a separate teaching model, not a continuation of the same fitted lens.
 
 We now add the ciliary body. A continuous, rounded muscle carries subtle bundle detail; the optional colour map locates its interwoven regions. The brown folds are ciliary processes; yellow zonules course between them toward the lens. The iris and outer eye wall are omitted so we can see the apparatus.
 

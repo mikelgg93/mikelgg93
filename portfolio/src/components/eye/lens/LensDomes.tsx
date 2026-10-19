@@ -55,6 +55,11 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 			return mesh;
 		});
 		let elapsed = 0;
+		view.onReset(() => {
+			elapsed = 0;
+			params.current = { paused: false };
+			setPaused(false);
+		});
 		view.start((dt, reducedMotion) => {
 			const moving = !params.current.paused && !reducedMotion;
 			if (moving) elapsed += dt;

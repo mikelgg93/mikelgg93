@@ -51,6 +51,9 @@ export function createLensScene(
 	);
 	camera.position.set(distance * 0.52, distance * 0.23, distance * 0.82);
 	const initialCamera = camera.position.clone();
+	const initialUp = camera.up.clone();
+	const initialTarget = new THREE.Vector3();
+	let resetState = () => {};
 	const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 	function makeControls() {
 		const orbit = new OrbitControls(camera, renderer.domElement);
@@ -84,6 +87,7 @@ export function createLensScene(
 					snapshot,
 					...state,
 					camera: camera.position.toArray(),
+					cameraUp: camera.up.toArray(),
 					geometries: renderer.info.memory.geometries,
 				},
 				null,
@@ -94,7 +98,7 @@ export function createLensScene(
 		if (disposed || !update) return;
 		// Controls may be below an offscreen canvas. Evaluate their settled state
 		// once for Debug, without a GPU render or an offscreen animation loop.
-		publishDebug(update(0, true).state, "settled-controls");
+		publishDebug(update(0, reducedMotion.matches).state, "settled-controls");
 	}
 	viewer?.addEventListener("eye:inspect", inspect);
 	function invalidate() {
@@ -210,7 +214,10 @@ export function createLensScene(
 		"webglcontextrestored",
 		restoreEnvironment,
 	);
-	const reset = () => api.setView("reset");
+	const reset = () => {
+		resetState();
+		api.setView("reset");
+	};
 	viewer?.addEventListener("eye:reset", reset);
 	const api = {
 		scene,
@@ -220,8 +227,19 @@ export function createLensScene(
 		},
 		renderer,
 		invalidate,
+		onReset(callback: () => void) {
+			resetState = callback;
+		},
 		start(callback: NonNullable<typeof update>) {
 			initialCamera.copy(camera.position);
+			initialUp.copy(camera.up);
+			initialTarget.copy(controls.target);
+			// Callers may choose a different up axis before starting the scene.
+			controls.removeEventListener("change", invalidate);
+			controls.dispose();
+			controls = makeControls();
+			controls.target.copy(initialTarget);
+			controls.addEventListener("change", invalidate);
 			update = callback;
 			invalidate();
 		},
@@ -231,8 +249,16 @@ export function createLensScene(
 			controls.enableDamping = false;
 			controls.update();
 			controls.target.set(0, 0, 0);
-			const upChanged = camera.up.z !== (view === "section" ? 1 : 0);
-			camera.up.set(0, view === "section" ? 0 : 1, view === "section" ? 1 : 0);
+			const nextUp =
+				view === "reset"
+					? initialUp
+					: new THREE.Vector3(
+							0,
+							view === "section" ? 0 : 1,
+							view === "section" ? 1 : 0,
+						);
+			const upChanged = !camera.up.equals(nextUp);
+			camera.up.copy(nextUp);
 			if (view === "reset") camera.position.copy(initialCamera);
 			else if (view === "section")
 				camera.position.set(0, distance, distance * 0.12);
@@ -249,6 +275,7 @@ export function createLensScene(
 				controls = makeControls();
 				controls.addEventListener("change", invalidate);
 			}
+			if (view === "reset") controls.target.copy(initialTarget);
 			controls.update();
 			controls.enableDamping = damping;
 			invalidate();

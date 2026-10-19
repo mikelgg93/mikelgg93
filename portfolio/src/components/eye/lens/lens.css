@@ -245,3 +245,9 @@
 .lens-cataract-labels { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); pointer-events: none; color: #dce9e7; font-size: .8rem; text-align: center; }
 .lens-cataract-labels > span { padding: .8rem .4rem; }
 @media (max-width: 540px) { .lens-demo .lens-cataract-scene { height: 500px; } }
+
+/* Discrete focus states remain available without automatic motion. */
+.lens-demo .lens-static-focus { display: none; pointer-events: auto; padding: .25rem 0; background: transparent; color: #dce9e7; border: 0; border-radius: 0; text-decoration: underline; text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .lens-demo .lens-static-focus { display: inline-block; }
+}

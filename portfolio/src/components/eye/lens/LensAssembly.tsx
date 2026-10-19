@@ -25,6 +25,12 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 	const cue = useRef<HTMLDivElement>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [paused, setPaused] = useState(false);
+	const [near, setNear] = useState(false);
+	const nearRef = useRef(false);
+	useEffect(() => {
+		nearRef.current = near;
+		viewRef.current?.invalidate();
+	}, [near]);
 	const [error, setError] = useState(false);
 	const pauseRef = useRef(paused);
 	useEffect(() => {
@@ -89,10 +95,27 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 		let elapsed = 0,
 			shown = 0,
 			pupil = nearPupil(0);
+		view.onReset(() => {
+			elapsed = 0;
+			nearRef.current = false;
+			setNear(false);
+			shown = 0;
+			pupil = nearPupil(0);
+			pauseRef.current = false;
+			setPaused(false);
+		});
 		view.start((dt, reducedMotion) => {
 			const moving = !pauseRef.current && !reducedMotion;
 			if (moving) elapsed += dt;
-			const target = focusDemand(elapsed);
+			const target = reducedMotion
+				? nearRef.current
+					? 6
+					: 0
+				: focusDemand(elapsed);
+			if (reducedMotion) {
+				shown = target;
+				pupil = nearPupil(shown);
+			}
 			if (moving) {
 				shown += (target - shown) * (1 - Math.exp(-dt / 0.25));
 				pupil += (nearPupil(shown) - pupil) * (1 - Math.exp(-dt / 0.35));
@@ -157,6 +180,8 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 					cueRef={cue}
 					lang={lang}
 					paused={paused}
+					near={near}
+					onNear={() => setNear(!near)}
 					onPause={() => setPaused(!paused)}
 				/>
 			</div>

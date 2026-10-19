@@ -35,18 +35,20 @@ export default function LensSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		view.camera.position.set(21, 4, 7);
 		const geometry = createRoundedLensGeometry();
 		const material = clearLensMaterial();
-		const opaque = new THREE.MeshPhongMaterial({
-			color: 0x398b88,
-			shininess: 25,
-			side: THREE.DoubleSide,
-		});
 		const lens = new THREE.Mesh(geometry, material);
 		const grid = createConstructionGrid(geometry.parameters.points);
+		grid.material.color.set(0xdce9e7);
+		grid.material.opacity = 0.6;
 		lens.add(grid);
 		lens.scale.set(EQUATOR_RADIUS, EQUATOR_RADIUS, LENS_THICKNESS / 2);
 		view.scene.add(lens);
+		const renderSize = new THREE.Vector2();
+		view.onReset(() => {
+			split.current = 0.5;
+			setReveal(0.5);
+		});
 		view.start(() => {
-			lens.material = split.current === 1 ? opaque : material;
+			material.visible = split.current !== 1;
 			grid.visible = split.current === 1;
 			return {
 				state: {
@@ -59,13 +61,14 @@ export default function LensSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 				},
 				afterRender: () => {
 					if (split.current <= 0 || split.current >= 1) return;
-					lens.material = opaque;
+					material.visible = false;
+					view.renderer.getSize(renderSize);
 					grid.visible = true;
 					view.renderer.setScissor(
 						0,
 						0,
-						Math.round(view.renderer.domElement.clientWidth * split.current),
-						view.renderer.domElement.clientHeight,
+						Math.round(renderSize.x * split.current),
+						renderSize.y,
 					);
 					view.renderer.setScissorTest(true);
 					try {
@@ -78,9 +81,7 @@ export default function LensSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		});
 		return () => {
 			viewRef.current = null;
-			const unused = lens.material === material ? opaque : material;
 			view.dispose();
-			unused.dispose();
 		};
 	}, [lang]);
 	return (
