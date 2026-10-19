@@ -80,3 +80,58 @@ test("the central mosaic is cone-only and both presets fit the instance allocati
 			).toBe(true);
 		}
 });
+
+test("cup has no collapsed pole triangles and normals face its receiving surface", () => {
+	const geometry = createRetinalCup(),
+		index = geometry.index!;
+	const position = geometry.getAttribute("position"),
+		normal = geometry.getAttribute("normal");
+	for (const curvature of [0, 0.5, 1]) {
+		updateRetinalCup(geometry, curvature);
+		for (let i = 0; i < index.count; i += 3) {
+			const a = index.getX(i),
+				b = index.getX(i + 1),
+				c = index.getX(i + 2);
+			const ux = position.getX(b) - position.getX(a),
+				uy = position.getY(b) - position.getY(a),
+				uz = position.getZ(b) - position.getZ(a);
+			const vx = position.getX(c) - position.getX(a),
+				vy = position.getY(c) - position.getY(a),
+				vz = position.getZ(c) - position.getZ(a);
+			expect(
+				Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx),
+			).toBeGreaterThan(1e-6);
+		}
+		for (let i = 0; i < position.count; i++) {
+			expect(
+				Math.hypot(normal.getX(i), normal.getY(i), normal.getZ(i)),
+			).toBeCloseTo(1, 5);
+			if (curvature === 1)
+				expect(
+					-position.getX(i) * normal.getX(i) -
+						position.getY(i) * normal.getY(i) +
+						(CUP_CENTRE_Z - position.getZ(i)) * normal.getZ(i),
+				).toBeGreaterThan(0);
+		}
+	}
+	geometry.dispose();
+});
+
+test("Nyquist samples depend on phase and all exposed half-cycle steps match their aliases", () => {
+	const boundary = samplingModel(8, 16, 0);
+	expect(boundary.samples.every((s) => Math.abs(s.value - 0.5) < 1e-12)).toBe(
+		true,
+	);
+	const shifted = samplingModel(8, 16, Math.PI / 2);
+	expect(
+		Math.max(...shifted.samples.map((s) => s.value)) -
+			Math.min(...shifted.samples.map((s) => s.value)),
+	).toBeCloseTo(0.9, 10);
+	for (const count of [8, 16, 24, 32])
+		for (let f = 1; f <= 24; f += 0.5)
+			for (const phase of [0, Math.PI / 2]) {
+				const model = samplingModel(f, count, phase);
+				for (const sample of model.samples)
+					expect(model.alternative(sample.x)).toBeCloseTo(sample.value, 10);
+			}
+});

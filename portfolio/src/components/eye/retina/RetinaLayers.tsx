@@ -122,6 +122,7 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 			<div className="lens-controls">
 				<div className="lens-buttons">
 					<ParameterControl
+						hideReset
 						value={pit}
 						initial={defaults.pit}
 						onReset={setPit}
@@ -137,6 +138,7 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 						</button>
 					</ParameterControl>
 					<ParameterControl
+						hideReset
 						value={separate}
 						initial={defaults.separate}
 						onReset={setSeparate}

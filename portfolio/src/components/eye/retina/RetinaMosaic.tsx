@@ -29,6 +29,8 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 			return;
 		}
 		viewRef.current = view;
+		view.camera.position.set(12, 7, -16);
+		view.controls.target.set(0, 0, 0.6);
 		const cones = new THREE.InstancedMesh(
 			new THREE.CylinderGeometry(0.1, 0.18, 1, 12),
 			new THREE.MeshPhongMaterial({ color: 0xe5b773, shininess: 30 }),
@@ -58,11 +60,13 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				] as const) {
 					mesh.count = points.length;
 					points.forEach((point, i) => {
-						transform.position.set(point.x, point.y, cone ? 0.7 : 0.65);
+						const length = cone ? (p.central ? 1.65 : 1.05) : 1.75;
+						// Outer tips meet the illustrative RPE-side backing in both presets.
+						transform.position.set(point.x, point.y, 1.6 - length / 2);
 						transform.rotation.set(Math.PI / 2, 0, 0);
 						transform.scale.set(
 							cone && p.central ? 0.8 : 1,
-							cone ? (p.central ? 1.65 : 1.05) : 1.75,
+							length,
 							cone && p.central ? 0.8 : 1,
 						);
 						transform.updateMatrix();
@@ -74,6 +78,7 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				lastCentral = p.central;
 			}
 			if (p.top !== lastTop) {
+				const damping = view.controls.enableDamping;
 				view.controls.enableDamping = false;
 				view.controls.update();
 				view.camera.position.set(
@@ -83,7 +88,7 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				);
 				view.controls.target.set(0, 0, 0.6);
 				view.controls.update();
-				view.controls.enableDamping = true;
+				view.controls.enableDamping = damping;
 				lastTop = p.top;
 			}
 			return {
@@ -156,6 +161,7 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 			<div className="lens-controls">
 				<ParameterControl
+					hideReset
 					value={central}
 					initial={defaults.central}
 					onReset={setCentral}
@@ -180,6 +186,7 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				</ParameterControl>
 				<div className="lens-buttons">
 					<ParameterControl
+						hideReset
 						value={top}
 						initial={defaults.top}
 						onReset={setTop}

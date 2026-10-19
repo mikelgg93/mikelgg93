@@ -210,6 +210,7 @@ export default function RetinaAssembly({
 			<div className="lens-controls">
 				<div className="lens-buttons">
 					<ParameterControl
+						hideReset
 						value={section}
 						initial={defaults.section}
 						onReset={setSection}
@@ -247,6 +248,7 @@ export default function RetinaAssembly({
 					<summary>{es ? "Capas y restablecer" : "Layers and reset"}</summary>
 					<div className="lens-options">
 						<ParameterControl
+							hideReset
 							value={choroid}
 							initial={defaults.choroid}
 							onReset={setChoroid}
@@ -263,6 +265,7 @@ export default function RetinaAssembly({
 							</label>
 						</ParameterControl>
 						<ParameterControl
+							hideReset
 							value={sclera}
 							initial={defaults.sclera}
 							onReset={setSclera}
@@ -279,6 +282,7 @@ export default function RetinaAssembly({
 							</label>
 						</ParameterControl>
 						<ParameterControl
+							hideReset
 							value={nerve}
 							initial={defaults.nerve}
 							onReset={setNerve}
@@ -295,6 +299,7 @@ export default function RetinaAssembly({
 							</label>
 						</ParameterControl>
 						<ParameterControl
+							hideReset
 							value={anterior}
 							initial={defaults.anterior}
 							onReset={setAnterior}

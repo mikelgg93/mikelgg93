@@ -19,7 +19,7 @@ import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
 import RetinaSampling from '../../components/eye/retina/RetinaSampling';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
-We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the [lens](/blog/webgl-eye-03-lens) a way to change focus. There is now somewhere for light to go, but nobody to receive it.
+We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the <PublishedPost id="webgl-eye-03-lens" fallback="lens"><a href="/blog/webgl-eye-03-lens/">lens</a></PublishedPost> a way to change focus. There is now somewhere for light to go, but nobody to receive it.
 
 Enter the **retina**: a curved sheet of neural tissue lining the back of the eye. Calling it the eye's camera sensor is a useful first approximation. It is also a trap. The retina does not simply record an image and send the pixels onwards. Its cells begin processing visual information before the signals leave the eye.
 
@@ -46,7 +46,7 @@ The angle stops just short of a hemisphere. The demo begins with the same vertex
   <div slot="code"><SourceFiles files={retinaSources.cup} /></div>
 </InteractiveViewer>
 
-The vertices stay in the same GPU buffer. Moving the slider changes their positions, after which we update the normals and bounding sphere. There is no need to create and discard a new geometry on every frame.
+A single shared vertex closes the pole, and the last sector joins back to the first. This avoids collapsed triangles at the centre and a lighting seam around the cup. The vertices stay in the same GPU buffer. Moving the slider changes their positions, after which we update the normals and bounding sphere. There is no need to create and discard a new geometry on every frame.
 
 The warm tint makes the surface visible; it is not a prediction of fundus colour. This shell gives us position and curvature. It has not yet given us a single light-sensitive cell.
 
@@ -67,7 +67,7 @@ Use **Separate bands** to inspect the stack. Those gaps are a drawing aid, not s
 
 ## A pit with a purpose: The fovea
 
-Now turn on **Show fovea**. The inner layers thin out towards the centre while the outer bands remain. In a typical fovea, inner retinal tissue is displaced away from the centre; tightly packed central cones become narrow and elongated. The central region is also free of retinal blood vessels. The pit, cone specialisation and vascular arrangement are related features, rather than a hole punched through the retina (Provis et al., 2013).
+Now turn on **Show fovea**. The inner layers thin out towards the centre while the outer bands remain. In a typical fovea, inner retinal tissue is displaced away from the centre; tightly packed central cones become narrow and elongated. The central region is also free of retinal blood vessels; its outer retina is supplied by the choroid, so “avascular” does not mean without a blood supply. The pit, cone specialisation and vascular arrangement are related features, rather than a hole punched through the retina (Provis et al., 2013).
 
 Our profile captures that change in organisation, with exaggerated vertical dimensions. It does not reproduce individual variation, Henle-fibre trajectories or measured layer thicknesses. Nor does pit depth alone determine visual acuity: central cone specialisation can occur even when a conventional pit is absent.
 
@@ -138,7 +138,7 @@ We can now place the cup behind the cornea, iris and lens from the earlier artic
 
 These are **chosen dimensions**, not measurements from a person or a validated schematic optical eye. We retain the anterior parts from Part 3; we have not fitted their shape and spacing to a common biometric dataset. Optical biometry commonly defines axial length to the RPE, so that is the endpoint used here (Ostrin et al., 2023). The corneal apex is at $z=5.6\ \text{mm}$ and our RPE boundary at $z=-18.70\ \text{mm}$. The distance to the inner retina is different. We use **internal** ACD, excluding the corneal thickness.
 
-The receiving surface needs a supporting wall. Outside the retina and RPE sits the **choroid**, a vascular coat that supplies the outer retina, including the photoreceptors (Kolb). Outside that is the **sclera**, the opaque, collagen-rich coat that gives the globe mechanical support and meets the cornea at the limbus (Watson & Young, 2004).
+The receiving surface needs a supporting wall. Outside the retina and RPE sits the **choroid**, a vascular coat that supplies the outer retina, including the photoreceptors. The retinal circulation supplies much of the inner retina (Kolb). Outside that is the **sclera**, the opaque, collagen-rich coat that gives the globe mechanical support and meets the cornea at the limbus (Watson & Young, 2004).
 
 The **optic nerve** is the exit route. Ganglion-cell axons converge at the **optic disc**, nasal to the fovea, then pass through the scleral canal. The disc has no rods or cones: this is the anatomical basis of the blind spot. It is not the fovea, and the nerve should not emerge from the centre of our foveal drawing.
 

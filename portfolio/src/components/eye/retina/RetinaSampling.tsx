@@ -33,6 +33,7 @@ export default function RetinaSampling({
 			/>
 		));
 	const aliases = frequency > model.nyquist;
+	const atBoundary = frequency === model.nyquist;
 	const root = useViewerDebug({
 		model: "Uniform 1D point sampling; frequencies in cycles/panel",
 		frequency: model.f,
@@ -90,13 +91,17 @@ export default function RetinaSampling({
 					/>
 				))}
 				<text x="20" y="214" fill="#dce9e7" fontSize="26">
-					{aliases
+					{atBoundary
 						? es
-							? "Patrón de baja frecuencia compatible"
-							: "Matching low-frequency pattern"
-						: es
-							? "Misma frecuencia, mismas muestras"
-							: "Same frequency, same samples"}
+							? "En el límite: mismas muestras"
+							: "At the boundary: same samples"
+						: aliases
+							? es
+								? "Patrón de baja frecuencia compatible"
+								: "Matching low-frequency pattern"
+							: es
+								? "Misma frecuencia, mismas muestras"
+								: "Same frequency, same samples"}
 				</text>
 				{strips(model.alternative, 230)}
 			</svg>
@@ -112,6 +117,7 @@ export default function RetinaSampling({
 			</div>
 			<div className="lens-controls">
 				<ParameterControl
+					hideReset
 					value={frequency}
 					initial={defaults.frequency}
 					onReset={setFrequency}
@@ -138,6 +144,7 @@ export default function RetinaSampling({
 					</label>
 				</ParameterControl>
 				<ParameterControl
+					hideReset
 					value={count}
 					initial={defaults.count}
 					onReset={setCount}
@@ -162,6 +169,7 @@ export default function RetinaSampling({
 				</ParameterControl>
 				<div className="lens-buttons">
 					<ParameterControl
+						hideReset
 						value={shift}
 						initial={defaults.shift}
 						onReset={setShift}
@@ -178,13 +186,17 @@ export default function RetinaSampling({
 					</ParameterControl>
 				</div>
 				<p className="lens-note">
-					{aliases
+					{atBoundary
 						? es
-							? "Por encima del límite, un patrón más grueso coincide con las mismas muestras."
-							: "Above the boundary, a coarser pattern matches the same samples."
-						: es
-							? "Aumenta la frecuencia por encima del límite. En el propio límite, la fase también importa."
-							: "Raise the frequency above the boundary. At the boundary itself, phase also matters."}{" "}
+							? "En el límite, la fase puede hacer desaparecer las franjas de las muestras."
+							: "At the boundary, phase can hide the stripes in the samples."
+						: aliases
+							? es
+								? "Por encima del límite, un patrón más grueso coincide con las mismas muestras."
+								: "Above the boundary, a coarser pattern matches the same samples."
+							: es
+								? "Aumenta la frecuencia por encima del límite. En el propio límite, la fase también importa."
+								: "Raise the frequency above the boundary. At the boundary itself, phase also matters."}{" "}
 					{es
 						? "No es una predicción de agudeza visual ni una simulación de lo que ves."
 						: "This is not an acuity prediction or a simulation of what you see."}

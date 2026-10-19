@@ -115,6 +115,7 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 			</div>
 			<div className="lens-controls">
 				<ParameterControl
+					hideReset
 					value={curvature}
 					initial={defaults.curvature}
 					onReset={setCurvature}
@@ -140,6 +141,7 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 				</ParameterControl>
 				<div className="lens-buttons">
 					<ParameterControl
+						hideReset
 						value={wire}
 						initial={defaults.wire}
 						onReset={setWire}
@@ -154,19 +156,6 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 							{es ? "Triángulos" : "Triangles"}
 						</button>
 					</ParameterControl>
-					<button
-						type="button"
-						onClick={() => {
-							const view = viewRef.current;
-							if (!view) return;
-							view.setView("reset");
-							view.controls.target.set(0, 0, 6);
-							view.controls.update();
-							view.invalidate();
-						}}
-					>
-						{es ? "Restablecer vista" : "Reset view"}
-					</button>
 				</div>
 				<p className="lens-note">
 					{es
