@@ -1,4 +1,3 @@
-import { useInitialParameters } from "../ParameterControl";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -10,8 +9,6 @@ import {
 } from "./lensConstruction";
 import { clearLensMaterial } from "./lensMaterial";
 import { createLensScene } from "./lensScene";
-
-type CataractType = "clear" | "nuclear" | "cortical" | "posterior";
 
 // A short ray integral through an illustrative density field. These patterns
 // locate opacity within the lens; they do not solve multiple scattering.
@@ -111,178 +108,126 @@ function cloudMaterial(pattern: number, color: number) {
 export default function LensCataract({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es";
 	const mount = useRef<HTMLDivElement>(null);
-	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
-	const [type, setType] = useState<CataractType>("nuclear");
-	const [opacity, setOpacity] = useState(0.7);
 	const [error, setError] = useState(false);
-	const params = useRef({ type, opacity });
-	useEffect(() => {
-		params.current = { type, opacity };
-		viewRef.current?.invalidate();
-	}, [type, opacity]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
 		try {
-			view = createLensScene(mount.current, 23, lang);
+			view = createLensScene(mount.current, 28, lang);
 		} catch {
 			setError(true);
 			return;
 		}
-		viewRef.current = view;
-		view.camera.position.set(0, 0, 23);
+		view.camera.position.set(0, 0, 28);
 		const shape = createRoundedLensGeometry();
 		const shell = new THREE.Mesh(shape, clearLensMaterial());
 		shell.scale.set(EQUATOR_RADIUS, EQUATOR_RADIUS, LENS_THICKNESS / 2);
-		view.scene.add(shell);
-		const volume = shape;
-		const nuclearMaterial = cloudMaterial(0, 0xcbb984);
-		const corticalMaterial = cloudMaterial(1, 0xe2ded1);
-		const posteriorMaterial = cloudMaterial(2, 0xd8d3bc);
-		const nucleus = new THREE.Mesh(volume, nuclearMaterial);
-		const cortical = new THREE.Mesh(volume, corticalMaterial);
-		const posterior = new THREE.Mesh(volume, posteriorMaterial);
-		for (const cloud of [nucleus, cortical, posterior]) {
-			// The haze follows the same rounded profile, just inside the clear shell.
+		const group = new THREE.Group();
+		group.add(shell);
+		const clouds = [
+			cloudMaterial(0, 0xcbb984),
+			cloudMaterial(1, 0xe2ded1),
+			cloudMaterial(2, 0xd8d3bc),
+		].map((material) => {
+			const cloud = new THREE.Mesh(shape, material);
 			cloud.scale.set(
 				EQUATOR_RADIUS * 0.985,
 				EQUATOR_RADIUS * 0.985,
 				(LENS_THICKNESS / 2) * 0.985,
 			);
-			// Composite the density after the clear transmissive shell, whose
-			// screen-space transmission buffer cannot include transparent volumes.
 			cloud.renderOrder = 1;
-			view.scene.add(cloud);
-		}
+			group.add(cloud);
+			return cloud;
+		});
+		view.scene.add(group);
+		const renderSize = new THREE.Vector2();
 		view.start(() => {
-			const p = params.current;
-			nucleus.visible = p.type === "nuclear" && p.opacity > 0;
-			cortical.visible = p.type === "cortical" && p.opacity > 0;
-			posterior.visible = p.type === "posterior" && p.opacity > 0;
-			for (const material of [
-				nuclearMaterial,
-				corticalMaterial,
-				posteriorMaterial,
-			])
-				material.uniforms.amount!.value = p.opacity;
+			// One context and one camera; each tile renders the same rounded geometry.
+			group.visible = false;
 			return {
 				state: {
 					model:
-						"Illustrative opacity distribution; no scattering or visual-acuity prediction",
-					opacityPattern: p.type,
-					illustrativeOpacity: p.opacity,
+						"Four matched lens views; illustrative opacity distributions, no visual-acuity prediction",
+					patterns: ["clear", "nuclear", "cortical", "posterior subcapsular"],
+					illustrativeOpacity: 0.7,
+				},
+				afterRender: () => {
+					const { x: width, y: height } = view.renderer.getSize(renderSize);
+					const halfWidth = Math.floor(width / 2),
+						halfHeight = Math.floor(height / 2);
+					const aspect = view.camera.aspect;
+					group.visible = true;
+					view.renderer.setScissorTest(true);
+					try {
+						for (let i = 0; i < 4; i++) {
+							const x = i % 2 === 0 ? 0 : halfWidth;
+							const y = i < 2 ? halfHeight : 0;
+							const w = i % 2 === 0 ? halfWidth : width - halfWidth;
+							const h = i < 2 ? height - halfHeight : halfHeight;
+							clouds.forEach((cloud, j) => {
+								cloud.visible = i === j + 1;
+							});
+							view.camera.aspect = w / h;
+							view.camera.updateProjectionMatrix();
+							view.renderer.setViewport(x, y, w, h);
+							view.renderer.setScissor(x, y, w, h);
+							view.renderer.render(view.scene, view.camera);
+						}
+					} finally {
+						view.renderer.setScissorTest(false);
+						view.renderer.setViewport(0, 0, width, height);
+						view.camera.aspect = aspect;
+						view.camera.updateProjectionMatrix();
+						group.visible = false;
+					}
 				},
 			};
 		});
-		return () => {
-			viewRef.current = null;
-			view.dispose();
-		};
+		return () => view.dispose();
 	}, [lang]);
-	const descriptions = {
-		clear: es
-			? "Cristalino transparente, sin opacidad añadida."
-			: "Clear lens, without added opacity.",
-		nuclear: es
-			? "Nuclear: opacidad central, aquí con un tono amarillento."
-			: "Nuclear: central opacity, shown here with yellowing.",
-		cortical: es
-			? "Cortical: radios o cuñas en la corteza periférica."
-			: "Cortical: spoke-like or wedge-shaped opacities in the peripheral cortex.",
-		posterior: es
-			? "Subcapsular posterior: una placa justo por delante de la cápsula posterior."
-			: "Posterior subcapsular: a patch just in front of the posterior capsule.",
-	};
-	useInitialParameters(
-		{ type, opacity },
-		(initial) => {
-			setType(initial.type);
-			setOpacity(initial.opacity);
-		},
-		mount,
-	);
+	const labels = es
+		? ["Transparente", "Nuclear", "Cortical", "Subcapsular posterior"]
+		: ["Clear", "Nuclear", "Cortical", "Posterior subcapsular"];
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
 				<strong>
 					{es
-						? "Cuando el cristalino pierde transparencia"
-						: "When the lens loses transparency"}
+						? "Un cristalino transparente y tres patrones de catarata"
+						: "A clear lens and three cataract patterns"}
 				</strong>
 				<span className="lens-muted">
-					{es ? "Arrastra para girar" : "Drag to orbit"}
+					{es ? "Arrastra para girar los cuatro" : "Drag to rotate all four"}
 				</span>
 			</div>
-			{error ? (
-				<p className="p-4" role="status">
-					{es ? "WebGL no está disponible." : "WebGL is unavailable."}
-				</p>
-			) : (
-				<div
-					ref={mount}
-					className="lens-scene"
-					role="img"
-					aria-label={
-						opacity === 0
-							? es
-								? "Cristalino transparente para comparar"
-								: "Clear lens for comparison"
-							: descriptions[type]
-					}
-				/>
-			)}
-			<div className="lens-controls">
-				<label>
-					{es ? "Patrón de opacidad" : "Opacity pattern"}
-					<select
-						value={type}
-						onChange={(e) => {
-							const next = e.target.value as typeof type;
-							setType(next);
-							viewRef.current?.setView(next === "posterior" ? "back" : "front");
-						}}
-					>
-						<option value="clear">{es ? "Transparente" : "Clear"}</option>
-						<option value="nuclear">Nuclear</option>
-						<option value="cortical">Cortical</option>
-						<option value="posterior">
-							{es ? "Subcapsular posterior" : "Posterior subcapsular"}
-						</option>
-					</select>
-				</label>
-
-				<p className="lens-note" aria-live="polite">
-					{descriptions[type]}
-				</p>
-
-				<details className="lens-options">
-					<summary>
-						{es ? "Intensidad de la opacidad" : "Opacity strength"}
-					</summary>
-					<label>
-						<span className="lens-value">
-							<span>
-								{es ? "Opacidad ilustrativa" : "Illustrative opacity"}
-							</span>
-							<output>{Math.round(opacity * 100)} / 100</output>
-						</span>
-						<input
-							type="range"
-							min="0"
-							max="1"
-							step="0.01"
-							value={opacity}
-							onChange={(e) => setOpacity(Number(e.target.value))}
-						/>
-					</label>
-				</details>
-
-				<p className="lens-note">
-					{es
-						? "Patrones ilustrativos: no son grados clínicos ni una simulación de lo que ve una persona. En un mismo ojo pueden coexistir varios tipos."
-						: "Illustrative patterns, not clinical grades or a simulation of a person's vision. Multiple types can coexist in one eye."}
-				</p>
+			<div className="lens-animated-scene">
+				{error ? (
+					<p role="status">
+						{es ? "WebGL no está disponible." : "WebGL is unavailable."}
+					</p>
+				) : (
+					<div
+						ref={mount}
+						className="lens-scene lens-cataract-scene"
+						role="img"
+						aria-label={
+							es
+								? "Comparación de cristalino transparente y cataratas nuclear, cortical y subcapsular posterior"
+								: "Comparison of a clear lens with nuclear, cortical and posterior subcapsular cataracts"
+						}
+					/>
+				)}
+				<div className="lens-cataract-labels">
+					{labels.map((label) => (
+						<span key={label}>{label}</span>
+					))}
+				</div>
 			</div>
+			<p className="lens-note lens-animation-note">
+				{es
+					? "Misma geometría e iluminación. Patrones ilustrativos, no grados clínicos ni una simulación de la visión. Pueden coexistir varios tipos en un ojo."
+					: "Matching geometry and lighting. Illustrative patterns, not clinical grades or a simulation of vision. Several types can coexist in one eye."}
+			</p>
 		</div>
 	);
 }

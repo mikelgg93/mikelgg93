@@ -14,6 +14,7 @@ import cue from "./FocusCue.tsx?raw";
 import anatomy from "./LensAnatomy.tsx?raw";
 import assembly from "./LensAssembly.tsx?raw";
 import cataract from "./LensCataract.tsx?raw";
+import divider from "./LensDivider.tsx?raw";
 import domes from "./LensDomes.tsx?raw";
 import focus from "./LensFocus.tsx?raw";
 import grin from "./LensGrin.tsx?raw";
@@ -65,7 +66,12 @@ export const lensSources = {
 		...shared3D,
 	],
 	domes: [local("LensDomes.tsx", domes), constructionSource, ...shared3D],
-	surface: [local("LensSurface.tsx", surface), constructionSource, ...shared3D],
+	surface: [
+		local("LensSurface.tsx", surface),
+		local("LensDivider.tsx", divider),
+		constructionSource,
+		...shared3D,
+	],
 	grin: [
 		local("LensGrin.tsx", grin),
 		opticalModel,

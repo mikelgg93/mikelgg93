@@ -3,6 +3,7 @@ import {
 	BACK_RADIUS,
 	createRoundedLensGeometry,
 	createTeachingCap,
+	domeSeparation,
 	EQUATOR_RADIUS,
 	FRONT_RADIUS,
 	LENS_THICKNESS,
@@ -54,4 +55,16 @@ test("rounded profile closes at the poles with one smooth equator and no folded 
 		5,
 	);
 	geometry.dispose();
+});
+
+test("domes start joined and separate without crossing during the repeating animation", () => {
+	expect(domeSeparation(0)).toBe(0);
+	expect(domeSeparation(5)).toBe(1.25);
+	expect(domeSeparation(9)).toBe(0);
+	for (let t = 0; t < 20; t += 0.025) {
+		const gap = domeSeparation(t);
+		expect(gap).toBeGreaterThanOrEqual(0);
+		expect(gap).toBeLessThanOrEqual(1.25);
+		expect(domeSeparation(t + 10)).toBeCloseTo(gap, 8);
+	}
 });

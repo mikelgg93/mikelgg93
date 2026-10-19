@@ -57,3 +57,52 @@ export function createRoundedLensGeometry() {
 	geometry.rotateX(Math.PI / 2);
 	return geometry;
 }
+
+// Sparse latitude/meridian lines expose the construction without triangle clutter.
+export function createConstructionGrid(profile: THREE.Vector2[]) {
+	const points: number[] = [];
+	const point = (p: THREE.Vector2, angle: number) => {
+		points.push(p.x * Math.cos(angle), p.x * Math.sin(angle), p.y);
+	};
+	for (let ring = 1; ring <= 8; ring++) {
+		const p = profile[Math.round(((profile.length - 1) * ring) / 9)]!;
+		for (let j = 0; j < 64; j++) {
+			point(p, (j * Math.PI) / 32);
+			point(p, ((j + 1) * Math.PI) / 32);
+		}
+	}
+	for (let meridian = 0; meridian < 16; meridian++) {
+		const angle = (meridian * Math.PI) / 8;
+		for (let j = 1; j < profile.length; j++) {
+			point(profile[j - 1]!, angle);
+			point(profile[j]!, angle);
+		}
+	}
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute(
+		"position",
+		new THREE.Float32BufferAttribute(points, 3),
+	);
+	const grid = new THREE.LineSegments(
+		geometry,
+		new THREE.LineBasicMaterial({
+			color: 0xc4f9f4,
+			transparent: true,
+			opacity: 0.48,
+			depthWrite: false,
+		}),
+	);
+	grid.scale.setScalar(1.001);
+	return grid;
+}
+
+export function domeSeparation(seconds: number) {
+	// Start joined; pause at each end so the seam and the two caps can be inspected.
+	const t = ((seconds % 10) + 10) % 10;
+	const smooth = (x: number) => x * x * (3 - 2 * x);
+	if (t < 2) return 0;
+	if (t < 4) return 1.25 * smooth((t - 2) / 2);
+	if (t < 6) return 1.25;
+	if (t < 8) return 1.25 * (1 - smooth((t - 6) / 2));
+	return 0;
+}

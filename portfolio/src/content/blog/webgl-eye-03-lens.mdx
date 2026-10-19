@@ -40,14 +40,14 @@ back.rotation.y = Math.PI;
 // Both rims lie at z = 0: the two domes meet here.
 ```
 
-Use **Join the domes**, then rotate the view. The rims meet, but their slopes do not: the seam is a sharp ridge. The two meshes also remain separate objects. Joining their positions is only the first construction step.
+The domes start joined, then slowly separate and come together again. Rotate the view and follow the construction grid. The rims meet, but their slopes do not: the seam is a sharp ridge. The two meshes also remain separate objects. Joining their positions is only the first construction step.
 
 <InteractiveViewer>
   <div slot="preview"><LensDomes client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.domes} /></div>
 </InteractiveViewer>
 
-## Round the equator
+## Round the equator and add a material
 
 A real lens has a rounded **equator**, where its front and back meet. Smoothing the normals alone would disguise our ridge without changing its silhouette. We need to change the profile itself.
 
@@ -65,14 +65,7 @@ const geometry = new THREE.LatheGeometry(profile, 96);
 geometry.rotateX(Math.PI / 2); // align the optical axis with z
 ```
 
-We now set a **4 mm central thickness**, also a relaxed Navarro reference value, while keeping the illustrative 9 mm diameter. The blend handles and the anterior/posterior thickness split are drawing choices. This is a smooth anatomical approximation, not a fitted peripheral lens shape. The opaque material below makes that curved edge easier to inspect.
-
-<InteractiveViewer>
-  <div slot="preview"><LensSurface client:visible /></div>
-  <div slot="code"><SourceFiles files={lensSources.surface} /></div>
-</InteractiveViewer>
-
-## Give that surface a material
+We now set a **4 mm central thickness**, also a relaxed Navarro reference value, while keeping the illustrative 9 mm diameter. The blend handles and the anterior/posterior thickness split are drawing choices. This is a smooth anatomical approximation, not a fitted peripheral lens shape. The construction grid below makes that curved edge easier to inspect.
 
 Keep exactly the same mesh. Now replace the opaque material with a transmitting one: low roughness, a faint warm tint, and reflections from our procedural lighting. The shape is unchanged; only its response to light changes.
 
@@ -84,11 +77,11 @@ lens.scale.set(4.5, 4.5, 2); // unit mesh → 9 mm wide, 4 mm thick
 Inside `clearLensMaterial()`, Three.js supplies the physical-material shader. We use an approximate relative index of $1.40/1.336$ to suggest lens tissue immersed in ocular fluid. A small shader adjustment shortens the transmission path toward the equator, using an elliptical chord approximation. Tint, roughness and this path estimate control the appearance; they do not reproduce the full optical behaviour of the lens or its internal gradient.
 
 <InteractiveViewer>
-  <div slot="preview"><LensSurface material client:visible /></div>
+  <div slot="preview"><LensSurface client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.surface} /></div>
 </InteractiveViewer>
 
-That gives us a transparent surface. Next, we distinguish that rendered appearance from what light does **inside** the lens.
+Drag the divider: the left side exposes the construction mesh, and the right shows the same rounded surface with its transparent material. Next, we distinguish that rendered appearance from what light does **inside** the lens.
 
 ## Give the lens an interior: GRIN
 
@@ -223,7 +216,7 @@ The transparent lens depends on its microscopic organisation. When that organisa
 
 The location matters. **Nuclear** cataracts affect the central region and may yellow or brown. **Cortical** opacities often form peripheral spokes or wedges. **Posterior subcapsular** opacities sit just in front of the posterior capsule. These patterns can coexist; they are not three mandatory stages of one sequence (Aliancy & Mamalis, 2017).
 
-Switch between the patterns below and compare each with the clear model. Choose **Clear** for comparison, or drag to inspect the location of each opacity. **Opacity strength** adjusts the drawing, not a clinical cataract grade.
+Compare the clear lens with all three opacity patterns at once. They share the same rounded geometry, lighting and viewing angle. Drag to turn all four together and inspect where the cloudiness lies.
 
 <InteractiveViewer>
   <div slot="preview"><LensCataract client:visible /></div>
@@ -232,7 +225,12 @@ Switch between the patterns below and compare each with the clear model. Choose 
 
 Light scattered back toward an observer helps reveal an opacity; light scattered forward toward the retina affects the retinal image. They are not interchangeable measurements (Crnej et al., 2017).
 
-The shader adds cloudiness in selected regions without calculating multiple scattering, glare or a person's view through the lens. Turning the opacity down is a comparison tool, not a model of treatment. When cataract affects daily activities enough to warrant surgery, the cloudy lens is removed and usually replaced by an artificial intraocular lens (National Eye Institute).
+The shader adds cloudiness in selected regions without calculating multiple scattering, glare or a person's view through the lens. When cataract affects daily activities enough to warrant surgery, the cloudy lens is removed and usually replaced by an artificial intraocular lens (National Eye Institute).
+
+> [!NOTE]
+> **Before replacement lenses**
+>
+> Did cataract surgery begin in ancient Egypt? Claims about pharaonic Egypt remain disputed; the surviving evidence does not establish that origin (Blomstedt, 2014). Ancient **couching** displaced the cloudy lens out of the visual axis. It could clear an obstruction, but left the eye without the lens's focusing power and carried serious risks. Later extraction removed the lens; modern surgery usually replaces its optical role with an implant. Harold Ridley's first intraocular lens implantation in 1949 was a key step toward that approach (Leffler et al., 2020).
 
 ## Presbyopia: When the lens cannot keep up
 
@@ -269,7 +267,7 @@ The eye stays open in section. As attention shifts toward the nearby object, the
   <div slot="code"><SourceFiles files={lensSources.assembly} /></div>
 </InteractiveViewer>
 
-This is an anatomical assembly of our teaching models. It brings together the conic cornea from Part 1, a pigmented iris with a real opening, and our deforming lens and ciliary apparatus. The lens uses a clear, subtly warm material with procedurally generated studio reflections. That finish does not measure light transmission or replace the GRIN calculation. The ciliary-body envelope tapers posteriorly, with muscle in its outer portion and processes projecting inward. The posterior edge of this anterior-segment model is truncated. The dimensions and surface finishes are illustrative; the scene does not combine their optical calculations or predict a retinal image.
+This is an anatomical assembly of our teaching models. It brings together the conic cornea from Part 1, a pigmented iris with a real opening, and our deforming lens and ciliary apparatus. The lens uses a clear, subtly warm material with procedurally generated studio reflections. This final 3D lens does not contain a GRIN ray tracer: its transparent finish is an appearance shader. Internal ray bending is calculated only in the separate GRIN demonstration above. The ciliary-body envelope tapers posteriorly, with muscle in its outer portion and processes projecting inward. The posterior edge of this anterior-segment model is truncated. The dimensions and surface finishes are illustrative; the scene does not combine their optical calculations or predict a retinal image.
 
 We have now explored three mechanisms: a fixed front surface, an adjustable aperture and a lens that changes focus. In the real eye, they work together to form the retinal image.
 
@@ -300,3 +298,6 @@ Next, [Part 4: The retina](/blog/webgl-eye-04-retina/) builds the receiving surf
 17. **Moorfields Eye Hospital**. [*Cataract surgery*](https://www.moorfields.nhs.uk/private/eye-conditions-and-treatments/cataract/surgery); [*Cataract service: patient information*](https://www.moorfields.nhs.uk/mediaLocal/ojzfucri/cataract-service_1.pdf), p. 4.
 
 18. **American Academy of Ophthalmology, EyeWiki**. [*Gonioscopy*](https://eyewiki.aao.org/Gonioscopy). Anterior chamber angle, scleral spur and iris-root relationships.
+
+19. **Blomstedt, P. (2014)**. [*Cataract surgery in ancient Egypt*](https://pubmed.ncbi.nlm.nih.gov/24485861/). Journal of Cataract & Refractive Surgery, 40, 485–489.
+20. **Leffler, C. T., et al. (2020)**. [*The history of cataract surgery: from couching to phacoemulsification*](https://pubmed.ncbi.nlm.nih.gov/33313296/). Annals of Translational Medicine, 8, 1551.

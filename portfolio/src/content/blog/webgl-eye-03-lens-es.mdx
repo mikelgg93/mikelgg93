@@ -40,14 +40,14 @@ back.rotation.y = Math.PI;
 // Ambos bordes quedan en z = 0: aquí se unen las cúpulas.
 ```
 
-Pulsa **Unir las cúpulas** y gira la vista. Los bordes coinciden, pero sus pendientes no: la unión forma una arista. Las dos mallas también siguen siendo objetos separados. Hacer coincidir sus posiciones es solo el primer paso.
+Las cúpulas empiezan unidas, se separan lentamente y vuelven a juntarse. Gira la vista y sigue las líneas de construcción. Los bordes coinciden, pero sus pendientes no: la unión forma una arista. Las dos mallas también siguen siendo objetos separados. Hacer coincidir sus posiciones es solo el primer paso.
 
 <InteractiveViewer>
   <div slot="preview"><LensDomes lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.domes} lang="es" /></div>
 </InteractiveViewer>
 
-## Redondear el ecuador
+## Redondear el ecuador y añadir un material
 
 Un cristalino real tiene un **ecuador** redondeado, donde se unen las superficies anterior y posterior. Suavizar las normales disimularía nuestra arista sin cambiar su silueta. Hay que modificar el perfil.
 
@@ -65,14 +65,7 @@ const geometry = new THREE.LatheGeometry(profile, 96);
 geometry.rotateX(Math.PI / 2); // eje óptico alineado con z
 ```
 
-Ahora fijamos un **espesor central de 4 mm**, también un valor de referencia del modelo relajado de Navarro, y mantenemos el diámetro ilustrativo de 9 mm. Los puntos de control y el reparto anterior/posterior del espesor son decisiones de dibujo. Es una aproximación anatómica suave, no un ajuste de la periferia de un cristalino medido. El material opaco permite inspeccionar mejor el borde curvo.
-
-<InteractiveViewer>
-  <div slot="preview"><LensSurface lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={lensSources.surface} lang="es" /></div>
-</InteractiveViewer>
-
-## Darle un material a esa superficie
+Ahora fijamos un **espesor central de 4 mm**, también un valor de referencia del modelo relajado de Navarro, y mantenemos el diámetro ilustrativo de 9 mm. Los puntos de control y el reparto anterior/posterior del espesor son decisiones de dibujo. Es una aproximación anatómica suave, no un ajuste de la periferia de un cristalino medido. Las líneas de construcción permiten inspeccionar mejor el borde curvo.
 
 Conservamos exactamente la misma malla. Sustituimos el material opaco por uno que transmite luz: poca rugosidad, un leve tinte cálido y reflejos de nuestra iluminación procedural. La forma no cambia; cambia su respuesta a la luz.
 
@@ -84,11 +77,11 @@ lens.scale.set(4.5, 4.5, 2); // malla unitaria → 9 mm de ancho, 4 mm de espeso
 Dentro de `clearLensMaterial()`, Three.js aporta el shader del material físico. Usamos un índice relativo aproximado de $1.40/1.336$ para representar tejido del cristalino sumergido en los medios oculares. Un pequeño ajuste del shader acorta el recorrido de transmisión hacia el ecuador mediante una aproximación de cuerda elíptica. El tinte, la rugosidad y esa estimación del recorrido controlan la apariencia; no reproducen toda la óptica del cristalino ni su gradiente interno.
 
 <InteractiveViewer>
-  <div slot="preview"><LensSurface lang="es" material client:visible /></div>
+  <div slot="preview"><LensSurface lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.surface} lang="es" /></div>
 </InteractiveViewer>
 
-Ya tenemos una superficie transparente. Ahora distinguiremos esa apariencia de lo que hace la luz **dentro** del cristalino.
+Arrastra el divisor: a la izquierda se ve la malla de construcción; a la derecha, la misma superficie redondeada con su material transparente. Ahora distinguiremos esa apariencia de lo que hace la luz **dentro** del cristalino.
 
 ## Darle un interior a la lente: GRIN
 
@@ -223,7 +216,7 @@ La transparencia del cristalino depende de su organización microscópica. Cuand
 
 La localización importa. Las cataratas **nucleares** afectan a la región central y pueden amarillear o tornarse marrones. Las opacidades **corticales** suelen formar radios o cuñas periféricas. Las **subcapsulares posteriores** están justo por delante de la cápsula posterior. Estos patrones pueden coexistir; no son tres etapas obligatorias de una misma secuencia (Aliancy & Mamalis, 2017).
 
-Alterna entre los patrones y compara cada uno con el modelo transparente. Elige **Transparente** para comparar, o gira el modelo para localizar cada opacidad. **Intensidad de la opacidad** modifica el dibujo, no un grado clínico de catarata.
+Compara el cristalino transparente con los tres patrones de opacidad a la vez. Comparten geometría redondeada, iluminación y ángulo de visión. Arrastra para girar los cuatro juntos e inspeccionar dónde se sitúa la opacidad.
 
 <InteractiveViewer>
   <div slot="preview"><LensCataract lang="es" client:visible /></div>
@@ -232,7 +225,12 @@ Alterna entre los patrones y compara cada uno con el modelo transparente. Elige 
 
 La luz dispersada hacia el observador ayuda a revelar una opacidad; la dispersada hacia la retina afecta a la imagen retiniana. No son medidas intercambiables (Crnej et al., 2017).
 
-El shader añade turbidez en regiones seleccionadas sin calcular dispersión múltiple, deslumbramiento ni la visión de una persona a través de la lente. Reducir la opacidad sirve para comparar, no para representar un tratamiento. Cuando la catarata afecta a las actividades diarias lo suficiente para justificar la cirugía, se extrae el cristalino opaco y normalmente se sustituye por una lente intraocular artificial (National Eye Institute).
+El shader añade turbidez en regiones seleccionadas sin calcular dispersión múltiple, deslumbramiento ni la visión de una persona a través de la lente. Cuando la catarata afecta a las actividades diarias lo suficiente para justificar la cirugía, se extrae el cristalino opaco y normalmente se sustituye por una lente intraocular artificial (National Eye Institute).
+
+> [!NOTE]
+> **Antes de las lentes de reemplazo**
+>
+> ¿Empezó la cirugía de cataratas en el antiguo Egipto? Las afirmaciones sobre el Egipto faraónico siguen siendo discutidas; la evidencia conservada no establece ese origen (Blomstedt, 2014). La antigua técnica de **abatimiento**, o *couching*, desplazaba el cristalino opaco fuera del eje visual. Podía despejar una obstrucción, pero dejaba al ojo sin la potencia de enfoque del cristalino y conllevaba riesgos importantes. La extracción posterior retiraba la lente; la cirugía moderna suele sustituir su función óptica con un implante. La primera implantación de una lente intraocular por Harold Ridley en 1949 fue un paso clave hacia ese enfoque (Leffler et al., 2020).
 
 ## Presbicia: Cuando el cristalino no llega
 
@@ -269,7 +267,7 @@ El ojo permanece abierto en sección. Al dirigir la atención al objeto cercano,
   <div slot="code"><SourceFiles files={lensSources.assembly} lang="es" /></div>
 </InteractiveViewer>
 
-Es una composición anatómica de nuestros modelos didácticos. Reúne la córnea cónica de la Parte 1, un iris pigmentado con una abertura real y nuestro cristalino con su aparato ciliar. El cristalino usa un material transparente, ligeramente cálido, con reflejos de estudio generados por código. Ese acabado no mide la transmisión de luz ni sustituye al cálculo GRIN. La envoltura del cuerpo ciliar se estrecha hacia atrás, con el músculo en su porción externa y los procesos proyectados hacia dentro. El extremo posterior de este modelo del segmento anterior está truncado. Las dimensiones y los acabados son ilustrativos; la escena no combina sus cálculos ópticos ni predice una imagen retiniana.
+Es una composición anatómica de nuestros modelos didácticos. Reúne la córnea cónica de la Parte 1, un iris pigmentado con una abertura real y nuestro cristalino con su aparato ciliar. El cristalino usa un material transparente, ligeramente cálido, con reflejos de estudio generados por código. Este cristalino 3D final no contiene un trazador de rayos GRIN: su transparencia es un shader de apariencia. La curvatura interna de los rayos solo se calcula en la demostración GRIN independiente anterior. La envoltura del cuerpo ciliar se estrecha hacia atrás, con el músculo en su porción externa y los procesos proyectados hacia dentro. El extremo posterior de este modelo del segmento anterior está truncado. Las dimensiones y los acabados son ilustrativos; la escena no combina sus cálculos ópticos ni predice una imagen retiniana.
 
 Hemos explorado tres mecanismos: una superficie anterior fija, una abertura ajustable y una lente que cambia el enfoque. En el ojo real, trabajan juntos para formar la imagen retiniana.
 
@@ -300,3 +298,6 @@ A continuación, la [Parte 4: La retina](/es/blog/webgl-eye-04-retina/) construy
 17. **Moorfields Eye Hospital**. [*Cataract surgery*](https://www.moorfields.nhs.uk/private/eye-conditions-and-treatments/cataract/surgery); [*Cataract service: patient information*](https://www.moorfields.nhs.uk/mediaLocal/ojzfucri/cataract-service_1.pdf), p. 4.
 
 18. **American Academy of Ophthalmology, EyeWiki**. [*Gonioscopy*](https://eyewiki.aao.org/Gonioscopy). Relaciones entre el ángulo de la cámara anterior, el espolón escleral y la raíz del iris.
+
+19. **Blomstedt, P. (2014)**. [*Cataract surgery in ancient Egypt*](https://pubmed.ncbi.nlm.nih.gov/24485861/). Journal of Cataract & Refractive Surgery, 40, 485–489.
+20. **Leffler, C. T., et al. (2020)**. [*The history of cataract surgery: from couching to phacoemulsification*](https://pubmed.ncbi.nlm.nih.gov/33313296/). Annals of Translational Medicine, 8, 1551.
