@@ -44,6 +44,7 @@ const motionSources = [
 ];
 const constructionSource = local("lensConstruction.ts", construction);
 const shared3D = [
+	constructionSource,
 	local("anteriorSegmentProfile.ts", profile),
 	...simulationSources,
 	file("eye/eyeDimensions.ts", dimensions),
@@ -65,11 +66,10 @@ export const lensSources = {
 		opticalModel,
 		...shared3D,
 	],
-	domes: [local("LensDomes.tsx", domes), constructionSource, ...shared3D],
+	domes: [local("LensDomes.tsx", domes), ...shared3D],
 	surface: [
 		local("LensSurface.tsx", surface),
 		local("LensDivider.tsx", divider),
-		constructionSource,
 		...shared3D,
 	],
 	grin: [
@@ -91,12 +91,8 @@ export const lensSources = {
 		local("LensFocus.tsx", focus),
 		...simulationSources,
 		accommodation,
-		file("eye/eyeDimensions.ts", dimensions),
+		constructionSource,
 		styles,
 	],
-	cataract: [
-		local("LensCataract.tsx", cataract),
-		constructionSource,
-		...shared3D,
-	],
+	cataract: [local("LensCataract.tsx", cataract), ...shared3D],
 };

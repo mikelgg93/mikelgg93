@@ -106,3 +106,26 @@ export function domeSeparation(seconds: number) {
 	if (t < 8) return 1.25 * (1 - smooth((t - 6) / 2));
 	return 0;
 }
+
+// Interpolate the same sampled profile used by LatheGeometry. Attachments and
+// clearance checks therefore follow the rendered surface, including its blend.
+const attachmentProfile = roundedLensProfile();
+const frontProfile = attachmentProfile
+	.filter((p) => p.y >= 0)
+	.sort((a, b) => a.x - b.x);
+const backProfile = attachmentProfile
+	.filter((p) => p.y <= 0)
+	.sort((a, b) => a.x - b.x);
+export function lensSurfaceZ(radialFraction: number, anterior = true) {
+	const r = Math.max(0, Math.min(1, radialFraction)) * EQUATOR_RADIUS;
+	const half = anterior ? frontProfile : backProfile;
+	for (let i = 1; i < half.length; i++) {
+		const a = half[i - 1]!,
+			b = half[i]!;
+		if (r <= b.x)
+			return (
+				(a.y + ((b.y - a.y) * (r - a.x)) / (b.x - a.x)) / (LENS_THICKNESS / 2)
+			);
+	}
+	return 0;
+}

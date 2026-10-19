@@ -112,7 +112,7 @@ Alterna entre **Uniforme** y **GRIN**. Los rayos discontinuos mantienen la misma
   <div slot="code"><SourceFiles files={lensSources.grin} lang="es" /></div>
 </InteractiveViewer>
 
-Estos rayos usan refracción de Snell en ambas superficies e integración numérica en el interior. Los perfiles reales son más complejos, con estructuras centrales y periféricas que cambian con la edad. Aquí aislamos el efecto del gradiente, sin calcular un ojo completo ni una imagen retiniana.
+Estos rayos usan refracción de Snell en ambas superficies e integración numérica en el interior. Las pruebas automáticas comparan el caso uniforme con intersecciones exactas y la óptica paraxial de una lente gruesa, y los rayos GRIN con otro método de integración al reducir el paso. Los perfiles reales son más complejos, con estructuras centrales y periféricas que cambian con la edad. Aquí aislamos el efecto del gradiente, sin calcular un ojo completo ni una imagen retiniana.
 
 <details>
 <summary>Opcional: Hasta dónde llegan los modelos publicados</summary>
@@ -149,11 +149,11 @@ Según la explicación clásica de Helmholtz:
 
 El cristalino no contiene un músculo de enfoque. Sus fibras de suspensión tampoco se desprenden al mirar de cerca. La red zonular real tiene varias regiones de inserción y una distribución de fuerzas más compleja que nuestros radios. La idea útil es el cambio de carga: el anillo se contrae mientras la lente se redondea. Los estudios de imagen miden estos cambios del cristalino y del músculo ciliar durante la acomodación (Richdale et al., 2013).
 
-Para la anatomía móvil siguiente, cambiamos el cristalino de construcción de 9 mm × 4 mm por una malla elipsoidal asimétrica, inicialmente de 9,2 mm de diámetro y 3,6 mm de espesor. Esta superficie deformable conserva el volumen al cambiar de forma; es otro modelo didáctico, no la continuación de un mismo cristalino ajustado.
+Conservamos el cristalino redondeado de 9 mm × 4 mm de la construcción anterior. Al aumentar su espesor, disminuye su diámetro para conservar el volumen de esta malla escalada. Las zónulas se insertan en esa superficie y el iris sigue su contorno anterior. La comparación de cataratas y el montaje final usan el mismo perfil; el diagrama GRIN independiente conserva una sección elíptica más sencilla.
 
-Ahora añadimos el cuerpo ciliar. Un músculo continuo y redondeado presenta un detalle sutil de sus haces; el mapa de color opcional localiza sus regiones entrelazadas. Los pliegues marrones son procesos ciliares; las zónulas amarillas pasan entre ellos hacia el cristalino. Omitimos el iris y la pared externa del ojo para ver el aparato.
+Ahora añadimos el cuerpo ciliar. Un músculo continuo y redondeado presenta un detalle sutil de sus haces; el mapa de color opcional localiza sus regiones entrelazadas. Los pliegues longitudinales marrones son procesos ciliares, unidos a lo largo de la cara interna del cuerpo en vez de flotar como cuentas separadas. Las zónulas amarillas pasan entre ellos y se abren hacia las regiones anterior, ecuatorial y posterior de la cápsula. La superficie del cristalino representa la cápsula; no resolvemos su fina estructura en capas. Omitimos el iris y la pared externa del ojo para ver el aparato.
 
-La sección ya está abierta. Observa cómo alterna entre un paisaje lejano y un libro cercano: el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. La pequeña ilustración sugiere el cambio de enfoque; el valor inferior derecho muestra la acomodación del modelo. Arrastra el divisor para comparar el mapa muscular con la superficie del tejido, o gira el modelo. El mapa identifica regiones entrelazadas, no tres anillos separados. Puedes pausar la animación para inspeccionar la forma.
+La sección ya está abierta. Observa cómo alterna entre un paisaje lejano y un libro cercano: el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras el cristalino se redondea. La pequeña ilustración sugiere el cambio de enfoque; el valor inferior derecho muestra la **respuesta modelada**, que controla el cambio de forma en vez de medir la potencia óptica de la malla. Arrastra el divisor para comparar el mapa muscular con la superficie del tejido, o gira el modelo. El mapa identifica regiones musculares entrelazadas dentro de la cuña anterior y se desvanece hacia el tejido ciliar circundante, sin etiquetar todo el cuerpo como músculo. Puedes pausar la animación para inspeccionar la forma.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy lang="es" client:visible /></div>

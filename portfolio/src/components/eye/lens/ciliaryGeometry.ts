@@ -105,3 +105,42 @@ export function deformCiliary(
 	if (geometry.index) geometry.computeVertexNormals();
 	geometry.computeBoundingSphere();
 }
+
+// A longitudinal epithelial ridge, attached along its base to the inner body.
+// Fold height, width and sampling are visual parameters, not histological data.
+export function ciliaryProcessGeometry() {
+	const vertices: number[] = [],
+		indices: number[] = [];
+	const rows = 32,
+		sides = 16;
+	for (let i = 0; i <= rows; i++) {
+		const u = i / rows,
+			z = -1.4 + 1.95 * u;
+		const r =
+			z < -0.4
+				? 6.5 + ((-0.4 - z) * 1.45) / 1.6
+				: 6.5 - ((z + 0.4) * 0.65) / 0.95;
+		const height = Math.sin(Math.PI * u);
+		for (let j = 0; j <= sides; j++) {
+			const a = (j * 2 * Math.PI) / sides;
+			vertices.push(
+				r - 0.25 * height * (1 + Math.sin(a)),
+				0.085 * height * Math.cos(a),
+				z,
+			);
+			if (i < rows && j < sides) {
+				const k = i * (sides + 1) + j,
+					next = k + sides + 1;
+				indices.push(k, k + 1, next, next, k + 1, next + 1);
+			}
+		}
+	}
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute(
+		"position",
+		new THREE.Float32BufferAttribute(vertices, 3),
+	);
+	geometry.setIndex(indices);
+	geometry.computeVertexNormals();
+	return geometry;
+}

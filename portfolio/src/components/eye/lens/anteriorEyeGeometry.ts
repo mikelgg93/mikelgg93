@@ -7,6 +7,7 @@ import {
 	IRIS_ROOT_Z,
 	LIMBUS_RADIUS,
 } from "./anteriorSegmentProfile";
+import { lensSurfaceZ } from "./lensConstruction";
 import { lensShape } from "./lensModel";
 import { finiteClamp } from "./lensOptics";
 
@@ -42,9 +43,7 @@ export function updateAssemblyIris(
 	const inner = finiteClamp(diameter, 2, 8) / 2;
 	const lens = lensShape(accommodation);
 	const rimZ =
-		((0.85 * lens.thickness) / 2) *
-			Math.sqrt(Math.max(0, 1 - (inner / lens.lensRadius) ** 2)) +
-		0.04;
+		(lens.thickness / 2) * lensSurfaceZ(inner / lens.lensRadius) + 0.04;
 	const p = geometry.getAttribute("position");
 	let k = 0;
 	for (let ring = 0; ring <= 16; ring++)

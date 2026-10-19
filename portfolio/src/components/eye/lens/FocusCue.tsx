@@ -72,7 +72,7 @@ export default function FocusCue({
 				</span>
 			</div>
 			<div className="lens-focus-readout">
-				<span>{es ? "Acomodación del modelo" : "Model accommodation"}</span>
+				<span>{es ? "Respuesta modelada" : "Modelled response"}</span>
 				<output data-focus-value>0.0 D</output>
 				<button
 					type="button"

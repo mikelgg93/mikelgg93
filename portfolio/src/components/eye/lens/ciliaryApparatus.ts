@@ -1,9 +1,17 @@
 import * as THREE from "three";
-import { CILIARY_BODY_PROFILE } from "./anteriorSegmentProfile";
-import { ciliaryPoint, deformCiliary, muscleGeometry } from "./ciliaryGeometry";
+import {
+	CILIARY_BODY_PROFILE,
+	ciliaryWallRadius,
+} from "./anteriorSegmentProfile";
+import {
+	ciliaryPoint,
+	ciliaryProcessGeometry,
+	deformCiliary,
+	muscleGeometry,
+} from "./ciliaryGeometry";
+import { createRoundedLensGeometry, lensSurfaceZ } from "./lensConstruction";
 import { clearLensMaterial } from "./lensMaterial";
 import { lensShape } from "./lensModel";
-import { createLensGeometry } from "./lensScene";
 
 // A tapered ciliary-body envelope: the muscle occupies its outer part;
 // the processes project from the inner anterior portion. This is an exposed
@@ -134,7 +142,7 @@ export function createCiliaryApparatus() {
 		tissues.push({ geometry, rest: new Float32Array(p.array) });
 	}
 	support.add(section);
-	const shape = createLensGeometry();
+	const shape = createRoundedLensGeometry();
 	const lens = new THREE.Group();
 	const shell = clearLensMaterial();
 	lens.add(new THREE.Mesh(shape, shell));
@@ -158,8 +166,12 @@ export function createCiliaryApparatus() {
 	);
 	lens.add(rim);
 	group.add(lens);
+	const foldGeometry = ciliaryProcessGeometry();
+	const foldRest = new Float32Array(
+		foldGeometry.getAttribute("position").array,
+	);
 	const folds = new THREE.InstancedMesh(
-		new THREE.SphereGeometry(1, 20, 12),
+		foldGeometry,
 		new THREE.MeshPhongMaterial({ color: 0x6e4137, shininess: 18 }),
 		56,
 	);
@@ -193,15 +205,11 @@ export function createCiliaryApparatus() {
 		if (accommodation !== lastAccommodation) {
 			for (const t of tissues) deformCiliary(t.geometry, t.rest, s.fraction);
 			lens.scale.set(s.lensRadius, s.lensRadius, s.thickness / 2);
+			deformCiliary(foldGeometry, foldRest, s.fraction);
 			for (let i = 0; i < 56; i++) {
 				const angle = (i * Math.PI * 2) / 56;
-				transform.position.copy(ciliaryPoint(5.85, angle, 0.05, s.fraction));
 				transform.rotation.z = angle;
-				transform.scale.set(
-					0.47 + 0.04 * Math.sin(i * 2.7),
-					0.085,
-					0.26 + 0.035 * Math.sin(i * 1.9),
-				);
+				transform.scale.set(1, 1 + 0.12 * Math.sin(i * 2.7), 1);
 				transform.updateMatrix();
 				folds.setMatrixAt(i, transform.matrix);
 			}
@@ -211,16 +219,14 @@ export function createCiliaryApparatus() {
 			for (let i = 0; i < 56; i++)
 				for (const side of [-1, 0, 1]) {
 					const angle = ((i + 0.5) * Math.PI * 2) / 56;
-					const a = side === 0 ? 1 : 0.96;
+					const a = side === 0 ? 1 : 0.93 + 0.02 * Math.sin(i * 2.1) ** 2;
 					const end = new THREE.Vector3(
 						s.lensRadius * a * Math.cos(angle),
 						s.lensRadius * a * Math.sin(angle),
-						((side * s.thickness) / 2) *
-							(side > 0 ? 0.85 : 1.15) *
-							Math.sqrt(1 - a * a),
+						(s.thickness / 2) * lensSurfaceZ(a, side > 0),
 					);
 					const origin = ciliaryPoint(7.95, angle, -2, s.fraction);
-					const guide = ciliaryPoint(6.0, angle, 0.05, s.fraction);
+					const guide = ciliaryPoint(6.1, angle, 0.18, s.fraction);
 					for (const p of [origin, guide, guide, end])
 						zonules.setXYZ(k++, p.x, p.y, p.z);
 				}
@@ -233,18 +239,23 @@ export function createCiliaryApparatus() {
 			const middle = new THREE.Color(map ? 0xc58b56 : 0x93615a);
 			const inner = new THREE.Color(map ? 0xe8a28a : 0x794941);
 			const color = new THREE.Color();
+			const epithelialColor = new THREE.Color(0x6e4137);
 			for (const t of tissues) {
 				const colors = t.geometry.getAttribute("color");
 				for (let i = 0; i < colors.count; i++) {
 					const r = Math.hypot(t.rest[i * 3]!, t.rest[i * 3 + 1]!);
-					if (r > 6.55)
-						color
-							.copy(middle)
-							.lerp(outer, THREE.MathUtils.smoothstep(r, 6.55, 7.1));
-					else
-						color
-							.copy(inner)
-							.lerp(middle, THREE.MathUtils.smoothstep(r, 5.85, 6.55));
+					const z = t.rest[i * 3 + 2]!;
+					const depth = ciliaryWallRadius(z) - r;
+					// The posterior/inner body is not all muscle. The map fades
+					// into vascular/epithelial tissue outside the anterior wedge.
+					const width = 0.25 + 1.05 * THREE.MathUtils.smoothstep(z, -2.8, 0.5);
+					const region = THREE.MathUtils.clamp(depth / width, 0, 1);
+					color
+						.copy(outer)
+						.lerp(middle, THREE.MathUtils.smoothstep(region, 0.15, 0.65));
+					color.lerp(inner, THREE.MathUtils.smoothstep(region, 0.6, 1));
+					const tissue = THREE.MathUtils.smoothstep(depth, width, width + 0.3);
+					color.lerp(epithelialColor, tissue);
 					colors.setXYZ(i, color.r, color.g, color.b);
 				}
 				colors.needsUpdate = true;

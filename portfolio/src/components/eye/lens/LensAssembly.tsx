@@ -1,11 +1,7 @@
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import {
-	CORNEAL_APEX_Z,
-	LENS_FRONT_FACTOR,
-	POSTERIOR_CORNEAL_APEX_Z,
-} from "../eyeDimensions";
+import { CORNEAL_APEX_Z, POSTERIOR_CORNEAL_APEX_Z } from "../eyeDimensions";
 import { focusDemand, nearPupil } from "./accommodationCycle";
 import {
 	assemblyIrisMaterial,
@@ -17,6 +13,7 @@ import {
 } from "./anteriorEyeGeometry";
 import { createCiliaryApparatus } from "./ciliaryApparatus";
 import FocusCue, { updateFocusCue } from "./FocusCue";
+import { lensSurfaceZ } from "./lensConstruction";
 import { createLensScene } from "./lensScene";
 
 export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
@@ -137,7 +134,7 @@ export default function LensAssembly({ lang = "en" }: { lang?: "en" | "es" }) {
 						centralCornealThickness: CORNEAL_APEX_Z - POSTERIOR_CORNEAL_APEX_Z,
 						anteriorChamberDepth:
 							POSTERIOR_CORNEAL_APEX_Z -
-							(LENS_FRONT_FACTOR * shape.thickness) / 2,
+							(lensSurfaceZ(0) * shape.thickness) / 2,
 						lensThickness: shape.thickness,
 					},
 				},

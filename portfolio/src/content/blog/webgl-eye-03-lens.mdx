@@ -112,7 +112,7 @@ Switch between **Uniform** and **GRIN**. The dashed rays keep the same surface g
   <div slot="code"><SourceFiles files={lensSources.grin} /></div>
 </InteractiveViewer>
 
-These rays use Snell refraction at both surfaces and numerical integration through the interior. Real lens profiles are more complex, with age-dependent central and peripheral structure. We are isolating what a gradient does, rather than calculating a complete eye or a retinal image.
+These rays use Snell refraction at both surfaces and numerical integration through the interior. Automated checks compare the uniform case with exact surface intersections and paraxial thick-lens optics, and the GRIN rays with an independent integration method as the step size decreases. Real lens profiles are more complex, with age-dependent central and peripheral structure. We are isolating what a gradient does, rather than calculating a complete eye or a retinal image.
 
 <details>
 <summary>Optional: Where the published models go further</summary>
@@ -149,11 +149,11 @@ In the classical Helmholtz account of accommodation:
 
 The lens itself contains no focusing muscle. Nor do its supporting fibres detach when you look near. The real zonular network has several attachment regions and a more complex distribution of forces than our radial spokes can show. The useful idea is the change in load: the ring contracts, while the lens rounds up. Imaging studies measure these accompanying changes in the lens and ciliary muscle (Richdale et al., 2013).
 
-For the moving anatomy below, we switch from the 9 mm × 4 mm construction lens to an asymmetric ellipsoidal mesh, initially 9.2 mm wide and 3.6 mm thick. This simpler deforming surface keeps volume constant as it changes shape; it is a separate teaching model, not a continuation of the same fitted lens.
+We keep the same rounded 9 mm × 4 mm lens from the construction lesson. As it thickens, its diameter decreases to preserve the volume of this scaled mesh. The zonules attach to that surface, and the iris follows its anterior contour. The cataract comparison and final assembly use this same profile; the separate GRIN ray diagram retains its simpler elliptical section.
 
-We now add the ciliary body. A continuous, rounded muscle carries subtle bundle detail; the optional colour map locates its interwoven regions. The brown folds are ciliary processes; yellow zonules course between them toward the lens. The iris and outer eye wall are omitted so we can see the apparatus.
+We now add the ciliary body. A continuous, rounded muscle carries subtle bundle detail; the optional colour map locates its interwoven regions. The brown longitudinal folds are ciliary processes, attached along the inner body rather than floating as separate beads. Yellow zonules course between them and fan out onto anterior, equatorial and posterior capsular regions. The lens surface stands in for the capsule; we do not resolve its thin layered structure. The iris and outer eye wall are omitted so we can see the apparatus.
 
-The section is already open. Watch it alternate between a distant landscape and a nearby book: the inner ciliary tissue moves inward and slightly forward as the lens rounds up. The small illustration suggests the change in focus; the bottom-right readout shows model accommodation. Drag the divider to compare the muscle map with the tissue surface, or drag the model to turn it. The map identifies interwoven regions, not three separate rings. Pause at any point to inspect the shape.
+The section is already open. Watch it alternate between a distant landscape and a nearby book: the inner ciliary tissue moves inward and slightly forward as the lens rounds up. The small illustration suggests the change in focus; the bottom-right readout shows the **modelled response**, which drives the shape change rather than measuring the optical power of the mesh. Drag the divider to compare the muscle map with the tissue surface, or drag the model to turn it. The map identifies interwoven muscle regions within the anterior wedge, fading into the surrounding ciliary tissue rather than labelling the whole body as muscle. Pause at any point to inspect the shape.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy client:visible /></div>
