@@ -3,12 +3,13 @@ import "../lens/lens.css";
 import "./retina.css";
 import { useState } from "react";
 import { useViewerDebug } from "../useViewerDebug";
+import RetinalCells from "./RetinalCells";
 import { layerBounds, retinalLayers } from "./retinaModel";
 
 export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
-		[pit, setPit] = useState(false),
-		[separate, setSeparate] = useState(false);
+		[pit, setPit] = useState(false);
+	const separate = false;
 	const root = useViewerDebug({
 		model: "Grouped retinal layers; illustrative drawing units",
 		fovea: pit,
@@ -36,7 +37,6 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 		{ pit, separate },
 		(initial) => {
 			setPit(initial.pit);
-			setSeparate(initial.separate);
 		},
 		root,
 	);
@@ -90,6 +90,7 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 						</text>
 					</g>
 				))}
+				<RetinalCells pit={pit} />
 				<path
 					d="M40 80V320m-9-13 9 13 9-13"
 					fill="none"
@@ -110,6 +111,11 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 				{es
 					? "↓ Luz entrante · ↑ Dirección general de la señal hacia las células ganglionares"
 					: "↓ Incoming light · ↑ Overall signal direction towards ganglion cells"}
+			</p>
+			<p className="lens-note">
+				{es
+					? "Conos y bastones → bipolares → ganglionares; células horizontales y amacrinas conectan lateralmente. Las células de Müller sostienen el tejido."
+					: "Cones and rods → bipolar → ganglion cells; horizontal and amacrine cells connect laterally. Müller cells support the tissue."}
 			</p>
 			<ol className="retina-bands">
 				{retinalLayers.map((layer, i) => (
@@ -137,27 +143,11 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 							{es ? "Mostrar fóvea" : "Show fovea"}
 						</button>
 					</ParameterControl>
-					<ParameterControl
-						hideReset
-						value={separate}
-						initial={defaults.separate}
-						onReset={setSeparate}
-						label="layer separation"
-						lang={lang}
-					>
-						<button
-							type="button"
-							aria-pressed={separate}
-							onClick={() => setSeparate(!separate)}
-						>
-							{es ? "Separar bandas" : "Separate bands"}
-						</button>
-					</ParameterControl>
 				</div>
 				<p className="lens-note">
 					{es
-						? "Perfil esquemático: omite membranas limitantes y detalle de las fibras de Henle. Los huecos de la vista separada no existen en el tejido."
-						: "Schematic profile: limiting membranes and Henle-fibre detail are omitted. The separated-view gaps are not spaces in the tissue."}
+						? "Perfil esquemático: omite membranas limitantes y detalle de las fibras de Henle. Las células y conexiones son esquemáticas, no un circuito medido."
+						: "Schematic profile: limiting membranes and Henle-fibre detail are omitted. Cell shapes and connections are schematic, not a measured circuit."}
 				</p>
 			</div>
 		</div>

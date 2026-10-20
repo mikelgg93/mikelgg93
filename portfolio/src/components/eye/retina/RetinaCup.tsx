@@ -1,5 +1,4 @@
 import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./retina.css";
 import { useEffect, useRef, useState } from "react";
@@ -15,14 +14,13 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
 		mount = useRef<HTMLDivElement>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
-	const [curvature, setCurvature] = useState(0),
-		[wire, setWire] = useState(true),
+	const [wire, setWire] = useState(true),
 		[error, setError] = useState(false);
-	const params = useRef({ curvature, wire });
+	const params = useRef({ wire });
 	useEffect(() => {
-		params.current = { curvature, wire };
+		params.current = { wire };
 		viewRef.current?.invalidate();
-	}, [curvature, wire]);
+	}, [wire]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
@@ -49,23 +47,15 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 		);
 		cup.add(wireframe);
 		view.scene.add(cup);
-		let shown = params.current.curvature,
-			previous = -1;
-		view.start((dt, reduced) => {
+		updateRetinalCup(geometry, 1);
+		view.start(() => {
 			const p = params.current;
-			shown += (p.curvature - shown) * (reduced ? 1 : 1 - Math.exp(-dt / 0.18));
-			if (Math.abs(shown - p.curvature) < 1e-5) shown = p.curvature;
-			if (shown !== previous) {
-				updateRetinalCup(geometry, shown);
-				previous = shown;
-			}
 			wireframe.visible = p.wire;
 			return {
 				state: {
 					model: "Posterior spherical cup, R=12 mm drawing choice",
-					curvature: shown,
+					curvature: 1,
 				},
-				animating: shown !== p.curvature,
 			};
 		});
 		return () => {
@@ -75,9 +65,8 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 	}, [lang]);
 	const resetAnchor = useRef<HTMLDivElement>(null);
 	const defaults = useInitialParameters(
-		{ curvature, wire },
+		{ wire },
 		(initial) => {
-			setCurvature(initial.curvature);
 			setWire(initial.wire);
 		},
 		resetAnchor,
@@ -85,9 +74,7 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 	return (
 		<div ref={resetAnchor} className="lens-demo retina-demo">
 			<div className="lens-heading">
-				<strong>
-					{es ? "De una malla plana a una copa" : "From a flat mesh to a cup"}
-				</strong>
+				<strong>{es ? "Una cúpula posterior" : "A posterior dome"}</strong>
 				<span className="lens-muted">
 					{es ? "Construcción geométrica" : "Geometry construction"}
 				</span>
@@ -114,31 +101,6 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 				</p>
 			</div>
 			<div className="lens-controls">
-				<ParameterControl
-					hideReset
-					value={curvature}
-					initial={defaults.curvature}
-					onReset={setCurvature}
-					label="surface curvature"
-					lang={lang}
-					context={parameterContext.retinaCup}
-				>
-					<label>
-						<span className="lens-value">
-							{es ? "Curvar la malla" : "Bend the mesh"}
-							<output>{Math.round(curvature * 100)}%</output>
-						</span>
-						<input
-							aria-label={es ? "Curvar la malla" : "Bend the mesh"}
-							type="range"
-							min="0"
-							max="1"
-							step="0.01"
-							value={curvature}
-							onChange={(e) => setCurvature(Number(e.target.value))}
-						/>
-					</label>
-				</ParameterControl>
 				<div className="lens-buttons">
 					<ParameterControl
 						hideReset
@@ -159,8 +121,8 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 				</div>
 				<p className="lens-note">
 					{es
-						? "Radio elegido: 12 mm. La transición plana → curva es un paso de construcción, no una deformación fisiológica."
-						: "Chosen radius: 12 mm. Flat → curved is a construction step, not a physiological deformation."}
+						? "Radio elegido: 12 mm. La cúpula ya está formada; los triángulos muestran su construcción."
+						: "Chosen radius: 12 mm. The dome is already formed; triangles show its construction."}
 				</p>
 			</div>
 		</div>

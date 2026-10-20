@@ -13,6 +13,7 @@ import PublishedPost from "@/components/blog/PublishedPost.astro";
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import RetinaSurface from '../../components/eye/retina/RetinaSurface';
 import RetinaCup from '../../components/eye/retina/RetinaCup';
 import RetinaLayers from '../../components/eye/retina/RetinaLayers';
 import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
@@ -25,7 +26,7 @@ Enter the **retina**: a curved sheet of neural tissue lining the back of the eye
 
 As before, we'll build the easy version first. One surface, then layers, then repeated cells. Only after that will we ask what happens when a continuous image meets a finite collection of photoreceptors.
 
-## First approximation: Bend a mesh
+## First approximation: A dome
 
 Our first retina is a cup. We sample angles around a sphere and retain its posterior portion. It is the opposite end of the construction we used for the cornea: this time we look into the concave surface.
 
@@ -39,16 +40,25 @@ const y = r * Math.sin(angle);
 const z = centreZ - radius * Math.cos(theta);
 ```
 
-The angle stops just short of a hemisphere. The demo begins with the same vertex rows flattened into a disc; **Bend the mesh** restores their depth. Turn off the triangles to see the surface. The retina does not flatten and inflate like this: we are watching a mesh-construction step.
+The angle stops just short of a hemisphere. The dome is already formed; turn off **Triangles** to inspect the surface.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaCup client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.cup} /></div>
 </InteractiveViewer>
 
-A single shared vertex closes the pole, and the last sector joins back to the first. This avoids collapsed triangles at the centre and a lighting seam around the cup. The vertices stay in the same GPU buffer. Moving the slider changes their positions, after which we update the normals and bounding sphere. There is no need to create and discard a new geometry on every frame.
+A single shared vertex closes the pole, and the last sector joins back to the first. This avoids collapsed triangles at the centre and a lighting seam around the cup.
 
 The warm tint makes the surface visible; it is not a prediction of fundus colour. This shell gives us position and curvature. It has not yet given us a single light-sensitive cell.
+
+## Material and landmarks
+
+The next sequence adds material, foveal relief, major vessels and the optic nerve exit. Colour helps us read the surface; it does not simulate a fundus photograph. The pit changes the mesh, and the vessels avoid the foveal centre. This is animated construction, not tissue growth.
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaSurface client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.surface} /></div>
+</InteractiveViewer>
 
 ## Turn the surface into a tissue
 
@@ -63,7 +73,7 @@ The section below groups the tissue into seven readable bands. **Nuclear layers*
   <div slot="code"><SourceFiles files={retinaSources.layers} /></div>
 </InteractiveViewer>
 
-Use **Separate bands** to inspect the stack. Those gaps are a drawing aid, not spaces between the tissues. The arrows distinguish incoming light from the overall route of the neural signal back towards ganglion cells; photons do not turn around and travel through the nerves.
+The cell icons add rods and cones, bipolar and ganglion cells, lateral horizontal and amacrine connections, and supporting Müller cells. Their shapes and wiring are schematic, not a reconstructed neural circuit (Kolb, *Simple Anatomy of the Retina*). The arrows distinguish incoming light from the overall signal route towards ganglion cells.
 
 ## A pit with a purpose: The fovea
 
@@ -153,7 +163,7 @@ The major **retinal vessels** leave the disc and curve above and below the centr
   <div slot="code"><SourceFiles files={retinaSources.assembly} /></div>
 </InteractiveViewer>
 
-Choose **Retinal view** to expose the numbered fovea, macula and nasal optic disc. Open **Layers and reset** for **Reset view** and the layer switches. Open the **Section** to look inside, then switch **Choroid**, **Sclera** and **Optic nerve** on or off to inspect their relationships. Pink marks the retina, dark red the choroid, ivory the sclera and gold the nerve within a simplified sheath. Rotate the closed view to see where the nerve leaves the back of the eye.
+Choose **Retina** to expose the numbered landmarks, **Cutaway** to inspect the coats and anterior segment, or **Whole eye** to see the nerve exit. Accommodation and near miosis animate together using the shared Part III construction. **Show retinal focus** adds a separate 60 D reduced-eye approximation: an equivalent principal plane and straight rays in the vitreous, not refraction calculated through the rendered surfaces. The focus moves behind or in front of the retinal reference when the illustrative response lags the target.
 
 For this visualisation, wall thicknesses, colours, the disc offset and the short nerve segment are drawing parameters. The scleral rim meets the earlier corneal mesh; the anterior joins are schematic. We retain only the posterior retina and omit capillaries, the detailed lamina cribrosa, individual axons and meningeal layers. The layer diagram and receptor mosaic remain separate magnified views, not millimetre-sized cells added to this eye.
 

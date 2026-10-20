@@ -99,3 +99,15 @@
 	outline: 2px solid #e5b773;
 	outline-offset: -3px;
 }
+
+.retina-demo .lens-focus-cue {
+ z-index: 2;
+}
+.retina-demo .lens-focus-readout {
+ bottom: 2.8rem;
+ color: #dce9e7;
+}
+.retina-demo .lens-static-focus[aria-pressed] {
+ background: transparent;
+ color: #dce9e7;
+}

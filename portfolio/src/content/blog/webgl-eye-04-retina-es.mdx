@@ -13,6 +13,7 @@ import PublishedPost from "@/components/blog/PublishedPost.astro";
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import RetinaSurface from '../../components/eye/retina/RetinaSurface';
 import RetinaCup from '../../components/eye/retina/RetinaCup';
 import RetinaLayers from '../../components/eye/retina/RetinaLayers';
 import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
@@ -25,7 +26,7 @@ Entra en escena la **retina**: una lámina curva de tejido neural que recubre la
 
 Como antes, construiremos primero la versión sencilla. Una superficie, después capas y luego células repetidas. Solo entonces preguntaremos qué ocurre cuando una imagen continua se encuentra con un conjunto finito de fotorreceptores.
 
-## Primera aproximación: Curvar una malla
+## Primera aproximación: Una cúpula
 
 Nuestra primera retina es una copa. Muestreamos ángulos sobre una esfera y conservamos su porción posterior. Es el otro extremo de la construcción que usamos para la córnea: esta vez miramos hacia una superficie cóncava.
 
@@ -39,16 +40,25 @@ const y = r * Math.sin(angle);
 const z = centreZ - radius * Math.cos(theta);
 ```
 
-El ángulo se detiene poco antes de completar un hemisferio. La demo comienza con las mismas filas de vértices aplanadas en un disco; **Curvar la malla** recupera su profundidad. Desactiva los triángulos para ver la superficie. La retina no se aplana y se infla así: estamos viendo un paso de construcción geométrica.
+El ángulo se detiene poco antes de completar un hemisferio. La cúpula ya está formada; desactiva **Triángulos** para inspeccionar la superficie.
 
 <InteractiveViewer lang="es">
   <div slot="preview"><RetinaCup lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.cup} lang="es" /></div>
 </InteractiveViewer>
 
-Un único vértice compartido cierra el polo y el último sector se une al primero. Así evitamos triángulos colapsados en el centro y una costura de iluminación alrededor de la copa. Los vértices permanecen en el mismo búfer de la GPU. Al mover el control cambiamos sus posiciones y actualizamos las normales y la esfera envolvente. No hace falta crear y descartar una geometría nueva en cada fotograma.
+Un único vértice cierra el polo y el último sector enlaza con el primero, evitando triángulos degenerados y una costura de iluminación.
 
 El tono cálido hace visible la superficie; no predice el color del fondo de ojo. La superficie nos da posición y curvatura. Todavía no nos ha dado una sola célula sensible a la luz.
+
+## Material y puntos de referencia
+
+La siguiente secuencia añade material, relieve foveal, vasos principales y salida del nervio óptico. El color ayuda a leer la superficie; no simula una fotografía del fondo de ojo. El relieve modifica la malla y los vasos evitan el centro foveal. Es una construcción animada, no crecimiento del tejido.
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaSurface lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.surface} /></div>
+</InteractiveViewer>
 
 ## Convertir la superficie en tejido
 
@@ -63,7 +73,7 @@ La sección siguiente agrupa el tejido en siete bandas legibles. Las **capas nuc
   <div slot="code"><SourceFiles files={retinaSources.layers} lang="es" /></div>
 </InteractiveViewer>
 
-Usa **Separar bandas** para inspeccionar la pila. Esos huecos ayudan al dibujo; no son espacios entre los tejidos. Las flechas distinguen la luz entrante del recorrido general de la señal neural hacia las células ganglionares. Los fotones no dan media vuelta para viajar por los nervios.
+Los iconos añaden bastones y conos, células bipolares y ganglionares, conexiones laterales horizontales y amacrinas, y células de Müller de soporte. Sus formas y conexiones son esquemáticas, no un circuito reconstruido (Kolb, *Simple Anatomy of the Retina*). Las flechas distinguen la luz entrante del recorrido general de la señal hacia las células ganglionares.
 
 ## Una depresión con propósito: La fóvea
 
@@ -153,7 +163,7 @@ Los principales **vasos retinianos** salen de la papila y forman arcadas por enc
   <div slot="code"><SourceFiles files={retinaSources.assembly} lang="es" /></div>
 </InteractiveViewer>
 
-Elige **Ver retina** para descubrir la fóvea, la mácula y la papila nasal numeradas. Abre **Capas y restablecer** para acceder a **Restablecer vista** y a los controles de capas. Abre la **Sección** para mirar dentro y activa o desactiva **Coroides**, **Esclerótica** y **Nervio óptico** para inspeccionar sus relaciones. El rosa identifica la retina; el rojo oscuro, la coroides; el marfil, la esclerótica; y el dorado, el nervio dentro de una vaina simplificada. Gira la vista cerrada para ver por dónde sale el nervio de la parte posterior del ojo.
+Elige **Retina** para descubrir los puntos numerados, **Sección** para inspeccionar las capas y el segmento anterior, u **Ojo completo** para ver la salida del nervio. La acomodación y la miosis próxima se animan juntas con la construcción compartida de la parte III. **Mostrar enfoque** añade una aproximación independiente de ojo reducido de 60 D: un plano principal equivalente y rayos rectos en el vítreo, no refracción calculada a través de las superficies dibujadas. El foco se desplaza detrás o delante de la referencia retiniana cuando la respuesta ilustrativa se retrasa respecto al objetivo.
 
 Para esta visualización, los espesores, colores, el desplazamiento de la papila y el tramo corto de nervio son parámetros de dibujo. El borde escleral se une a la malla corneal anterior; las uniones anteriores son esquemáticas. Conservamos solo la retina posterior y omitimos los capilares, el detalle de la lámina cribosa, los axones individuales y las capas meníngeas. El esquema de capas y el mosaico de receptores siguen siendo vistas ampliadas separadas, no células de tamaño milimétrico añadidas a este ojo.
 
