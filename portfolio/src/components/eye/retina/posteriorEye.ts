@@ -224,18 +224,22 @@ export function createPosteriorEye() {
 			const point = centre
 				.clone()
 				.addScaledVector(axis, distance)
-				.addScaledVector(tangent, 0.8 * t * t);
+				.addScaledVector(tangent, 2.4 * t * t);
 			const direction = axis
 				.clone()
-				.addScaledVector(tangent, (1.6 * t) / (21 - exitDistance))
+				.addScaledVector(tangent, (4.8 * t) / (21 - exitDistance))
 				.normalize();
 			const across = new THREE.Vector3(-direction.z, 0, direction.x);
 			const coreRadius =
 				distance <= exitDistance
 					? distance * Math.tan(CANAL_ANGLE)
-					: THREE.MathUtils.lerp(exitDistance * Math.tan(CANAL_ANGLE), 1.3, t);
+					: THREE.MathUtils.lerp(
+							exitDistance * Math.tan(CANAL_ANGLE),
+							1.3,
+							t * t * (3 - 2 * t),
+						);
 			const r = sheath
-				? coreRadius + side * 0.4 * Math.min(1, t * 5)
+				? coreRadius + side * 0.4 * THREE.MathUtils.smoothstep(t, 0, 0.25)
 				: side * coreRadius;
 			return point
 				.addScaledVector(across, r * Math.cos(phi))

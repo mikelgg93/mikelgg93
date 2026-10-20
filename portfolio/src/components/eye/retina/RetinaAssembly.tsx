@@ -74,7 +74,7 @@ export default function RetinaAssembly({
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(34, 35, 34);
+		view.camera.position.set(34, 20, 18);
 		view.controls.target.set(0, 0, -8);
 		const posterior = createPosteriorEye();
 		view.scene.add(posterior.group);
@@ -113,6 +113,30 @@ export default function RetinaAssembly({
 				opacity: 0.65,
 			}),
 		);
+		const principalGeometry = new THREE.BufferGeometry().setFromPoints(
+			Array.from(
+				{ length: 65 },
+				(_, i) =>
+					new THREE.Vector3(
+						3 * Math.cos((i * Math.PI) / 32),
+						3 * Math.sin((i * Math.PI) / 32),
+						retinalFocus(0, 0).principalZ,
+					),
+			),
+		);
+		const principalPlane = new THREE.Line(
+			principalGeometry,
+			new THREE.LineDashedMaterial({
+				color: 0xc6b1e7,
+				depthTest: false,
+				depthWrite: false,
+				dashSize: 0.35,
+				gapSize: 0.2,
+			}),
+		);
+		principalPlane.computeLineDistances();
+		principalPlane.renderOrder = 5;
+		view.scene.add(principalPlane);
 		rays.frustumCulled = false;
 		view.scene.add(rays);
 		let elapsed = 0,
@@ -129,6 +153,11 @@ export default function RetinaAssembly({
 		let previous: boolean | undefined;
 		view.start((dt, reduced) => {
 			const p = params.current;
+			const fov = view.camera.aspect < 1.2 ? 47 : 35;
+			if (view.camera.fov !== fov) {
+				view.camera.fov = fov;
+				view.camera.updateProjectionMatrix();
+			}
 			front.visible = p.anterior;
 			posterior.update(p.section, p);
 			if (!p.paused && !reduced) elapsed += dt;
@@ -153,6 +182,7 @@ export default function RetinaAssembly({
 			}
 			const optical = retinalFocus(demand, accommodation);
 			rays.visible = p.focus;
+			principalPlane.visible = p.focus;
 			for (let i = 0; i < 8; i++) {
 				const angle = (i * Math.PI * 2) / 8,
 					r = pupil / 2,
@@ -307,11 +337,13 @@ export default function RetinaAssembly({
 					{es ? "Nervio óptico" : "Optic nerve"}
 				</li>
 			</ul>
-			<p className="retina-reading">
-				{retinalLandmarks
-					.map((landmark, i) => `${i + 1}. ${es ? landmark.es : landmark.en}`)
-					.join(" · ")}
-			</p>
+			{!anterior && (
+				<p className="retina-reading">
+					{retinalLandmarks
+						.map((landmark, i) => `${i + 1}. ${es ? landmark.es : landmark.en}`)
+						.join(" · ")}
+				</p>
+			)}
 			<div
 				ref={dimensions}
 				className="retina-readouts"
@@ -339,7 +371,7 @@ export default function RetinaAssembly({
 								const view = viewRef.current;
 								if (view) {
 									view.camera.position.set(
-										...((retinal ? [6, 2, 38] : [34, 35, 34]) as [
+										...((retinal ? [6, 2, 38] : [34, 20, 18]) as [
 											number,
 											number,
 											number,
@@ -361,34 +393,20 @@ export default function RetinaAssembly({
 						aria-pressed={focus}
 						onClick={() => setFocus(!focus)}
 					>
-						{es ? "Mostrar enfoque" : "Show retinal focus"}
+						{es ? "Enfoque de ojo reducido" : "Reduced-eye focus"}
 					</button>
 				</div>
-				<p className="lens-note">
-					{es
-						? "Enfoque: ojo reducido de 60 D, separado de la geometría anatómica; no es un trazado de rayos a través de estas superficies. La animación acopla acomodación y miosis de forma ilustrativa."
-						: "Focus: a 60 D reduced-eye approximation, separate from the anatomical geometry; these rays are not traced through the displayed surfaces. Accommodation and near miosis are illustratively coupled."}
-				</p>
-				<p className="lens-note">
-					{es
-						? "Ver retina muestra los puntos numerados: fóvea en el centro de la mácula y papila hacia nasal. Relieve foveal en la malla; vasos principales estilizados. ACD interno y grosor del cristalino siguen la animación; AXL hasta el límite que representa el EPR. No es biometría clínica."
-						: "Retinal view shows the numbered landmarks: fovea within the macula, disc towards nasal. The pit deforms the mesh; major vessels are stylised. Internal ACD and lens thickness follow the animation; AXL ends at the boundary representing the RPE. These are model dimensions, not clinical biometry."}
-				</p>
-				<p className="lens-note">
-					<a
-						href={
-							es
-								? "#convertir-la-superficie-en-tejido"
-								: "#turn-the-surface-into-a-tissue"
-						}
-					>
+				{focus && (
+					<p className="lens-note">
 						{es
-							? "Ver la sección foveal ampliada"
-							: "See the magnified foveal section"}
-					</a>
+							? "El aro violeta marca el plano principal equivalente de un ojo reducido de 60 D (n = 4/3). Los rayos dorados muestran su convergencia en el vítreo: no se calculan a través de la córnea o el cristalino dibujados."
+							: "The violet ring marks the equivalent principal plane of a 60 D reduced eye (n = 4/3). Gold rays show its convergence in the vitreous; they are not calculated through the displayed cornea or lens."}
+					</p>
+				)}
+				<p className="lens-note">
 					{es
-						? ": aquí el relieve sigue a escala del ojo."
-						: ": here the relief stays at whole-eye scale."}
+						? "Acomodación y miosis próxima ilustrativas. ACD interna y LT cambian con la animación; AXL termina en el EPR. Dimensiones elegidas, no biometría clínica."
+						: "Illustrative accommodation and near miosis. Internal ACD and LT follow the animation; AXL ends at the RPE. Chosen dimensions, not clinical biometry."}
 				</p>
 			</div>
 		</div>

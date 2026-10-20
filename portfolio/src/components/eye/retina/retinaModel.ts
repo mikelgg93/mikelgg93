@@ -10,8 +10,8 @@ export function bounded(
 		? Math.min(max, Math.max(min, value))
 		: fallback;
 }
-export const CUP_RADIUS = 12; // mm: schematic eye, not a universal retinal radius
-export const CUP_CENTRE_Z = -6.4; // mm, in Part III's assembly coordinates
+export const CUP_RADIUS = 10.8; // mm: schematic eye, not a universal retinal radius
+export const CUP_CENTRE_Z = -7.6; // mm, in Part III's assembly coordinates
 export function cupPoint(u: number, angle: number, curvature = 1) {
 	const theta = bounded(u, 0, 1) * Math.PI * 0.49;
 	const t = bounded(curvature, 0, 1);

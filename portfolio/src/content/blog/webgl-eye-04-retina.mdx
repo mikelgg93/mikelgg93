@@ -30,7 +30,7 @@ As before, we'll build the easy version first. One surface, then layers, then re
 
 Our first retina is a cup. We sample angles around a sphere and retain its posterior portion. It is the opposite end of the construction we used for the cornea: this time we look into the concave surface.
 
-For this visualisation, choose a radius of $12\ \text{mm}$. This is a **schematic dimension**, not a universal retinal curvature. MRI measurements show that eye dimensions and shape vary, including with refractive error (Atchison et al., 2004). A spherical cup is a convenient starting mesh.
+For this visualisation, choose a radius of $10.8\ \text{mm}$. This is a **schematic dimension**, not a universal retinal curvature. MRI measurements show that eye dimensions and shape vary, including with refractive error (Atchison et al., 2004). A spherical cup is a convenient starting mesh.
 
 ```ts
 const theta = u * Math.PI * 0.49;
@@ -54,6 +54,24 @@ The warm tint makes the surface visible; it is not a prediction of fundus colour
 ## Material and landmarks
 
 The next sequence adds material, foveal relief, major vessels and the optic nerve exit. Colour helps us read the surface; it does not simulate a fundus photograph. The pit changes the mesh, and the vessels avoid the foveal centre. This is animated construction, not tissue growth.
+
+The material uses Phong lighting and vertex colours: the colours identify regions, while the normals control how they respond to light. We are not calculating spectral scattering in tissue.
+
+```ts
+const material = new THREE.MeshPhongMaterial({
+  vertexColors: true,
+  shininess: 12,
+});
+```
+
+For the pit, move the inner surface outwards towards the RPE while keeping the outer boundary fixed. A Gaussian confines the change near the centre; then recompute the normals.
+
+```ts
+const innerRadius = CUP_RADIUS
+  + PIT_DEPTH * Math.exp(-((distance / PIT_WIDTH) ** 2));
+```
+
+The vessels are curves on that same surface, swept into tubes that taper towards their ends. The nerve occupies the nasal opening and bends outside the sclera. The sequence plays once and holds the result; **Replay** starts it again.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaSurface client:visible /></div>
@@ -146,6 +164,8 @@ We can now place the cup behind the cornea, iris and lens from the earlier artic
 | Lens thickness (LT) | Anterior to posterior lens | 4.00 |
 | Axial length (AXL) | Anterior cornea to the boundary representing the RPE | 24.30 |
 
+The outer envelope is approximately **24.4 mm wide and high**, and **25.4 mm from the corneal apex to the outer posterior sclera**. That last distance is not the AXL in the table, which ends at the RPE. The 10.8 mm retinal radius and centre at $z=-7.6\ \text{mm}$ locate this envelope in the same coordinate system as the anterior segment. The anterior join remains schematic.
+
 These are **chosen dimensions**, not measurements from a person or a validated schematic optical eye. We retain the anterior parts from Part 3; we have not fitted their shape and spacing to a common biometric dataset. Optical biometry commonly defines axial length to the RPE, so that is the endpoint used here (Ostrin et al., 2023). The corneal apex is at $z=5.6\ \text{mm}$ and our RPE boundary at $z=-18.70\ \text{mm}$. The distance to the inner retina is different. We use **internal** ACD, excluding the corneal thickness.
 
 The receiving surface needs a supporting wall. Outside the retina and RPE sits the **choroid**, a vascular coat that supplies the outer retina, including the photoreceptors. The retinal circulation supplies much of the inner retina (Kolb). Outside that is the **sclera**, the opaque, collagen-rich coat that gives the globe mechanical support and meets the cornea at the limbus (Watson & Young, 2004).
@@ -163,7 +183,7 @@ The major **retinal vessels** leave the disc and curve above and below the centr
   <div slot="code"><SourceFiles files={retinaSources.assembly} /></div>
 </InteractiveViewer>
 
-Choose **Retina** to expose the numbered landmarks, **Cutaway** to inspect the coats and anterior segment, or **Whole eye** to see the nerve exit. Accommodation and near miosis animate together using the shared Part III construction. **Show retinal focus** adds a separate 60 D reduced-eye approximation: an equivalent principal plane and straight rays in the vitreous, not refraction calculated through the rendered surfaces. The focus moves behind or in front of the retinal reference when the illustrative response lags the target.
+Choose **Retina** to expose the numbered landmarks, **Cutaway** to inspect the coats and anterior segment, or **Whole eye** to see the nerve exit. Accommodation and near miosis animate together using the shared Part III construction. **Reduced-eye focus** adds a separate 60 D reduced-eye approximation: the violet ring identifies its equivalent principal plane; gold lines show straight rays in the vitreous. Neither is a calculation of refraction through the rendered surfaces. The focus moves behind or in front of the retinal reference when the illustrative response lags the target.
 
 For this visualisation, wall thicknesses, colours, the disc offset and the short nerve segment are drawing parameters. The scleral rim meets the earlier corneal mesh; the anterior joins are schematic. We retain only the posterior retina and omit capillaries, the detailed lamina cribrosa, individual axons and meningeal layers. The layer diagram and receptor mosaic remain separate magnified views, not millimetre-sized cells added to this eye.
 

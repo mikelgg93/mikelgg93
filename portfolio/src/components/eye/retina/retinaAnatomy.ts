@@ -10,7 +10,7 @@ export const SCLERAL_WALL = 0.7;
 export const PIT_DEPTH = 0.1;
 export const PIT_WIDTH = 0.65;
 export const MACULA_RADIUS = 2.75;
-export const DISC_ANGLE = 0.39; // ~4.7 mm surface distance from the fovea
+export const DISC_ANGLE = 0.39; // ~4.2 mm surface distance from the fovea
 export const CANAL_ANGLE = Math.asin(1.05 / CUP_RADIUS); // enlarged disc opening
 export const biometry = {
 	cct: CORNEAL_APEX_Z - POSTERIOR_CORNEAL_APEX_Z,
@@ -63,16 +63,16 @@ export function vesselPaths() {
 		[];
 	for (const sign of [-1, 1]) {
 		for (const artery of [true, false]) {
-			const shift = artery ? 0 : 0.3;
+			const shift = artery ? 0 : 0.22;
 			paths.push({
 				radius: artery ? 0.035 : 0.05,
 				artery,
 				points: [
 					[discX, sign * (0.12 + shift)],
 					[3.4, sign * (1.2 + shift)],
-					[1.6, sign * (2.6 + shift)],
-					[-1.2, sign * (3.2 + shift)],
-					[-4.2, sign * (2.7 + shift)],
+					[artery ? 1.6 : 1.85, sign * (2.6 + shift * 1.7)],
+					[artery ? -1.2 : -1.55, sign * (3.2 + shift * 0.5)],
+					[artery ? -4.2 : -4.5, sign * (2.7 + shift * 2)],
 					[-6.4, sign * (2 + shift)],
 				].map(([x, y]) => new THREE.Vector2(x, y)),
 			});
@@ -128,12 +128,30 @@ export function createRetinalVessels() {
 	const vein = new THREE.MeshPhongMaterial({ color: "#682b36", shininess: 24 });
 	for (const path of vesselPaths()) {
 		const curve = new RetinalVesselCurve(path.points, path.radius + 0.008);
-		group.add(
-			new THREE.Mesh(
-				new THREE.TubeGeometry(curve, 80, path.radius, 6, false),
-				path.artery ? artery : vein,
-			),
-		);
+		const geometry = new THREE.TubeGeometry(curve, 80, path.radius, 6, false);
+		const positions = geometry.getAttribute("position"),
+			centre = new THREE.Vector3(),
+			point = new THREE.Vector3();
+		// Taper along the route, lowering the centreline to keep the tube against the retina.
+		for (let ring = 0; ring <= 80; ring++) {
+			const t = ring / 80,
+				scale = 1 - 0.65 * t ** 0.8;
+			curve.getPoint(t, centre);
+			for (let j = 0; j <= 6; j++) {
+				const i = ring * 7 + j;
+				point
+					.fromBufferAttribute(positions, i)
+					.sub(centre)
+					.multiplyScalar(scale)
+					.add(centre);
+				point.z -= path.radius * (1 - scale);
+				positions.setXYZ(i, point.x, point.y, point.z);
+			}
+		}
+		positions.needsUpdate = true;
+		geometry.computeVertexNormals();
+		geometry.computeBoundingSphere();
+		group.add(new THREE.Mesh(geometry, path.artery ? artery : vein));
 	}
 	return group;
 }

@@ -53,7 +53,7 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 			wireframe.visible = p.wire;
 			return {
 				state: {
-					model: "Posterior spherical cup, R=12 mm drawing choice",
+					model: "Posterior spherical cup, R=10.8 mm drawing choice",
 					curvature: 1,
 				},
 			};
@@ -121,8 +121,8 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 				</div>
 				<p className="lens-note">
 					{es
-						? "Radio elegido: 12 mm. La cúpula ya está formada; los triángulos muestran su construcción."
-						: "Chosen radius: 12 mm. The dome is already formed; triangles show its construction."}
+						? "Radio elegido: 10.8 mm. La cúpula ya está formada; los triángulos muestran su construcción."
+						: "Chosen radius: 10.8 mm. The dome is already formed; triangles show its construction."}
 				</p>
 			</div>
 		</div>

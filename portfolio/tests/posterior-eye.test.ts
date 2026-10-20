@@ -202,3 +202,20 @@ test("major vessel curves follow the pit-bearing surface and avoid the central a
 		}
 	}
 });
+
+test("the external globe envelope stays proportionate without changing axial biometry", () => {
+	const eye = createPosteriorEye();
+	eye.update(false);
+	const box = new THREE.Box3().setFromObject(
+		eye.group.getObjectByName("sclera")!,
+	);
+	const size = box.getSize(new THREE.Vector3());
+	expect(size.x).toBeCloseTo(24.4, 1);
+	expect(size.y).toBeCloseTo(24.4, 1);
+	expect(5.6 - box.min.z).toBeCloseTo(25.4, 1);
+	expect(biometry.axl).toBeCloseTo(24.3, 10);
+	// Compare like endpoints: external width against external apex-to-sclera length.
+	expect(size.x / (5.6 - box.min.z)).toBeGreaterThan(0.95);
+	expect(size.x / (5.6 - box.min.z)).toBeLessThan(0.98);
+	disposeThree(eye.group);
+});

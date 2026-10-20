@@ -30,7 +30,7 @@ Como antes, construiremos primero la versión sencilla. Una superficie, después
 
 Nuestra primera retina es una copa. Muestreamos ángulos sobre una esfera y conservamos su porción posterior. Es el otro extremo de la construcción que usamos para la córnea: esta vez miramos hacia una superficie cóncava.
 
-Para esta visualización elegimos un radio de $12\ \text{mm}$. Es una **dimensión de un modelo esquemático**, no una curvatura retiniana universal. Las medidas por resonancia magnética muestran que las dimensiones y la forma del ojo varían, también con el error refractivo (Atchison et al., 2004). La copa esférica es una malla inicial cómoda.
+Para esta visualización elegimos un radio de $10,8\ \text{mm}$. Es una **dimensión de un modelo esquemático**, no una curvatura retiniana universal. Las medidas por resonancia magnética muestran que las dimensiones y la forma del ojo varían, también con el error refractivo (Atchison et al., 2004). La copa esférica es una malla inicial cómoda.
 
 ```ts
 const theta = u * Math.PI * 0.49;
@@ -54,6 +54,24 @@ El tono cálido hace visible la superficie; no predice el color del fondo de ojo
 ## Material y puntos de referencia
 
 La siguiente secuencia añade material, relieve foveal, vasos principales y salida del nervio óptico. El color ayuda a leer la superficie; no simula una fotografía del fondo de ojo. El relieve modifica la malla y los vasos evitan el centro foveal. Es una construcción animada, no crecimiento del tejido.
+
+El material usa iluminación de Phong y colores por vértice: estos colores marcan regiones, mientras las normales controlan la respuesta a la luz. No estamos calculando la dispersión espectral del tejido.
+
+```ts
+const material = new THREE.MeshPhongMaterial({
+  vertexColors: true,
+  shininess: 12,
+});
+```
+
+Para la fosita desplazamos la superficie interna hacia fuera, hacia el EPR, manteniendo fijo el límite externo. Una gaussiana concentra el cambio cerca del centro; después recalculamos las normales.
+
+```ts
+const innerRadius = CUP_RADIUS
+  + PIT_DEPTH * Math.exp(-((distance / PIT_WIDTH) ** 2));
+```
+
+Los vasos son curvas sobre esa misma superficie, convertidas en tubos que se estrechan hacia sus extremos. El nervio ocupa la abertura nasal y se curva fuera de la esclerótica. La secuencia se reproduce una vez y conserva el resultado; **Repetir** vuelve al principio.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaSurface lang="es" client:visible /></div>
@@ -146,6 +164,8 @@ Ya podemos situar la copa detrás de la córnea, el iris y el cristalino de los 
 | Espesor del cristalino (LT) | Cristalino anterior a posterior | 4,00 |
 | Longitud axial (AXL) | Córnea anterior al límite que representa el EPR | 24,30 |
 
+La envolvente externa mide aproximadamente **24,4 mm de ancho y alto**, y **25,4 mm desde el ápice corneal hasta la esclerótica posterior externa**. Esta última distancia no es la AXL de la tabla, que termina en el EPR. El radio retiniano de 10,8 mm y el centro en $z=-7,6\ \text{mm}$ sitúan esta envolvente en el mismo sistema de coordenadas que el segmento anterior. La unión anterior sigue siendo esquemática.
+
 Son **dimensiones elegidas**, no medidas de una persona ni un ojo óptico esquemático validado. Conservamos las piezas anteriores de la Parte 3; no hemos ajustado sus formas y distancias a un conjunto común de datos biométricos. La biometría óptica suele definir la longitud axial hasta el EPR, y usamos ese extremo aquí (Ostrin et al., 2023). El vértice corneal está en $z=5,6\ \text{mm}$ y el límite del EPR en $z=-18,70\ \text{mm}$. La distancia a la retina interna es distinta. Usamos ACD **interna**, que excluye el espesor corneal.
 
 La superficie receptora necesita una pared de soporte. Por fuera de la retina y el EPR está la **coroides**, una capa vascular que nutre la retina externa, incluidos los fotorreceptores. La circulación retiniana nutre gran parte de la retina interna (Kolb). Por fuera queda la **esclerótica**, la cubierta opaca y rica en colágeno que da soporte mecánico al globo y se une a la córnea en el limbo (Watson y Young, 2004).
@@ -163,7 +183,7 @@ Los principales **vasos retinianos** salen de la papila y forman arcadas por enc
   <div slot="code"><SourceFiles files={retinaSources.assembly} lang="es" /></div>
 </InteractiveViewer>
 
-Elige **Retina** para descubrir los puntos numerados, **Sección** para inspeccionar las capas y el segmento anterior, u **Ojo completo** para ver la salida del nervio. La acomodación y la miosis próxima se animan juntas con la construcción compartida de la parte III. **Mostrar enfoque** añade una aproximación independiente de ojo reducido de 60 D: un plano principal equivalente y rayos rectos en el vítreo, no refracción calculada a través de las superficies dibujadas. El foco se desplaza detrás o delante de la referencia retiniana cuando la respuesta ilustrativa se retrasa respecto al objetivo.
+Elige **Retina** para descubrir los puntos numerados, **Sección** para inspeccionar las capas y el segmento anterior, u **Ojo completo** para ver la salida del nervio. La acomodación y la miosis próxima se animan juntas con la construcción compartida de la parte III. **Enfoque de ojo reducido** añade una aproximación independiente de ojo reducido de 60 D: el aro violeta identifica su plano principal equivalente y las líneas doradas muestran rayos rectos en el vítreo. No calculan la refracción a través de las superficies dibujadas. El foco se desplaza detrás o delante de la referencia retiniana cuando la respuesta ilustrativa se retrasa respecto al objetivo.
 
 Para esta visualización, los espesores, colores, el desplazamiento de la papila y el tramo corto de nervio son parámetros de dibujo. El borde escleral se une a la malla corneal anterior; las uniones anteriores son esquemáticas. Conservamos solo la retina posterior y omitimos los capilares, el detalle de la lámina cribosa, los axones individuales y las capas meníngeas. El esquema de capas y el mosaico de receptores siguen siendo vistas ampliadas separadas, no células de tamaño milimétrico añadidas a este ojo.
 

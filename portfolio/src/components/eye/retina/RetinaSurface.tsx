@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { createLensScene } from "../lens/lensScene";
 import { createPosteriorEye } from "./posteriorEye";
-import { innerRetinalRadius } from "./retinaAnatomy";
-import { CUP_CENTRE_Z } from "./retinaModel";
+import { innerRetinalRadius, RETINAL_WALL } from "./retinaAnatomy";
+import { CUP_CENTRE_Z, CUP_RADIUS } from "./retinaModel";
 import "../lens/lens.css";
 import "./retina.css";
 
@@ -12,7 +12,9 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		mount = useRef<HTMLDivElement>(null),
 		caption = useRef<HTMLParagraphElement>(null);
 	const [paused, setPaused] = useState(false),
-		[error, setError] = useState(false);
+		[error, setError] = useState(false),
+		[finished, setFinished] = useState(false);
+	const replay = useRef<(() => void) | null>(null);
 	const params = useRef({ paused }),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	useEffect(() => {
@@ -46,14 +48,20 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 			direction = new THREE.Vector3();
 		let elapsed = 0,
 			previous = -1;
-		view.onReset(() => {
+		const restart = () => {
 			elapsed = 0;
 			previous = -1;
 			setPaused(false);
-		});
+			setFinished(false);
+			view.invalidate();
+		};
+		replay.current = restart;
+		view.onReset(restart);
 		view.start((dt, reduced) => {
-			if (!params.current.paused && !reduced) elapsed += dt;
-			const t = reduced ? 15 : elapsed % 20,
+			if (!params.current.paused && !reduced)
+				elapsed = Math.min(16, elapsed + dt);
+			if (elapsed >= 16 && !params.current.paused) setFinished(true);
+			const t = reduced ? 16 : elapsed,
 				pit = Math.min(1, Math.max(0, (t - 4) / 4));
 			eye.update(
 				false,
@@ -68,11 +76,14 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 						const r = v.length(),
 							inner = innerRetinalRadius(direction.copy(v).normalize());
 						const weight = THREE.MathUtils.clamp(
-							(12.3 - r) / (12.3 - inner),
+							(CUP_RADIUS + RETINAL_WALL - r) /
+								(CUP_RADIUS + RETINAL_WALL - inner),
 							0,
 							1,
 						);
-						v.multiplyScalar((r - (1 - pit) * (inner - 12) * weight) / r);
+						v.multiplyScalar(
+							(r - (1 - pit) * (inner - CUP_RADIUS) * weight) / r,
+						);
 						position.setXYZ(i, v.x, v.y, v.z + CUP_CENTRE_Z);
 					}
 					position.needsUpdate = true;
@@ -110,10 +121,11 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 					stage,
 					pit,
 				},
-				animating: !reduced && !params.current.paused,
+				animating: !reduced && !params.current.paused && elapsed < 16,
 			};
 		});
 		return () => {
+			replay.current = null;
 			viewRef.current = null;
 			view.dispose();
 		};
@@ -135,17 +147,31 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 						: "Retinal surface construction"
 				}
 			>
-				{error && <p role="status">WebGL unavailable.</p>}
+				{error && (
+					<p role="status">
+						{es ? "WebGL no está disponible." : "WebGL is unavailable."}
+					</p>
+				)}
 				<p className="retina-camera" ref={caption} />
 			</div>
 			<div className="lens-controls">
 				<button
 					type="button"
 					className="lens-motion-pause"
-					aria-pressed={paused}
-					onClick={() => setPaused(!paused)}
+					aria-pressed={finished ? undefined : paused}
+					onClick={() => (finished ? replay.current?.() : setPaused(!paused))}
 				>
-					{paused ? (es ? "Continuar" : "Resume") : es ? "Pausar" : "Pause"}
+					{finished
+						? es
+							? "Repetir"
+							: "Replay"
+						: paused
+							? es
+								? "Continuar"
+								: "Resume"
+							: es
+								? "Pausar"
+								: "Pause"}
 				</button>
 				<p className="lens-note">
 					{es
