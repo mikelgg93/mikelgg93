@@ -1,4 +1,10 @@
 import { expect, test } from "bun:test";
+import { CORNEAL_APEX_Z } from "../src/components/eye/eyeDimensions";
+import {
+	createRoundedLensGeometry,
+	EQUATOR_RADIUS,
+	LENS_THICKNESS,
+} from "../src/components/eye/lens/lensConstruction";
 import {
 	atchison,
 	biconicSag,
@@ -30,7 +36,9 @@ import {
 
 test("prescriptions retain published vertex positions and signed sag", () => {
 	expect(vitreousDepth(NAVARRO)).toBeCloseTo(16.3203, 10);
-	expect(TEACHING.acd).toBeCloseTo(3.52, 10);
+	expect(TEACHING.acd).toBeCloseTo(3.35, 10);
+	expect(TEACHING.lt).toBe(4);
+	expect(TEACHING.retina.rx).toBeCloseTo(-11.1, 10);
 	expect(atchison(0).axial).toBeCloseTo(23.58, 10);
 	expect(vitreousDepth(atchison(-10))).toBeCloseTo(19.27, 10);
 	expect(atchison(-10).cornea[0].rx).toBeCloseTo(7.55, 10);
@@ -39,17 +47,27 @@ test("prescriptions retain published vertex positions and signed sag", () => {
 	for (const invalid of [NaN, Infinity, -11, 1])
 		expect(() => atchison(invalid)).toThrow();
 	expect(() => biconicSag(8, 0, conic(6, 1))).toThrow();
-	for (let r = 0; r <= 4.2; r += 0.1) {
-		const root = Math.sqrt(1 - (r / 4.6) ** 2);
-		expect(patchPoint(TEACHING, "frontLens", r, 0)[2]).toBeCloseTo(
-			-(5.6 - 1.53 * root),
-			10,
-		);
-		expect(patchPoint(TEACHING, "backLens", r, 0)[2]).toBeCloseTo(
-			-(5.6 + 2.07 * root),
-			10,
-		);
+});
+
+test("teaching patches match vertices of the shared Part III rounded lens", () => {
+	const geometry = createRoundedLensGeometry(),
+		positions = geometry.getAttribute("position");
+	for (let i = 0; i < positions.count; i++) {
+		const x = positions.getX(i) * EQUATOR_RADIUS,
+			y = positions.getY(i) * EQUATOR_RADIUS,
+			z = (positions.getZ(i) * LENS_THICKNESS) / 2,
+			r = Math.hypot(x, y);
+		if (r > 4.2) continue; // The comparison intentionally crops the equator.
+		expect(
+			patchPoint(
+				TEACHING,
+				z >= 0 ? "frontLens" : "backLens",
+				r,
+				Math.atan2(y, x),
+			)[2],
+		).toBeCloseTo(z - CORNEAL_APEX_Z, 5);
 	}
+	geometry.dispose();
 });
 
 test("Cholesky reconstructs the published five-variable covariance and rejects invalid matrices", () => {

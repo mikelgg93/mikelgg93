@@ -1,9 +1,6 @@
-import {
-	CORNEAL_APEX_Z,
-	LENS_FRONT_FACTOR,
-	POSTERIOR_CORNEAL_APEX_Z,
-	RELAXED_LENS_THICKNESS,
-} from "../eyeDimensions";
+import { BACK_RADIUS, FRONT_RADIUS } from "../lens/lensConstruction";
+import { biometry, RETINAL_WALL } from "../retina/retinaAnatomy";
+import { CUP_RADIUS } from "../retina/retinaModel";
 
 export type Surface = { rx: number; ry: number; qx: number; qy: number };
 export type EyePrescription = {
@@ -14,6 +11,7 @@ export type EyePrescription = {
 	axial: number; // Corneal apex to the declared posterior endpoint, mm.
 	cornea: [Surface, Surface];
 	lens: [Surface, Surface];
+	lensProfile?: "rounded"; // Central conics plus the Part III peripheral blend.
 	retina: Surface;
 };
 export const conic = (r: number, q: number): Surface => ({
@@ -38,18 +36,15 @@ export const NAVARRO: EyePrescription = {
 
 export const TEACHING: EyePrescription = {
 	id: "teaching",
-	cct: CORNEAL_APEX_Z - POSTERIOR_CORNEAL_APEX_Z,
-	acd:
-		POSTERIOR_CORNEAL_APEX_Z - (RELAXED_LENS_THICKNESS * LENS_FRONT_FACTOR) / 2,
-	lt: RELAXED_LENS_THICKNESS,
-	axial: 24.3,
+	cct: biometry.cct,
+	acd: biometry.acd,
+	lt: biometry.lt,
+	axial: biometry.axl,
 	cornea: [conic(7.8, -0.26), conic(6.5, -0.4)],
-	// Exact conic equivalents of Part IV's two ellipsoidal halves: R=a²/b, Q=a²/b²−1.
-	lens: [
-		conic(4.6 ** 2 / 1.53, 4.6 ** 2 / 1.53 ** 2 - 1),
-		conic(-(4.6 ** 2) / 2.07, 4.6 ** 2 / 2.07 ** 2 - 1),
-	],
-	retina: conic(-12.3, 0),
+	// These radii describe the central caps; patchPoint uses the shared rounded profile.
+	lens: [conic(FRONT_RADIUS, 0), conic(-BACK_RADIUS, 0)],
+	lensProfile: "rounded",
+	retina: conic(-(CUP_RADIUS + RETINAL_WALL), 0),
 }; // Part IV: endpoint is the RPE proxy; its neural surface and pit lie anterior to it.
 
 export function atchison(sr: number): EyePrescription {
