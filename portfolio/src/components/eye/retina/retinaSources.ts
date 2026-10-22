@@ -1,10 +1,12 @@
 import { lensSources } from "../lens/lensSources";
 import { simulationSources } from "../simulationSources";
+import profile from "./globeProfile.ts?raw";
 import posterior from "./posteriorEye.ts?raw";
 import assembly from "./RetinaAssembly.tsx?raw";
 import cup from "./RetinaCup.tsx?raw";
 import layers from "./RetinaLayers.tsx?raw";
 import cells from "./RetinalCells.tsx?raw";
+import focusInset from "./RetinalFocusInset.tsx?raw";
 import mosaic from "./RetinaMosaic.tsx?raw";
 import sampling from "./RetinaSampling.tsx?raw";
 import surface from "./RetinaSurface.tsx?raw";
@@ -47,6 +49,7 @@ export const retinaSources = {
 	surface: [
 		file("RetinaSurface.tsx", surface),
 		file("posteriorEye.ts", posterior),
+		file("globeProfile.ts", profile),
 		file("retinaAnatomy.ts", anatomy),
 		...shared,
 		...lensSources.assembly.filter(
@@ -66,7 +69,9 @@ export const retinaSources = {
 	assembly: [
 		file("RetinaAssembly.tsx", assembly),
 		file("retinalFocus.ts", focus),
+		file("RetinalFocusInset.tsx", focusInset),
 		file("posteriorEye.ts", posterior),
+		file("globeProfile.ts", profile),
 		file("retinaAnatomy.ts", anatomy),
 		...shared,
 		...lensSources.assembly.filter(

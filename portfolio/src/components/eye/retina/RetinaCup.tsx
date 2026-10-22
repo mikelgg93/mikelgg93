@@ -9,6 +9,7 @@ import {
 	retinalMaterial,
 	updateRetinalCup,
 } from "./retinaGeometry";
+import { CUP_CENTRE_Z, CUP_RADIUS, cupPoint } from "./retinaModel";
 
 export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
@@ -31,20 +32,48 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(27, 20, 43);
+		view.camera.position.set(24, 16, 35);
 		view.controls.target.set(0, 0, 6);
 		const geometry = createRetinalCup();
 		const cup = new THREE.Mesh(geometry, retinalMaterial());
 		cup.position.z = 18.4;
-		const wireframe = new THREE.Mesh(
-			geometry,
-			new THREE.MeshBasicMaterial({
+		const lines: THREE.Vector3[] = [];
+		const add = (u: number, a: number, v: number, b: number) => {
+			lines.push(
+				new THREE.Vector3(...cupPoint(u, a)),
+				new THREE.Vector3(...cupPoint(v, b)),
+			);
+		};
+		for (let ring = 1; ring <= 8; ring++)
+			for (let sector = 0; sector < 20; sector++) {
+				const a = (sector * Math.PI) / 10,
+					b = ((sector + 1) * Math.PI) / 10;
+				add(ring / 8, a, ring / 8, b);
+				add((ring - 1) / 8, a, ring / 8, a);
+				if (ring === 5 && sector === 4) add((ring - 1) / 8, a, ring / 8, b);
+			}
+		const wireframe = new THREE.LineSegments(
+			new THREE.BufferGeometry().setFromPoints(lines),
+			new THREE.LineBasicMaterial({
 				color: 0xf1c6aa,
-				wireframe: true,
 				transparent: true,
-				opacity: 0.18,
+				opacity: 0.55,
 			}),
 		);
+		const radius = new THREE.Line(
+			new THREE.BufferGeometry().setFromPoints([
+				new THREE.Vector3(0, 0, CUP_CENTRE_Z),
+				new THREE.Vector3(0, 0, CUP_CENTRE_Z - CUP_RADIUS),
+			]),
+			new THREE.LineDashedMaterial({
+				color: 0xa5cac2,
+				dashSize: 0.3,
+				gapSize: 0.2,
+			}),
+		);
+		radius.computeLineDistances();
+		cup.add(radius);
+
 		cup.add(wireframe);
 		view.scene.add(cup);
 		updateRetinalCup(geometry, 1);
@@ -76,7 +105,7 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 			<div className="lens-heading">
 				<strong>{es ? "Una cúpula posterior" : "A posterior dome"}</strong>
 				<span className="lens-muted">
-					{es ? "Construcción geométrica" : "Geometry construction"}
+					{es ? "Malla de construcción sencilla" : "Sparse construction grid"}
 				</span>
 			</div>
 			<div
@@ -115,7 +144,7 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 							aria-pressed={wire}
 							onClick={() => setWire(!wire)}
 						>
-							{es ? "Triángulos" : "Triangles"}
+							{es ? "Guía de malla" : "Mesh guide"}
 						</button>
 					</ParameterControl>
 				</div>

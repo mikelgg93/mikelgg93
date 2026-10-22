@@ -40,7 +40,7 @@ const y = r * Math.sin(angle);
 const z = centreZ - radius * Math.cos(theta);
 ```
 
-El ángulo se detiene poco antes de completar un hemisferio. La cúpula ya está formada; desactiva **Triángulos** para inspeccionar la superficie.
+Aquí, `u` va de 0 en el polo posterior a 1 en el borde; `angle` recorre de 0 a 2π alrededor del eje. Las coordenadas están en milímetros y z positiva apunta hacia la córnea. El ángulo se detiene poco antes de completar un hemisferio. La cúpula ya está formada; desactiva **Guía de malla** para inspeccionar la superficie. La guía muestra anillos y sectores seleccionados sobre una malla más fina; la línea discontinua marca el radio.
 
 <InteractiveViewer lang="es">
   <div slot="preview"><RetinaCup lang="es" client:visible /></div>
@@ -53,14 +53,18 @@ El tono cálido hace visible la superficie; no predice el color del fondo de ojo
 
 ## Material y puntos de referencia
 
+Miramos la superficie desde dentro del ojo. La **fóvea** es la pequeña depresión central de la mácula; el **epitelio pigmentario de la retina (EPR)** queda detrás de los fotorreceptores. El nervio sale por la papila, hacia el lado nasal, atravesando la pared externa del ojo, la **esclerótica**.
+
 La siguiente secuencia añade material, relieve foveal, vasos principales y salida del nervio óptico. El color ayuda a leer la superficie; no simula una fotografía del fondo de ojo. El relieve modifica la malla y los vasos evitan el centro foveal. Es una construcción animada, no crecimiento del tejido.
 
-El material usa iluminación de Phong y colores por vértice: estos colores marcan regiones, mientras las normales controlan la respuesta a la luz. No estamos calculando la dispersión espectral del tejido.
+El material usa una superficie rugosa no metálica y colores por vértice: estos colores marcan regiones, mientras las normales controlan la respuesta a la luz. No estamos calculando la dispersión espectral del tejido.
 
 ```ts
-const material = new THREE.MeshPhongMaterial({
+// Un triplete RGB lineal por vértice: colores elegidos, no reflectancia medida.
+geometry.setAttribute("color", new THREE.Float32BufferAttribute(colours, 3));
+const material = new THREE.MeshStandardMaterial({
   vertexColors: true,
-  shininess: 12,
+  roughness: 0.78,
 });
 ```
 
@@ -71,11 +75,13 @@ const innerRadius = CUP_RADIUS
   + PIT_DEPTH * Math.exp(-((distance / PIT_WIDTH) ** 2));
 ```
 
+`distance` mide el arco desde el eje foveal. El perfil ampliado conserva la misma escala en ambos ejes: hace visible la fosita sin cambiar la geometría del ojo. Precalculamos las posiciones y normales iniciales y finales; la GPU interpola entre ellas.
+
 Los vasos son curvas sobre esa misma superficie, convertidas en tubos que se estrechan hacia sus extremos. El nervio ocupa la abertura nasal y se curva fuera de la esclerótica. La secuencia se reproduce una vez y conserva el resultado; **Repetir** vuelve al principio.
 
-<InteractiveViewer>
+<InteractiveViewer lang="es">
   <div slot="preview"><RetinaSurface lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.surface} /></div>
+  <div slot="code"><SourceFiles files={retinaSources.surface} lang="es" /></div>
 </InteractiveViewer>
 
 ## Convertir la superficie en tejido
@@ -84,7 +90,7 @@ La luz llega desde el **vítreo**, el espacio gelatinoso situado detrás del cri
 
 El EPR sostiene a los fotorreceptores: entre sus funciones están absorber luz parásita, participar en el ciclo visual y fagocitar el material que se desprende de los segmentos externos. Detrás está la **coroides**, vascularizada. La retina neural y su epitelio pigmentario están estrechamente asociados, pero no son dos nombres intercambiables para una misma capa (Kolb, *Simple Anatomy of the Retina*).
 
-La sección siguiente agrupa el tejido en siete bandas legibles. Las **capas nucleares** contienen cuerpos celulares; las **plexiformes**, muchas de las conexiones sinápticas. Es un mapa de los compartimentos principales, no el recuento convencional completo de capas. Agrupamos las fibras nerviosas y las células ganglionares, y omitimos las membranas limitantes.
+La sección siguiente agrupa el tejido en siete bandas legibles. Las **capas nucleares** contienen cuerpos celulares; las **plexiformes**, muchas de las conexiones sinápticas. Es un mapa de los compartimentos principales, no el recuento convencional completo de capas. Agrupamos las fibras nerviosas y las células ganglionares, y marcamos esquemáticamente el límite externo de los fotorreceptores.
 
 <InteractiveViewer lang="es">
   <div slot="preview"><RetinaLayers lang="es" client:visible /></div>
@@ -97,13 +103,13 @@ Los iconos añaden bastones y conos, células bipolares y ganglionares, conexion
 
 Activa **Mostrar fóvea**. Las capas internas se adelgazan hacia el centro mientras permanecen las bandas externas. En una fóvea típica, el tejido retiniano interno se desplaza fuera del centro; los conos centrales, densamente empaquetados, se estrechan y alargan. La región central también carece de vasos retinianos; su retina externa recibe aporte de la coroides, de modo que «avascular» no significa sin suministro de sangre. La depresión, la especialización de los conos y la organización vascular son rasgos relacionados, no un agujero perforado en la retina (Provis et al., 2013).
 
-Nuestro perfil representa ese cambio de organización con las dimensiones verticales exageradas. No reproduce la variación individual, las trayectorias de las fibras de Henle ni espesores medidos. Tampoco la profundidad de la depresión determina por sí sola la agudeza visual: puede existir especialización de los conos centrales sin una depresión convencional.
+Nuestro perfil representa ese cambio de organización con las dimensiones verticales exageradas. Una ruta de cono resaltada muestra el desplazamiento lateral; no reconstruye fibras de Henle individuales ni espesores medidos. Tampoco la profundidad de la depresión determina por sí sola la agudeza visual: puede existir especialización de los conos centrales sin una depresión convencional.
 
 La **OCT** permite inspeccionar la profundidad retiniana en un ojo vivo. Usa [interferometría de baja coherencia](https://pubmed.ncbi.nlm.nih.gov/1957169/) para resolver en profundidad la luz retrodispersada. En un corte B-scan suele reconocerse enseguida el contorno foveal. Pero una OCT no es una fotografía de siete láminas pintadas. Las bandas claras y oscuras dependen de la dispersión del tejido y del sistema de imagen; su interpretación anatómica exige cuidado. Spaide y Curcio (2011), por ejemplo, estudiaron cómo se corresponden las bandas externas de OCT con las estructuras de los fotorreceptores.
 
 El esquema anterior es un dibujo anatómico, **no una OCT simulada**. Sus colores identifican compartimentos y su brillo no indica reflectividad en OCT.
 
-## Poblar la malla: Conos y bastones
+## Ampliar un parche receptor: Conos y bastones
 
 Una retina real contiene demasiados fotorreceptores para dibujarlos uno por uno en una demo ligera. En su muestra histológica, Curcio et al. (1990) encontraron promedios de aproximadamente **4,6 millones de conos y 92 millones de bastones por retina**, con variación considerable entre ojos. Son promedios medidos en un estudio, no una especificación fija de todos los ojos humanos.
 
@@ -124,7 +130,7 @@ cells.instanceMatrix.needsUpdate = true;
   <div slot="code"><SourceFiles files={retinaSources.mosaic} lang="es" /></div>
 </InteractiveViewer>
 
-Alterna entre **Centro foveal** y **Fuera del centro**. El primero contiene solo conos; el segundo intercala conos entre bastones. Los iconos de conos centrales son más estrechos y alargados. Son distribuciones cualitativas, no muestras de un mapa de densidad medido. El espaciado regularizado hace legible la construcción; los mosaicos reales presentan irregularidad espacial. Aquí omitimos núcleos, sinapsis y células de soporte.
+Compara los dos parches de igual área desde arriba. El **Centro foveal** reúne más conos; **Fuera del centro** mezcla conos y bastones. **Ver formas celulares** inclina ambos parches para mostrar los conos centrales, más estrechos y largos. Son parches locales ampliados, separados de la malla del ojo; sus separaciones son ilustrativas, no un mapa de densidad medido.
 
 Los bastones permiten una visión muy sensible con poca luz. Los conos sostienen la visión diurna y la discriminación cromática. Las clases de conos S, M y L tienen sensibilidades espectrales amplias y solapadas: no son píxeles rojos, verdes y azules organizados en tripletes repetidos (Stockman y Sharpe, 2000). El dorado identifica aquí a *los conos como grupo*; la demo no asigna clases de conos ni simula visión cromática.
 
@@ -164,7 +170,7 @@ Ya podemos situar la copa detrás de la córnea, el iris y el cristalino de los 
 | Espesor del cristalino (LT) | Cristalino anterior a posterior | 4,00 |
 | Longitud axial (AXL) | Córnea anterior al límite que representa el EPR | 24,30 |
 
-La envolvente externa mide aproximadamente **24,4 mm de ancho y alto**, y **25,4 mm desde el ápice corneal hasta la esclerótica posterior externa**. Esta última distancia no es la AXL de la tabla, que termina en el EPR. El radio retiniano de 10,8 mm y el centro en $z=-7,6\ \text{mm}$ sitúan esta envolvente en el mismo sistema de coordenadas que el segmento anterior. La unión anterior sigue siendo esquemática.
+La envolvente externa mide aproximadamente **24,4 mm de ancho y alto**, y **25,4 mm desde el ápice corneal hasta la esclerótica posterior externa**. Esta última distancia no es la AXL de la tabla, que termina en el EPR. El radio retiniano de 10,8 mm y el centro en $z=-7,6\ \text{mm}$ sitúan esta envolvente en el mismo sistema de coordenadas que el segmento anterior. La pared anterior interna sigue el mismo perfil de unión que el cuerpo ciliar. Las capas comparten sus límites y la retina se adelgaza hasta una ora serrata esquemática detrás del cuerpo ciliar.
 
 Son **dimensiones elegidas**, no medidas de una persona ni un ojo óptico esquemático validado. Conservamos las piezas anteriores de la Parte 3; no hemos ajustado sus formas y distancias a un conjunto común de datos biométricos. La biometría óptica suele definir la longitud axial hasta el EPR, y usamos ese extremo aquí (Ostrin et al., 2023). El vértice corneal está en $z=5,6\ \text{mm}$ y el límite del EPR en $z=-18,70\ \text{mm}$. La distancia a la retina interna es distinta. Usamos ACD **interna**, que excluye el espesor corneal.
 
@@ -183,9 +189,9 @@ Los principales **vasos retinianos** salen de la papila y forman arcadas por enc
   <div slot="code"><SourceFiles files={retinaSources.assembly} lang="es" /></div>
 </InteractiveViewer>
 
-Elige **Retina** para descubrir los puntos numerados, **Sección** para inspeccionar las capas y el segmento anterior, u **Ojo completo** para ver la salida del nervio. La acomodación y la miosis próxima se animan juntas con la construcción compartida de la parte III. **Enfoque de ojo reducido** añade una aproximación independiente de ojo reducido de 60 D: el aro violeta identifica su plano principal equivalente y las líneas doradas muestran rayos rectos en el vítreo. No calculan la refracción a través de las superficies dibujadas. El foco se desplaza detrás o delante de la referencia retiniana cuando la respuesta ilustrativa se retrasa respecto al objetivo.
+Elige **Retina** para descubrir los puntos numerados, **Sección** para inspeccionar las capas y el segmento anterior, u **Ojo completo** para ver la salida del nervio. La acomodación y la miosis próxima se animan juntas con la construcción compartida de la parte III. **Enfoque de ojo reducido** añade una aproximación independiente de ojo reducido de 60 D: el aro violeta identifica su plano principal equivalente y las líneas doradas muestran rayos rectos en el vítreo. No calculan la refracción a través de las superficies dibujadas. El recuadro ampliado sigue los rayos a través del foco hasta su huella sobre una referencia receptora, elegida 0,05 mm delante del límite del EPR. Es un plano ilustrativo del lado de los fotorreceptores, no una capa focal medida. El desplazamiento y desenfoque con signo permiten ver el pequeño retraso sin exagerar la geometría del ojo.
 
-Para esta visualización, los espesores, colores, el desplazamiento de la papila y el tramo corto de nervio son parámetros de dibujo. El borde escleral se une a la malla corneal anterior; las uniones anteriores son esquemáticas. Conservamos solo la retina posterior y omitimos los capilares, el detalle de la lámina cribosa, los axones individuales y las capas meníngeas. El esquema de capas y el mosaico de receptores siguen siendo vistas ampliadas separadas, no células de tamaño milimétrico añadidas a este ojo.
+Para esta visualización, los espesores, colores, el desplazamiento de la papila y el tramo corto de nervio son parámetros de dibujo. El borde escleral se une a la malla corneal anterior; las uniones anteriores son esquemáticas. Omitimos los capilares, el detalle de la lámina cribosa, los axones individuales y las capas meníngeas. El esquema de capas y el mosaico de receptores siguen siendo vistas ampliadas separadas, no células de tamaño milimétrico añadidas a este ojo.
 
 Tenemos las principales piezas anatómicas del modelo. Colocarlas en una escena todavía no crea una simulación óptica o neural completa. Para predecir una imagen retiniana tendríamos que acoplar y validar las superficies, los índices de refracción y las distancias; para predecir la visión también habría que modelar qué hacen la retina y el cerebro con esa imagen.
 

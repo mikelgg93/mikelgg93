@@ -10,7 +10,8 @@ import "./retina.css";
 export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
 		mount = useRef<HTMLDivElement>(null),
-		caption = useRef<HTMLParagraphElement>(null);
+		caption = useRef<HTMLParagraphElement>(null),
+		profile = useRef<HTMLDivElement>(null);
 	const [paused, setPaused] = useState(false),
 		[error, setError] = useState(false),
 		[finished, setFinished] = useState(false);
@@ -33,24 +34,48 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		viewRef.current = view;
 		view.camera.position.set(8, 5, 38);
 		view.controls.target.set(0, 0, -12);
-		const eye = createPosteriorEye();
+		const eye = createPosteriorEye({ lesson: true });
 		view.scene.add(eye.group);
-		const meshes: { mesh: THREE.Mesh; base: Float32Array }[] = [];
-		eye.group.getObjectByName("retina")?.traverse((object) => {
-			if (object instanceof THREE.Mesh) {
-				meshes.push({
-					mesh: object,
-					base: new Float32Array(object.geometry.attributes.position.array),
-				});
-			}
-		});
+		const mesh = eye.group.getObjectByName("retina")!.children[0] as THREE.Mesh<
+			THREE.BufferGeometry,
+			THREE.MeshStandardMaterial
+		>;
+		const geometry = mesh.geometry,
+			full = geometry.getAttribute("position").clone(),
+			fullNormals = geometry.getAttribute("normal").clone(),
+			position = geometry.getAttribute("position");
 		const v = new THREE.Vector3(),
 			direction = new THREE.Vector3();
-		let elapsed = 0,
-			previous = -1;
+		// Precompute endpoints once. Three.js interpolates positions/normals on the GPU.
+		for (let i = 0; i < position.count; i++) {
+			v.fromBufferAttribute(full, i);
+			v.z -= CUP_CENTRE_Z;
+			const r = v.length(),
+				inner = innerRetinalRadius(direction.copy(v).normalize());
+			const weight = THREE.MathUtils.clamp(
+				(CUP_RADIUS + RETINAL_WALL - r) / (CUP_RADIUS + RETINAL_WALL - inner),
+				0,
+				1,
+			);
+			v.multiplyScalar((r - (inner - CUP_RADIUS) * weight) / r);
+			position.setXYZ(i, v.x, v.y, v.z + CUP_CENTRE_Z);
+		}
+		geometry.computeVertexNormals();
+		geometry.morphAttributes.position = [full];
+		geometry.morphAttributes.normal = [fullNormals];
+		mesh.updateMorphTargets();
+		geometry.computeBoundingSphere();
+		let autoCamera = true;
+		const manual = () => {
+			autoCamera = false;
+		};
+		view.controls.addEventListener("start", manual);
+
+		let elapsed = 0;
 		const restart = () => {
 			elapsed = 0;
-			previous = -1;
+			autoCamera = true;
+			view.setPose([8, 5, 38], [0, 0, -12]);
 			setPaused(false);
 			setFinished(false);
 			view.invalidate();
@@ -68,34 +93,32 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 				{ choroid: false, sclera: false, nerve: t >= 12 },
 				t >= 9,
 			);
-			if (pit !== previous) {
-				for (const { mesh, base } of meshes) {
-					const position = mesh.geometry.attributes.position;
-					for (let i = 0; i < position.count; i++) {
-						v.set(base[i * 3], base[i * 3 + 1], base[i * 3 + 2] - CUP_CENTRE_Z);
-						const r = v.length(),
-							inner = innerRetinalRadius(direction.copy(v).normalize());
-						const weight = THREE.MathUtils.clamp(
-							(CUP_RADIUS + RETINAL_WALL - r) /
-								(CUP_RADIUS + RETINAL_WALL - inner),
-							0,
-							1,
-						);
-						v.multiplyScalar(
-							(r - (1 - pit) * (inner - CUP_RADIUS) * weight) / r,
-						);
-						position.setXYZ(i, v.x, v.y, v.z + CUP_CENTRE_Z);
-					}
-					position.needsUpdate = true;
-					mesh.geometry.computeVertexNormals();
-					mesh.geometry.computeBoundingSphere();
-				}
-				previous = pit;
+			mesh.morphTargetInfluences![0] = pit;
+			mesh.material.wireframe = t < 2;
+			if (autoCamera && !reduced && t >= 12 && t <= 14) {
+				const f = THREE.MathUtils.smoothstep(t, 12, 14);
+				view.setPose([8 + 18 * f, 5 + 9 * f, 38 - 8 * f], [0, 0, -12]);
 			}
-			for (const { mesh } of meshes) {
-				const material = mesh.material as THREE.MeshPhongMaterial;
-				material.wireframe = t < 2;
+			const vessels = eye.group.getObjectByName("retinal-vessels");
+			vessels?.traverse((o) => {
+				if (o instanceof THREE.Mesh && o.geometry instanceof THREE.TubeGeometry)
+					o.geometry.setDrawRange(
+						0,
+						Math.floor(THREE.MathUtils.clamp((t - 9) / 3, 0, 1) * 80) * 6 * 6,
+					);
+			});
+			if (profile.current) {
+				profile.current.hidden = t < 4 || t >= 12;
+				const path = profile.current.querySelector("[data-pit-profile]");
+				path?.setAttribute(
+					"d",
+					Array.from({ length: 81 }, (_, i) => {
+						const x = -1 + i / 40;
+						return `${i ? "L" : "M"}${110 + x * 100},${25 + pit * 10 * Math.exp(-((x / 0.65) ** 2))}`;
+					}).join(" "),
+				);
 			}
+
 			const stage = t < 2 ? 0 : t < 4 ? 1 : t < 9 ? 2 : t < 12 ? 3 : 4;
 			if (caption.current)
 				caption.current.textContent = (
@@ -127,6 +150,7 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		return () => {
 			replay.current = null;
 			viewRef.current = null;
+			view.controls.removeEventListener("start", manual);
 			view.dispose();
 		};
 	}, [lang]);
@@ -153,6 +177,41 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 					</p>
 				)}
 				<p className="retina-camera" ref={caption} />
+				<div className="retina-pit-inset" ref={profile} hidden>
+					<span>
+						{es ? "Perfil foveal ampliado" : "Magnified foveal profile"}
+					</span>
+					<svg
+						viewBox="0 0 220 78"
+						role="img"
+						aria-label={
+							es
+								? "Depresión de 0,10 mm; EPR fijo"
+								: "0.10 mm depression; fixed RPE"
+						}
+					>
+						<path d="M10 25H210" stroke="#b1c5c3" strokeDasharray="3 4" />
+						<path
+							data-pit-profile
+							d="M10 25H210"
+							stroke="#e8b197"
+							strokeWidth="2"
+							fill="none"
+						/>
+						<path d="M10 55H210" stroke="#97745d" strokeWidth="5" />
+						<text
+							x="110"
+							y="75"
+							textAnchor="middle"
+							fill="currentColor"
+							fontSize="11"
+						>
+							{es
+								? "Misma escala en ambos ejes · EPR"
+								: "Equal axis scales · RPE"}
+						</text>
+					</svg>
+				</div>
 			</div>
 			<div className="lens-controls">
 				<button

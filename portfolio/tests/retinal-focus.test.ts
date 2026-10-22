@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { retinalFocus } from "../src/components/eye/retina/retinalFocus";
+import {
+	rayHeight,
+	retinalFocus,
+} from "../src/components/eye/retina/retinalFocus";
 
 describe("separate reduced-eye focus illustration", () => {
 	test("matched demand and response focus on the inner foveal reference", () => {
@@ -17,4 +20,14 @@ describe("separate reduced-eye focus illustration", () => {
 				for (const v of Object.values(retinalFocus(d, r)))
 					expect(Number.isFinite(v)).toBe(true);
 	});
+});
+
+test("rays continue through focus to the receiving reference with the expected footprint", () => {
+	const far = retinalFocus(6, 0),
+		near = retinalFocus(0, 6);
+	expect(far.retinalZ).toBeCloseTo(-18.65, 10);
+	for (const model of [far, near])
+		expect(rayHeight(2, model.focusZ, model)).toBe(0);
+	expect(rayHeight(2, far.retinalZ, far)).toBeCloseTo(0.2, 10);
+	expect(rayHeight(2, near.retinalZ, near)).toBeCloseTo(-0.2, 10);
 });

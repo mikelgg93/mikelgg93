@@ -243,6 +243,19 @@ export function createLensScene(
 			update = callback;
 			invalidate();
 		},
+		setPose(
+			position: readonly [number, number, number],
+			target: readonly [number, number, number],
+		) {
+			const damping = controls.enableDamping;
+			controls.enableDamping = false;
+			controls.update();
+			camera.position.set(...position);
+			controls.target.set(...target);
+			controls.update();
+			controls.enableDamping = damping;
+			invalidate();
+		},
 		setView(view: LensView) {
 			// Flush pending damping before setting a deterministic camera preset.
 			const damping = controls.enableDamping;

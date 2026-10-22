@@ -1,131 +1,128 @@
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
-import "../lens/lens.css";
-import "./retina.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { createLensScene } from "../lens/lensScene";
 import { receptorMosaic } from "./retinaModel";
+import "../lens/lens.css";
+import "./retina.css";
 
 export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
 		mount = useRef<HTMLDivElement>(null),
+		labels = useRef<(HTMLSpanElement | null)[]>([]),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
-	const [central, setCentral] = useState(true),
-		[top, setTop] = useState(false),
+	const [shape, setShape] = useState(false),
 		[error, setError] = useState(false);
-	const params = useRef({ central, top });
 	useEffect(() => {
-		params.current = { central, top };
-		viewRef.current?.invalidate();
-	}, [central, top]);
+		const view = viewRef.current;
+		if (view) view.setPose(shape ? [21, 12, -35] : [0, 0, -40], [0, 0, 0.6]);
+	}, [shape]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
 		try {
-			view = createLensScene(mount.current, 22, lang);
+			view = createLensScene(mount.current, 40, lang);
 		} catch {
 			setError(true);
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(12, 7, -16);
+		view.camera.position.set(0, 0, -40);
 		view.controls.target.set(0, 0, 0.6);
-		const cones = new THREE.InstancedMesh(
-			new THREE.CylinderGeometry(0.1, 0.18, 1, 12),
-			new THREE.MeshPhongMaterial({ color: 0xe5b773, shininess: 30 }),
-			441,
-		);
-		const rods = new THREE.InstancedMesh(
-			new THREE.CylinderGeometry(0.085, 0.085, 1, 10),
-			new THREE.MeshPhongMaterial({ color: 0x91bbb9, shininess: 20 }),
-			441,
-		);
-		view.scene.add(cones, rods);
-		const backing = new THREE.Mesh(
-			new THREE.CircleGeometry(4.95, 64),
-			new THREE.MeshPhongMaterial({ color: 0x493631, side: THREE.DoubleSide }),
-		);
-		backing.position.z = 1.6;
-		view.scene.add(backing);
+		const coneGeometry = new THREE.CylinderGeometry(0.1, 0.18, 1, 10),
+			rodGeometry = new THREE.CylinderGeometry(0.085, 0.085, 1, 8);
+		const coneMaterial = new THREE.MeshStandardMaterial({
+				color: 0xd5b77d,
+				roughness: 0.85,
+			}),
+			rodMaterial = new THREE.MeshStandardMaterial({
+				color: 0x89b6ad,
+				roughness: 0.85,
+			});
 		const transform = new THREE.Object3D();
-		let lastCentral: boolean | undefined, lastTop: boolean | undefined;
-		view.start(() => {
-			const p = params.current;
-			if (p.central !== lastCentral) {
-				const mosaic = receptorMosaic(p.central);
-				for (const [mesh, points, cone] of [
-					[cones, mosaic.cones, true],
-					[rods, mosaic.rods, false],
-				] as const) {
-					mesh.count = points.length;
-					points.forEach((point, i) => {
-						const length = cone ? (p.central ? 1.65 : 1.05) : 1.75;
-						// Outer tips meet the illustrative RPE-side backing in both presets.
-						transform.position.set(point.x, point.y, 1.6 - length / 2);
-						transform.rotation.set(Math.PI / 2, 0, 0);
-						transform.scale.set(
-							cone && p.central ? 0.8 : 1,
-							length,
-							cone && p.central ? 0.8 : 1,
-						);
-						transform.updateMatrix();
-						mesh.setMatrixAt(i, transform.matrix);
-					});
-					mesh.instanceMatrix.needsUpdate = true;
-					mesh.computeBoundingSphere();
-				}
-				lastCentral = p.central;
-			}
-			if (p.top !== lastTop) {
-				const damping = view.controls.enableDamping;
-				view.controls.enableDamping = false;
-				view.controls.update();
-				view.camera.position.set(
-					p.top ? 0 : 12,
-					p.top ? 0 : 7,
-					p.top ? -22 : -16,
+		const counts: { central: boolean; cones: number; rods: number }[] = [];
+		for (const central of [true, false]) {
+			const group = new THREE.Group();
+			group.position.x = central ? 5.2 : -5.2;
+			view.scene.add(group);
+			const mosaic = receptorMosaic(central);
+			counts.push({
+				central,
+				cones: mosaic.cones.length,
+				rods: mosaic.rods.length,
+			});
+			for (const [points, cone] of [
+				[mosaic.cones, true],
+				[mosaic.rods, false],
+			] as const) {
+				const mesh = new THREE.InstancedMesh(
+					cone ? coneGeometry : rodGeometry,
+					cone ? coneMaterial : rodMaterial,
+					Math.max(1, points.length),
 				);
-				view.controls.target.set(0, 0, 0.6);
-				view.controls.update();
-				view.controls.enableDamping = damping;
-				lastTop = p.top;
+				mesh.count = points.length;
+				points.forEach((p, i) => {
+					const length = cone ? (central ? 1.65 : 1.05) : 1.75;
+					transform.position.set(p.x, p.y, 1.6 - length / 2);
+					transform.rotation.set(Math.PI / 2, 0, 0);
+					transform.scale.set(
+						cone && central ? 0.8 : 1,
+						length,
+						cone && central ? 0.8 : 1,
+					);
+					transform.updateMatrix();
+					mesh.setMatrixAt(i, transform.matrix);
+				});
+				mesh.instanceMatrix.needsUpdate = true;
+				mesh.computeBoundingSphere();
+				group.add(mesh);
 			}
-			return {
-				state: {
-					model: "Enlarged receptor icons, qualitative packing only",
-					central: p.central,
-					cones: cones.count,
-					rods: rods.count,
-				},
-			};
-		});
+			const backing = new THREE.Mesh(
+				new THREE.CircleGeometry(4.95, 64),
+				new THREE.MeshStandardMaterial({
+					color: 0x263c37,
+					side: THREE.DoubleSide,
+					roughness: 1,
+				}),
+			);
+			backing.position.z = 1.6;
+			group.add(backing);
+		}
+		view.onReset(() => setShape(false));
+		view.start(() => ({
+			afterRender() {
+				[5.2, -5.2].forEach((x, i) => {
+					const label = labels.current[i];
+					if (!label) return;
+					const p = new THREE.Vector3(x, 6, 0).project(view.camera);
+					label.hidden =
+						Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || Math.abs(p.z) > 1;
+					label.style.left = `${(p.x + 1) * 50}%`;
+					label.style.top = `${(1 - p.y) * 50}%`;
+				});
+			},
+			state: {
+				model:
+					"Paired equal-area schematic receptor patches; no measured density calibration",
+				patches: counts,
+			},
+		}));
 		return () => {
 			viewRef.current = null;
 			view.dispose();
 		};
 	}, [lang]);
-	const resetAnchor = useRef<HTMLDivElement>(null);
-	const defaults = useInitialParameters(
-		{ central, top },
-		(initial) => {
-			setCentral(initial.central);
-			setTop(initial.top);
-		},
-		resetAnchor,
-	);
 	return (
-		<div ref={resetAnchor} className="lens-demo retina-demo">
+		<div className="lens-demo retina-demo">
 			<div className="lens-heading">
 				<strong>
 					{es
-						? "Repetir células, cambiar el mosaico"
-						: "Repeat cells, change the mosaic"}
+						? "Dos regiones, distintas distribuciones"
+						: "Two regions, different packing"}
 				</strong>
 				<span className="lens-muted">
 					{es
-						? "Iconos ampliados · sin escala"
-						: "Enlarged icons · not to scale"}
+						? "Parches ampliados · sin escala"
+						: "Magnified patches · not to scale"}
 				</span>
 			</div>
 			<div
@@ -134,8 +131,8 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				role="img"
 				aria-label={
 					es
-						? "Mosaico tridimensional de iconos de conos y bastones"
-						: "Three-dimensional mosaic of cone and rod icons"
+						? "Comparación de mosaicos central y periférico"
+						: "Central and peripheral receptor mosaics compared"
 				}
 			>
 				{error && (
@@ -143,69 +140,49 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 						{es ? "WebGL no está disponible." : "WebGL is unavailable."}
 					</p>
 				)}
+				<div className="retina-patch-labels">
+					{[
+						es ? "Centro foveal" : "Foveal centre",
+						es ? "Fuera del centro" : "Away from centre",
+					].map((label, i) => (
+						<span
+							key={label}
+							ref={(node) => {
+								labels.current[i] = node;
+							}}
+						>
+							{label}
+						</span>
+					))}
+				</div>
 				<p className="retina-camera">
 					{es
-						? "Vista desde el lado interno, mirando hacia el EPR"
-						: "From the inner side, looking towards the RPE"}
+						? "Misma área dibujada · distribuciones ilustrativas"
+						: "Equal drawn areas · illustrative distributions"}
 				</p>
 			</div>
-			<div className="lens-legend">
-				<span className="retina-key">
-					<i className="retina-dot" style={{ background: "#e5b773" }} />
-					{es ? "Conos" : "Cones"}
-				</span>
-				<span className="retina-key">
-					<i className="retina-dot" style={{ background: "#91bbb9" }} />
-					{es ? "Bastones" : "Rods"}
-				</span>
-			</div>
 			<div className="lens-controls">
-				<ParameterControl
-					hideReset
-					value={central}
-					initial={defaults.central}
-					onReset={setCentral}
-					label="retinal region"
-					lang={lang}
-					context={parameterContext.mosaic}
-				>
-					<label>
-						{es ? "Región" : "Region"}
-						<select
-							value={central ? "central" : "peripheral"}
-							onChange={(e) => setCentral(e.target.value === "central")}
-						>
-							<option value="central">
-								{es ? "Centro foveal" : "Foveal centre"}
-							</option>
-							<option value="peripheral">
-								{es ? "Fuera del centro" : "Away from centre"}
-							</option>
-						</select>
-					</label>
-				</ParameterControl>
 				<div className="lens-buttons">
-					<ParameterControl
-						hideReset
-						value={top}
-						initial={defaults.top}
-						onReset={setTop}
-						label="mosaic view"
-						lang={lang}
+					<button
+						type="button"
+						aria-pressed={shape}
+						onClick={() => setShape(!shape)}
 					>
-						<button
-							type="button"
-							aria-pressed={top}
-							onClick={() => setTop(!top)}
-						>
-							{es ? "Vista del mosaico" : "Mosaic view"}
-						</button>
-					</ParameterControl>
+						{es ? "Ver formas celulares" : "Show cell shapes"}
+					</button>
+					<span className="retina-key">
+						<i className="retina-dot" style={{ background: "#d5b77d" }} />
+						{es ? "Conos" : "Cones"}
+					</span>
+					<span className="retina-key">
+						<i className="retina-dot" style={{ background: "#89b6ad" }} />
+						{es ? "Bastones" : "Rods"}
+					</span>
 				</div>
 				<p className="lens-note">
 					{es
-						? "La proporción de iconos es didáctica, no una densidad medida. Los conos centrales se dibujan más estrechos y alargados; no se representan clases S/M/L ni circuitos."
-						: "Icon ratios are teaching choices, not measured densities. Central cones are drawn narrower and longer; S/M/L classes and circuitry are not represented."}
+						? "El centro reúne más conos, estrechos y largos. El otro parche mezcla conos con bastones. Las separaciones elegidas muestran la idea de muestreo; no son densidades medidas."
+						: "The centre packs more, narrower, longer cones. The other patch mixes cones with rods. Chosen spacings illustrate sampling; they are not measured densities."}
 				</p>
 			</div>
 		</div>

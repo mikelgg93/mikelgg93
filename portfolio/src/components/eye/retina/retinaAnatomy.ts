@@ -59,8 +59,13 @@ export const retinalLandmarks = [
 // and curve around the central avascular region. No capillary/density model.
 export function vesselPaths() {
 	const discX = CUP_RADIUS * Math.sin(DISC_ANGLE);
-	const paths: { points: THREE.Vector2[]; radius: number; artery: boolean }[] =
-		[];
+	const paths: {
+		points: THREE.Vector2[];
+		radius: number;
+		artery: boolean;
+		parent?: number;
+		parentFraction?: number;
+	}[] = [];
 	for (const sign of [-1, 1]) {
 		for (const artery of [true, false]) {
 			const shift = artery ? 0 : 0.22;
@@ -87,20 +92,32 @@ export function vesselPaths() {
 				].map(([x, y]) => new THREE.Vector2(x, y)),
 			});
 		}
-		for (const [x, y, dx, dy] of [
-			[1.6, 2.6, 0.7, 5.7],
-			[-1.2, 3.2, -2.3, 6.2],
-			[-4.2, 2.7, -6.2, 4.8],
-		] as const)
+		const parent = paths.findLastIndex(
+			(p) => p.artery && p.points.length === 6,
+		);
+		const main = paths[parent]!,
+			curve = new RetinalVesselCurve(main.points, 0),
+			lengths = curve.getLengths(1000);
+		for (const [index, dx, dy] of [
+			[2, 0.7, 5.7],
+			[3, -2.3, 6.2],
+			[4, -6.2, 4.8],
+		] as const) {
+			const source = main.points[index]!,
+				t = index / (main.points.length - 1),
+				arcFraction = lengths[Math.round(t * 1000)]! / lengths.at(-1)!;
 			paths.push({
-				radius: 0.023,
+				radius: main.radius * vesselTaper(arcFraction) * 0.65,
 				artery: true,
+				parent,
+				parentFraction: arcFraction,
 				points: [
-					new THREE.Vector2(x, sign * y),
-					new THREE.Vector2((x + dx) / 2, (sign * (y + dy)) / 2),
+					source.clone(),
+					new THREE.Vector2((source.x + dx) / 2, (source.y + sign * dy) / 2),
 					new THREE.Vector2(dx, sign * dy),
 				],
 			});
+		}
 	}
 	return paths;
 }
@@ -117,6 +134,9 @@ export class RetinalVesselCurve extends THREE.Curve<THREE.Vector3> {
 		const p = this.route.getPoint(t);
 		return target.copy(retinalPoint(p.x, p.y, this.lift));
 	}
+}
+export function vesselTaper(t: number) {
+	return 1 - 0.65 * THREE.MathUtils.clamp(t, 0, 1) ** 0.8;
 }
 export function createRetinalVessels() {
 	const group = new THREE.Group();
@@ -135,8 +155,8 @@ export function createRetinalVessels() {
 		// Taper along the route, lowering the centreline to keep the tube against the retina.
 		for (let ring = 0; ring <= 80; ring++) {
 			const t = ring / 80,
-				scale = 1 - 0.65 * t ** 0.8;
-			curve.getPoint(t, centre);
+				scale = vesselTaper(t);
+			curve.getPointAt(t, centre);
 			for (let j = 0; j <= 6; j++) {
 				const i = ring * 7 + j;
 				point
@@ -153,5 +173,57 @@ export function createRetinalVessels() {
 		geometry.computeBoundingSphere();
 		group.add(new THREE.Mesh(geometry, path.artery ? artery : vein));
 	}
+	group.add(createOpticDisc());
 	return group;
+}
+
+// A restrained schematic nerve-head surface; not a clinical cup/disc model.
+function createOpticDisc() {
+	const axis = new THREE.Vector3(
+			Math.sin(DISC_ANGLE),
+			0,
+			-Math.cos(DISC_ANGLE),
+		),
+		tangent = new THREE.Vector3(Math.cos(DISC_ANGLE), 0, Math.sin(DISC_ANGLE));
+	const centre = new THREE.Vector3(0, 0, CUP_CENTRE_Z).addScaledVector(
+		axis,
+		CUP_RADIUS * Math.cos(CANAL_ANGLE) - 0.025,
+	);
+	const positions: number[] = [],
+		indices: number[] = [];
+	const at = (r: number, phi: number) =>
+		centre
+			.clone()
+			.addScaledVector(tangent, r * Math.cos(phi))
+			.add(new THREE.Vector3(0, r * Math.sin(phi), 0))
+			.addScaledVector(axis, 0.1 * Math.exp(-((r / 0.4) ** 2)));
+	positions.push(...at(0, 0).toArray());
+	for (let ring = 1; ring <= 12; ring++)
+		for (let j = 0; j < 64; j++)
+			positions.push(...at((1.05 * ring) / 12, (j * Math.PI) / 32).toArray());
+	for (let j = 0; j < 64; j++) {
+		indices.push(0, 1 + j, 1 + ((j + 1) % 64));
+		for (let r = 1; r < 12; r++) {
+			const a = 1 + (r - 1) * 64 + j,
+				b = 1 + (r - 1) * 64 + ((j + 1) % 64);
+			indices.push(a, a + 64, b, a + 64, b + 64, b);
+		}
+	}
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute(
+		"position",
+		new THREE.Float32BufferAttribute(positions, 3),
+	);
+	geometry.setIndex(indices);
+	geometry.computeVertexNormals();
+	const disc = new THREE.Mesh(
+		geometry,
+		new THREE.MeshStandardMaterial({
+			color: 0xd9bba2,
+			roughness: 0.9,
+			side: THREE.DoubleSide,
+		}),
+	);
+	disc.name = "optic-disc";
+	return disc;
 }

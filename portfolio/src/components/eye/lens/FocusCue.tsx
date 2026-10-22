@@ -10,7 +10,9 @@ export function updateFocusCue(
 	node.style.setProperty("--near-blur", `${(1 - near) * 2.5}px`);
 	node.style.setProperty("--far-blur", `${near * 2.5}px`);
 	const value = node.querySelector("[data-focus-value]");
-	if (value) value.textContent = `${accommodation.toFixed(1)} D`;
+	const responseText = `${accommodation.toFixed(1)} D`;
+	if (value && value.textContent !== responseText)
+		value.textContent = responseText;
 	const distance = node.querySelector("[data-focus-distance]");
 	if (distance)
 		distance.textContent =
@@ -73,7 +75,9 @@ export default function FocusCue({
 			</div>
 			<div className="lens-focus-readout">
 				<span>{es ? "Respuesta modelada" : "Modelled response"}</span>
-				<output data-focus-value>0.0 D</output>
+				<output aria-live="off" data-focus-value>
+					0.0 D
+				</output>
 				<button
 					type="button"
 					className="lens-static-focus"

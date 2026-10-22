@@ -123,3 +123,44 @@
 }
 .retina-cell-key li { display: flex; align-items: center; gap: .5rem; }
 .retina-cell-key svg { width: 32px; height: 24px; flex-shrink: 0; background: #173c3a; }
+.retina-pit-inset {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    width: 200px;
+    color: #dce9e7;
+    font-size: 12px;
+    z-index: 2;
+    pointer-events: none;
+}
+.retina-pit-inset[hidden] { display: none; }
+.retina-pit-inset svg { width: 100%; background: #092a2ae6; }
+.retina-focus-inset {
+    width: 100%;
+    max-width: 500px;
+    margin: auto;
+    color: var(--muted-foreground);
+    font-size: 12px;
+}
+.retina-focus-inset svg { display: block; width: 100%; background: #092a2a; color: #dce9e7; }
+.retina-focus-inset p { margin: .5rem 0; }
+.retina-layer-key { padding: 0 16px 12px; font-size: 13px; }
+.retina-layer-key summary { cursor: pointer; }
+.retina-demo .lens-note { padding-inline: 16px; }
+@media (max-width: 500px) {
+    .retina-pit-inset { width: 160px; }
+    .retina-cell-key { font-size: 11px; gap: .35rem; }
+}
+.retina-patch-labels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    color: #dce9e7;
+    font-size: 12px;
+    z-index: 1;
+}
+.retina-patch-labels span {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    white-space: nowrap;
+}

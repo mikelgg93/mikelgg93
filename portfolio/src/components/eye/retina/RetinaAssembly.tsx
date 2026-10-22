@@ -17,8 +17,11 @@ import { lensSurfaceZ } from "../lens/lensConstruction";
 import { lensShape } from "../lens/lensModel";
 import { createLensScene } from "../lens/lensScene";
 import { createPosteriorEye, eyeCoats } from "./posteriorEye";
+import RetinalFocusInset, {
+	updateRetinalFocusInset,
+} from "./RetinalFocusInset";
 import { biometry, retinalLandmarks } from "./retinaAnatomy";
-import { retinalFocus } from "./retinalFocus";
+import { rayHeight, retinalFocus } from "./retinalFocus";
 import { CUP_CENTRE_Z, CUP_RADIUS } from "./retinaModel";
 
 export default function RetinaAssembly({
@@ -30,6 +33,7 @@ export default function RetinaAssembly({
 		mount = useRef<HTMLDivElement>(null),
 		markers = useRef<(HTMLSpanElement | null)[]>([]),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
+	const focusInset = useRef<HTMLDivElement>(null);
 	const cue = useRef<HTMLDivElement>(null),
 		dimensions = useRef<HTMLDivElement>(null);
 	const [paused, setPaused] = useState(false),
@@ -181,6 +185,7 @@ export default function RetinaAssembly({
 					`LT ${shape.thickness.toFixed(2)} mm`;
 			}
 			const optical = retinalFocus(demand, accommodation);
+			updateRetinalFocusInset(focusInset.current, optical, pupil);
 			rays.visible = p.focus;
 			principalPlane.visible = p.focus;
 			for (let i = 0; i < 8; i++) {
@@ -188,19 +193,21 @@ export default function RetinaAssembly({
 					r = pupil / 2,
 					z = -3,
 					ratio = (z - optical.focusZ) / (optical.principalZ - optical.focusZ);
+				const endZ = Math.min(optical.focusZ, optical.retinalZ) - 0.3,
+					endHeight = rayHeight(r, endZ, optical);
 				rayPositions.set(
 					[
 						r * Math.cos(angle) * ratio,
 						r * Math.sin(angle) * ratio,
 						z,
-						0,
-						0,
-						optical.focusZ,
+						endHeight * Math.cos(angle),
+						endHeight * Math.sin(angle),
+						endZ,
 					],
 					i * 6,
 				);
 			}
-			raysGeometry.attributes.position.needsUpdate = true;
+			raysGeometry.attributes.position!.needsUpdate = true;
 			if (p.section !== previous) {
 				for (const material of [iris.material, cornea.material]) {
 					material.clippingPlanes = p.section ? cut : [];
@@ -370,16 +377,11 @@ export default function RetinaAssembly({
 								setSclera(!retinal);
 								const view = viewRef.current;
 								if (view) {
-									view.camera.position.set(
-										...((retinal ? [6, 2, 38] : [34, 20, 18]) as [
-											number,
-											number,
-											number,
-										]),
-									);
-									view.controls.target.set(0, 0, retinal ? -12 : -8);
-									view.controls.update();
-									view.invalidate();
+									view.setPose(retinal ? [6, 2, 38] : [34, 20, 18], [
+										0,
+										0,
+										retinal ? -12 : -8,
+									]);
 								}
 							}}
 						>
@@ -396,6 +398,7 @@ export default function RetinaAssembly({
 						{es ? "Enfoque de ojo reducido" : "Reduced-eye focus"}
 					</button>
 				</div>
+				{focus && <RetinalFocusInset root={focusInset} lang={lang} />}
 				{focus && (
 					<p className="lens-note">
 						{es

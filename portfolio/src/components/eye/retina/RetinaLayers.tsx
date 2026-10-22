@@ -52,6 +52,26 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 						: "Grouped bands · not to scale"}
 				</span>
 			</div>
+			<div className="lens-controls">
+				<div className="lens-buttons">
+					<ParameterControl
+						hideReset
+						value={pit}
+						initial={defaults.pit}
+						onReset={setPit}
+						label="foveal pit view"
+						lang={lang}
+					>
+						<button
+							type="button"
+							aria-pressed={pit}
+							onClick={() => setPit(!pit)}
+						>
+							{es ? "Mostrar fóvea" : "Show fovea"}
+						</button>
+					</ParameterControl>
+				</div>
+			</div>
 			<svg
 				className="retina-figure"
 				viewBox="0 0 600 400"
@@ -163,39 +183,25 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 					: "Rods and cones → bipolar → ganglion cells. Horizontal and amacrine cells connect laterally; Müller glia support the tissue, including the fovea. Their specialised central organisation is not detailed here."}
 			</p>
 
-			<ol className="retina-bands">
-				{retinalLayers.map((layer, i) => (
-					<li key={layer.en}>
-						<span className="retina-dot" style={{ background: layer.color }} />
-						{i + 1}. {es ? layer.es : layer.en}
-					</li>
-				))}
-			</ol>
-			<div className="lens-controls">
-				<div className="lens-buttons">
-					<ParameterControl
-						hideReset
-						value={pit}
-						initial={defaults.pit}
-						onReset={setPit}
-						label="foveal pit view"
-						lang={lang}
-					>
-						<button
-							type="button"
-							aria-pressed={pit}
-							onClick={() => setPit(!pit)}
-						>
-							{es ? "Mostrar fóvea" : "Show fovea"}
-						</button>
-					</ParameterControl>
-				</div>
-				<p className="lens-note">
-					{es
-						? "Perfil esquemático: omite membranas limitantes y detalle de las fibras de Henle. Las células y conexiones son esquemáticas, no un circuito medido."
-						: "Schematic profile: limiting membranes and Henle-fibre detail are omitted. Cell shapes and connections are schematic, not a measured circuit."}
-				</p>
-			</div>
+			<details className="retina-layer-key">
+				<summary>{es ? "Clave de las siete bandas" : "Seven-band key"}</summary>
+				<ol className="retina-bands">
+					{retinalLayers.map((layer, i) => (
+						<li key={layer.en}>
+							<span
+								className="retina-dot"
+								style={{ background: layer.color }}
+							/>
+							{i + 1}. {es ? layer.es : layer.en}
+						</li>
+					))}
+				</ol>
+			</details>
+			<p className="lens-note">
+				{es
+					? "Las prolongaciones de Müller terminan en el límite externo; los segmentos receptores continúan más allá. La ruta del cono central es esquemática; se omiten la vía de los bastones y el detalle de las fibras de Henle."
+					: "Müller processes end at the external limiting boundary; receptor segments extend beyond it. The highlighted central cone route is schematic; the rod pathway and detailed Henle fibres are omitted."}
+			</p>
 		</div>
 	);
 }
