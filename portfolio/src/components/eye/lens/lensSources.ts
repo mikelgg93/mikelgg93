@@ -44,6 +44,7 @@ const motionSources = [
 ];
 const constructionSource = local("lensConstruction.ts", construction);
 const shared3D = [
+	file("eye/cornea/conic.ts", conic),
 	constructionSource,
 	local("anteriorSegmentProfile.ts", profile),
 	...simulationSources,
@@ -59,7 +60,6 @@ export const lensSources = {
 		local("LensAssembly.tsx", assembly),
 		...motionSources,
 		local("anteriorEyeGeometry.ts", anterior),
-		file("eye/cornea/conic.ts", conic),
 		local("ciliaryApparatus.ts", apparatus),
 		local("ciliaryGeometry.ts", geometry),
 		accommodation,

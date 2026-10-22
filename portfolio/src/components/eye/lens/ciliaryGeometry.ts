@@ -1,5 +1,8 @@
 import * as THREE from "three";
-import { ciliaryWallRadius } from "./anteriorSegmentProfile";
+import {
+	ciliaryInnerRadius,
+	ciliaryWallRadius,
+} from "./anteriorSegmentProfile";
 import { finiteClamp } from "./lensOptics";
 
 // Interwoven muscle regions, separated by colour for teaching.
@@ -116,10 +119,7 @@ export function ciliaryProcessGeometry() {
 	for (let i = 0; i <= rows; i++) {
 		const u = i / rows,
 			z = -1.4 + 1.95 * u;
-		const r =
-			z < -0.4
-				? 6.5 + ((-0.4 - z) * 1.45) / 1.6
-				: 6.5 - ((z + 0.4) * 0.65) / 0.95;
+		const r = ciliaryInnerRadius(z);
 		const height = Math.sin(Math.PI * u);
 		for (let j = 0; j <= sides; j++) {
 			const a = (j * 2 * Math.PI) / sides;

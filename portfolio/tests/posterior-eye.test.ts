@@ -275,3 +275,28 @@ test("surface lesson omits hidden coat and cutaway allocations", () => {
 	expect(eye.group.getObjectByName("optic-disc")).toBeDefined();
 	disposeThree(eye.group);
 });
+
+test("outer globe has a smooth convex anterior silhouette without a pinched shoulder", () => {
+	const eye = createPosteriorEye();
+	const sclera = eye.group.getObjectByName("sclera")!.children[0] as THREE.Mesh;
+	(sclera.material as THREE.Material).side = THREE.DoubleSide;
+	const radii: number[] = [];
+	for (let z = -7.4; z < 2.7; z += 1) {
+		const samples = [0, Math.PI / 2, Math.PI].map((angle) => {
+			const hits = new THREE.Raycaster(
+				new THREE.Vector3(0, 0, z),
+				new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0),
+			).intersectObject(sclera);
+			expect(hits.length).toBeGreaterThanOrEqual(2);
+			return hits.at(-1)!.distance;
+		});
+		expect(Math.max(...samples) - Math.min(...samples)).toBeLessThan(0.03);
+		radii.push(samples[0]!);
+	}
+	for (let i = 2; i < radii.length; i++) {
+		const previousSlope = radii[i - 1]! - radii[i - 2]!;
+		const slope = radii[i]! - radii[i - 1]!;
+		expect(slope).toBeLessThan(previousSlope + 0.01);
+	}
+	disposeThree(eye.group);
+});

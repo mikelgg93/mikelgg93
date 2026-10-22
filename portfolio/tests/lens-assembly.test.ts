@@ -7,6 +7,7 @@ import {
 	createAssemblySclera,
 	updateAssemblyIris,
 } from "../src/components/eye/lens/anteriorEyeGeometry";
+import { ciliaryInnerRadius } from "../src/components/eye/lens/anteriorSegmentProfile";
 import { createCiliaryApparatus } from "../src/components/eye/lens/ciliaryApparatus";
 import { ciliaryPoint } from "../src/components/eye/lens/ciliaryGeometry";
 import { createIntraocularLens } from "../src/components/eye/lens/intraocularLens";
@@ -220,10 +221,7 @@ test("process ridges have outward normals and remain attached along the inner bo
 		// shares its deformation, rather than floating as an isolated ellipsoid.
 		for (let row = 1; row < 32; row++) {
 			const z = -1.4 + (1.95 * row) / 32;
-			const bodyR =
-				z < -0.4
-					? 6.5 + ((-0.4 - z) * 1.45) / 1.6
-					: 6.5 - ((z + 0.4) * 0.65) / 0.95;
+			const bodyR = ciliaryInnerRadius(z);
 			const expected = ciliaryPoint(bodyR, 0, z, response / 8),
 				i = row * 17 + 12;
 			expect(p.getX(i)).toBeCloseTo(expected.x, 5);

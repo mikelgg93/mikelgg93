@@ -6,6 +6,7 @@ import {
 	IRIS_ROOT_RADIUS,
 	IRIS_ROOT_Z,
 	LIMBUS_RADIUS,
+	scleralWallRadius,
 } from "./anteriorSegmentProfile";
 import { lensSurfaceZ } from "./lensConstruction";
 import { lensShape } from "./lensModel";
@@ -106,14 +107,15 @@ export function createAssemblySclera() {
 	const front = CORNEAL_APEX_Z - conicSag(r, 0, 7.8, 7.8, -0.26);
 	const back = POSTERIOR_CORNEAL_APEX_Z - conicSag(r, 0, 6.5, 6.5, -0.4);
 	const profile = [
-		[r, front],
-		[6.85, 2.15],
-		[7.85, 0],
-		[8.95, -2],
-		[9.65, -3.8],
+		...Array.from({ length: 49 }, (_, i) => {
+			const z = front + ((-3.8 - front) * i) / 48;
+			return [scleralWallRadius(z, true), z];
+		}),
 		...CILIARY_OUTER_PROFILE.toReversed(),
-		[6.25, 1.85],
-		[r, back],
+		...Array.from({ length: 9 }, (_, i) => {
+			const z = 1.65 + ((back - 1.65) * (i + 1)) / 9;
+			return [scleralWallRadius(z), z];
+		}),
 		[r, front],
 	].map(([radius, z]) => new THREE.Vector2(radius, z));
 	const geometry = new THREE.LatheGeometry(profile, 96);

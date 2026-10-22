@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {
 	CILIARY_BODY_PROFILE,
+	CILIARY_INNER_POSTERIOR_RADIUS,
 	ciliaryWallRadius,
 } from "./anteriorSegmentProfile";
 import {
@@ -19,12 +20,16 @@ import { lensShape } from "./lensModel";
 export const CILIARY_PROFILE = CILIARY_BODY_PROFILE.flatMap((point, i) => {
 	const next = CILIARY_BODY_PROFILE[i + 1];
 	if (!next) return [point];
+	const steps = Math.max(
+		1,
+		Math.ceil(Math.hypot(next[0] - point[0], next[1] - point[1]) / 0.2),
+	);
 	return Array.from(
-		{ length: 8 },
+		{ length: steps },
 		(_, j) =>
 			[
-				point[0] + ((next[0] - point[0]) * j) / 8,
-				point[1] + ((next[1] - point[1]) * j) / 8,
+				point[0] + ((next[0] - point[0]) * j) / steps,
+				point[1] + ((next[1] - point[1]) * j) / steps,
 			] as const,
 	);
 });
@@ -225,7 +230,12 @@ export function createCiliaryApparatus() {
 						s.lensRadius * a * Math.sin(angle),
 						(s.thickness / 2) * lensSurfaceZ(a, side > 0),
 					);
-					const origin = ciliaryPoint(7.95, angle, -2, s.fraction);
+					const origin = ciliaryPoint(
+						CILIARY_INNER_POSTERIOR_RADIUS,
+						angle,
+						-2,
+						s.fraction,
+					);
 					const guide = ciliaryPoint(6.1, angle, 0.18, s.fraction);
 					for (const p of [origin, guide, guide, end])
 						zonules.setXYZ(k++, p.x, p.y, p.z);
