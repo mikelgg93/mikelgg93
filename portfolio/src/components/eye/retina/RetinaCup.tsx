@@ -1,5 +1,4 @@
 import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
 import "../lens/lens.css";
 import "./retina.css";
 import { useEffect, useRef, useState } from "react";
@@ -10,19 +9,19 @@ import {
 	retinalMaterial,
 	updateRetinalCup,
 } from "./retinaGeometry";
+import { CUP_CENTRE_Z, CUP_RADIUS, cupPoint } from "./retinaModel";
 
 export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
 		mount = useRef<HTMLDivElement>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
-	const [curvature, setCurvature] = useState(0),
-		[wire, setWire] = useState(true),
+	const [wire, setWire] = useState(true),
 		[error, setError] = useState(false);
-	const params = useRef({ curvature, wire });
+	const params = useRef({ wire });
 	useEffect(() => {
-		params.current = { curvature, wire };
+		params.current = { wire };
 		viewRef.current?.invalidate();
-	}, [curvature, wire]);
+	}, [wire]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
@@ -33,39 +32,59 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(27, 20, 43);
+		view.camera.position.set(24, 16, 35);
 		view.controls.target.set(0, 0, 6);
 		const geometry = createRetinalCup();
 		const cup = new THREE.Mesh(geometry, retinalMaterial());
 		cup.position.z = 18.4;
-		const wireframe = new THREE.Mesh(
-			geometry,
-			new THREE.MeshBasicMaterial({
+		const lines: THREE.Vector3[] = [];
+		const add = (u: number, a: number, v: number, b: number) => {
+			lines.push(
+				new THREE.Vector3(...cupPoint(u, a)),
+				new THREE.Vector3(...cupPoint(v, b)),
+			);
+		};
+		for (let ring = 1; ring <= 8; ring++)
+			for (let sector = 0; sector < 20; sector++) {
+				const a = (sector * Math.PI) / 10,
+					b = ((sector + 1) * Math.PI) / 10;
+				add(ring / 8, a, ring / 8, b);
+				add((ring - 1) / 8, a, ring / 8, a);
+				if (ring === 5 && sector === 4) add((ring - 1) / 8, a, ring / 8, b);
+			}
+		const wireframe = new THREE.LineSegments(
+			new THREE.BufferGeometry().setFromPoints(lines),
+			new THREE.LineBasicMaterial({
 				color: 0xf1c6aa,
-				wireframe: true,
 				transparent: true,
-				opacity: 0.18,
+				opacity: 0.55,
 			}),
 		);
+		const radius = new THREE.Line(
+			new THREE.BufferGeometry().setFromPoints([
+				new THREE.Vector3(0, 0, CUP_CENTRE_Z),
+				new THREE.Vector3(0, 0, CUP_CENTRE_Z - CUP_RADIUS),
+			]),
+			new THREE.LineDashedMaterial({
+				color: 0xa5cac2,
+				dashSize: 0.3,
+				gapSize: 0.2,
+			}),
+		);
+		radius.computeLineDistances();
+		cup.add(radius);
+
 		cup.add(wireframe);
 		view.scene.add(cup);
-		let shown = params.current.curvature,
-			previous = -1;
-		view.start((dt, reduced) => {
+		updateRetinalCup(geometry, 1);
+		view.start(() => {
 			const p = params.current;
-			shown += (p.curvature - shown) * (reduced ? 1 : 1 - Math.exp(-dt / 0.18));
-			if (Math.abs(shown - p.curvature) < 1e-5) shown = p.curvature;
-			if (shown !== previous) {
-				updateRetinalCup(geometry, shown);
-				previous = shown;
-			}
 			wireframe.visible = p.wire;
 			return {
 				state: {
-					model: "Posterior spherical cup, R=12 mm drawing choice",
-					curvature: shown,
+					model: "Posterior spherical cup, R=10.8 mm drawing choice",
+					curvature: 1,
 				},
-				animating: shown !== p.curvature,
 			};
 		});
 		return () => {
@@ -75,9 +94,8 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 	}, [lang]);
 	const resetAnchor = useRef<HTMLDivElement>(null);
 	const defaults = useInitialParameters(
-		{ curvature, wire },
+		{ wire },
 		(initial) => {
-			setCurvature(initial.curvature);
 			setWire(initial.wire);
 		},
 		resetAnchor,
@@ -85,11 +103,9 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 	return (
 		<div ref={resetAnchor} className="lens-demo retina-demo">
 			<div className="lens-heading">
-				<strong>
-					{es ? "De una malla plana a una copa" : "From a flat mesh to a cup"}
-				</strong>
+				<strong>{es ? "Una cúpula posterior" : "A posterior dome"}</strong>
 				<span className="lens-muted">
-					{es ? "Construcción geométrica" : "Geometry construction"}
+					{es ? "Malla de construcción sencilla" : "Sparse construction grid"}
 				</span>
 			</div>
 			<div
@@ -114,32 +130,9 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 				</p>
 			</div>
 			<div className="lens-controls">
-				<ParameterControl
-					value={curvature}
-					initial={defaults.curvature}
-					onReset={setCurvature}
-					label="surface curvature"
-					lang={lang}
-					context={parameterContext.retinaCup}
-				>
-					<label>
-						<span className="lens-value">
-							{es ? "Curvar la malla" : "Bend the mesh"}
-							<output>{Math.round(curvature * 100)}%</output>
-						</span>
-						<input
-							aria-label={es ? "Curvar la malla" : "Bend the mesh"}
-							type="range"
-							min="0"
-							max="1"
-							step="0.01"
-							value={curvature}
-							onChange={(e) => setCurvature(Number(e.target.value))}
-						/>
-					</label>
-				</ParameterControl>
 				<div className="lens-buttons">
 					<ParameterControl
+						hideReset
 						value={wire}
 						initial={defaults.wire}
 						onReset={setWire}
@@ -151,27 +144,14 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 							aria-pressed={wire}
 							onClick={() => setWire(!wire)}
 						>
-							{es ? "Triángulos" : "Triangles"}
+							{es ? "Guía de malla" : "Mesh guide"}
 						</button>
 					</ParameterControl>
-					<button
-						type="button"
-						onClick={() => {
-							const view = viewRef.current;
-							if (!view) return;
-							view.setView("reset");
-							view.controls.target.set(0, 0, 6);
-							view.controls.update();
-							view.invalidate();
-						}}
-					>
-						{es ? "Restablecer vista" : "Reset view"}
-					</button>
 				</div>
 				<p className="lens-note">
 					{es
-						? "Radio elegido: 12 mm. La transición plana → curva es un paso de construcción, no una deformación fisiológica."
-						: "Chosen radius: 12 mm. Flat → curved is a construction step, not a physiological deformation."}
+						? "Radio elegido: 10.8 mm. La cúpula ya está formada; los triángulos muestran su construcción."
+						: "Chosen radius: 10.8 mm. The dome is already formed; triangles show its construction."}
 				</p>
 			</div>
 		</div>

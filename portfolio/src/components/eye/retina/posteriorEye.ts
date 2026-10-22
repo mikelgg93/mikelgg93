@@ -1,6 +1,10 @@
 import * as THREE from "three";
-import { conicSag } from "../cornea/conic";
-import { CORNEAL_APEX_Z, POSTERIOR_CORNEAL_APEX_Z } from "../eyeDimensions";
+import {
+	anteriorCoatRadius,
+	INNER_LIMBUS_Z,
+	ORA_Z,
+	OUTER_LIMBUS_Z,
+} from "./globeProfile";
 import {
 	CANAL_ANGLE,
 	CHOROID_WALL,
@@ -105,22 +109,23 @@ function wallGeometry(
 	return geometry;
 }
 
-function coatSurface(coat: Coat): Surface {
-	const cache = new Map<string, { radial: THREE.Vector3; end: number }>();
-	const front = [
-		POSTERIOR_CORNEAL_APEX_Z - conicSag(5.8, 0, 6.5, 6.5, -0.4),
-		CORNEAL_APEX_Z - conicSag(5.8, 0, 7.8, 7.8, -0.26),
-	];
+function coatSurface(coat: Coat, posteriorOnly = false): Surface {
+	const cache = new Map<
+		string,
+		{ radial: THREE.Vector3; end: number; knots: [number, number][] }
+	>();
 	return (side, u, phi) => {
 		const radius = THREE.MathUtils.lerp(coat.inner, coat.outer, side);
 		const isRetina = coat.key === "retina",
 			isSclera = coat.key === "sclera";
-		// Retain the lesson's posterior retina. Extend the other coats forwards;
-		// the sclera ends at Part I's corneal rim, the choroid near the ciliary body.
-		const rim = isSclera ? 5.8 : 7;
-		const maxZ = isRetina
-			? -Math.cos(Math.PI * 0.49)
-			: Math.sqrt(1 - (rim / radius) ** 2);
+		const cropped = isRetina && posteriorOnly;
+		const maxZ = cropped ? -Math.cos(Math.PI * 0.49) : 0.8;
+		const endZ = isSclera
+			? side === 0
+				? INNER_LIMBUS_Z
+				: OUTER_LIMBUS_Z
+			: ORA_Z;
+
 		const key = `${side}:${phi}`;
 		let meridian = cache.get(key);
 		if (!meridian) {
@@ -134,11 +139,49 @@ function coatSurface(coat: Coat): Surface {
 					low = angle;
 				else high = angle;
 			}
-			meridian = { radial, end: (low + high) / 2 };
+			const end = (low + high) / 2;
+			const angleAt = (z: number) => {
+				let lo = CANAL_ANGLE,
+					hi = end;
+				const target = (0.8 * (z - CUP_CENTRE_Z)) / (endZ - CUP_CENTRE_Z);
+				for (let k = 0; k < 32; k++) {
+					const a = (lo + hi) / 2;
+					if (axis.z * Math.cos(a) + radial.z * Math.sin(a) < target) lo = a;
+					else hi = a;
+				}
+				return (lo + hi) / 2;
+			};
+			const knots: [number, number][] = cropped
+				? [
+						[0, CANAL_ANGLE],
+						[1, end],
+					]
+				: isSclera
+					? [
+							[0, CANAL_ANGLE],
+							[0.5, angleAt(CUP_CENTRE_Z)],
+							[0.625, angleAt(ORA_Z)],
+							[0.75, angleAt(-2)],
+							[0.875, angleAt(0)],
+							[0.9375, angleAt(1.65)],
+							[1, end],
+						]
+					: [
+							[0, CANAL_ANGLE],
+							[0.5, angleAt(CUP_CENTRE_Z)],
+							[1, end],
+						];
+			meridian = { radial, end, knots };
 			cache.set(key, meridian);
 		}
-		const { radial, end } = meridian;
-		const angle = THREE.MathUtils.lerp(CANAL_ANGLE, end, u);
+		const { radial, knots } = meridian;
+		const index = Math.max(
+			1,
+			knots.findIndex((k) => u <= k[0]),
+		);
+		const a = knots[index - 1]!,
+			b = knots[index]!;
+		const angle = THREE.MathUtils.lerp(a[1], b[1], (u - a[0]) / (b[0] - a[0]));
 		const direction = axis
 			.clone()
 			.multiplyScalar(Math.cos(angle))
@@ -147,18 +190,24 @@ function coatSurface(coat: Coat): Surface {
 			? THREE.MathUtils.lerp(innerRetinalRadius(direction), coat.outer, side)
 			: radius;
 		const p = direction.multiplyScalar(r);
-		if (!isRetina && p.z > 0) {
-			const frontZ = isSclera
-				? THREE.MathUtils.lerp(front[0]!, front[1]!, side)
-				: -1 + 0.3 * side;
-			const scale = (frontZ - CUP_CENTRE_Z) / (radius * maxZ);
-			p.z *= 1 + ((scale - 1) * p.z) / (radius * maxZ);
+		if (p.z > 0 && !cropped) {
+			const z = CUP_CENTRE_Z + (endZ - CUP_CENTRE_Z) * (p.z / r / 0.8);
+			const radial = anteriorCoatRadius(coat.key, side, z),
+				old = Math.hypot(p.x, p.y);
+			p.x *= radial / old;
+			p.y *= radial / old;
+			p.z = z - CUP_CENTRE_Z;
 		}
+
 		return p.add(centre);
 	};
 }
 
-export function createPosteriorEye() {
+export function createPosteriorEye({
+	lesson = false,
+}: {
+	lesson?: boolean;
+} = {}) {
 	const group = new THREE.Group();
 	group.name = "posterior-eye";
 	const parts = new Map<
@@ -166,19 +215,23 @@ export function createPosteriorEye() {
 		{ group: THREE.Group; whole: THREE.Mesh; cut: THREE.Mesh }
 	>();
 	function part(key: string, surface: Surface, color: string, rows = 64) {
-		const material = new THREE.MeshPhongMaterial({
+		const material = new THREE.MeshStandardMaterial({
 			color,
 			side: THREE.FrontSide,
-			shininess: key === "sclera" ? 28 : 12,
+			roughness: key === "sclera" ? 0.94 : 0.78,
+			metalness: 0,
+			envMapIntensity: 0.3,
 		});
 		const whole = new THREE.Mesh(
 			wallGeometry(surface, false, rows, key.includes("nerve")),
 			material,
 		);
-		const cut = new THREE.Mesh(
-			wallGeometry(surface, true, rows, key.includes("nerve")),
-			material,
-		);
+		const cut = lesson
+			? whole
+			: new THREE.Mesh(
+					wallGeometry(surface, true, rows, key.includes("nerve")),
+					material,
+				);
 		if (key === "retina") {
 			material.vertexColors = true;
 			for (const mesh of [whole, cut]) {
@@ -198,14 +251,15 @@ export function createPosteriorEye() {
 		}
 		const node = new THREE.Group();
 		node.name = key;
-		node.add(whole, cut);
+		node.add(whole);
+		if (cut !== whole) node.add(cut);
 		group.add(node);
 		parts.set(key, { group: node, whole, cut });
 	}
-	for (const coat of eyeCoats)
+	for (const coat of eyeCoats.filter((c) => !lesson || c.key === "retina"))
 		part(
 			coat.key,
-			coatSurface(coat),
+			coatSurface(coat, lesson),
 			coat.color,
 			coat.key === "retina" ? 96 : 64,
 		);
@@ -224,18 +278,22 @@ export function createPosteriorEye() {
 			const point = centre
 				.clone()
 				.addScaledVector(axis, distance)
-				.addScaledVector(tangent, 0.8 * t * t);
+				.addScaledVector(tangent, 2.4 * t * t);
 			const direction = axis
 				.clone()
-				.addScaledVector(tangent, (1.6 * t) / (21 - exitDistance))
+				.addScaledVector(tangent, (4.8 * t) / (21 - exitDistance))
 				.normalize();
 			const across = new THREE.Vector3(-direction.z, 0, direction.x);
 			const coreRadius =
 				distance <= exitDistance
 					? distance * Math.tan(CANAL_ANGLE)
-					: THREE.MathUtils.lerp(exitDistance * Math.tan(CANAL_ANGLE), 1.3, t);
+					: THREE.MathUtils.lerp(
+							exitDistance * Math.tan(CANAL_ANGLE),
+							1.3,
+							t * t * (3 - 2 * t),
+						);
 			const r = sheath
-				? coreRadius + side * 0.4 * Math.min(1, t * 5)
+				? coreRadius + side * 0.4 * THREE.MathUtils.smoothstep(t, 0, 0.25)
 				: side * coreRadius;
 			return point
 				.addScaledVector(across, r * Math.cos(phi))
@@ -266,8 +324,8 @@ export function createPosteriorEye() {
 				previousSection = section;
 			}
 			for (const [key, item] of parts) {
-				item.whole.visible = !section;
-				item.cut.visible = section;
+				item.whole.visible = item.cut === item.whole || !section;
+				if (item.cut !== item.whole) item.cut.visible = section;
 				item.group.visible =
 					key === "choroid"
 						? visible.choroid

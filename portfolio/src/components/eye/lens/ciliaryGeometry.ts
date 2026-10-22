@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { ciliaryWallRadius } from "./anteriorSegmentProfile";
 import { finiteClamp } from "./lensOptics";
 
 // Interwoven muscle regions, separated by colour for teaching.
@@ -46,7 +47,11 @@ export function ciliaryPoint(
 ) {
 	const f = finiteClamp(fraction, 0, 1);
 	// Keep the outer attachment while the inner/anterior tissue moves inward.
-	const mobility = finiteClamp((7.1 - radius) / 1.1, 0, 1);
+	// Keep the iris root/anterior attachment and the posterior continuation fixed.
+	const anteriorAnchor = 1 - THREE.MathUtils.smoothstep(z, 0.9, 1.3);
+	const wallAnchor = finiteClamp((ciliaryWallRadius(z) - radius) / 0.4, 0, 1);
+	const mobility =
+		finiteClamp((7.1 - radius) / 1.1, 0, 1) * anteriorAnchor * wallAnchor;
 	const r = radius - 0.5 * f * mobility;
 	return new THREE.Vector3(
 		r * Math.cos(angle),
@@ -99,4 +104,43 @@ export function deformCiliary(
 	// Tracks are lines and have no index; only the solid regions need normals.
 	if (geometry.index) geometry.computeVertexNormals();
 	geometry.computeBoundingSphere();
+}
+
+// A longitudinal epithelial ridge, attached along its base to the inner body.
+// Fold height, width and sampling are visual parameters, not histological data.
+export function ciliaryProcessGeometry() {
+	const vertices: number[] = [],
+		indices: number[] = [];
+	const rows = 32,
+		sides = 16;
+	for (let i = 0; i <= rows; i++) {
+		const u = i / rows,
+			z = -1.4 + 1.95 * u;
+		const r =
+			z < -0.4
+				? 6.5 + ((-0.4 - z) * 1.45) / 1.6
+				: 6.5 - ((z + 0.4) * 0.65) / 0.95;
+		const height = Math.sin(Math.PI * u);
+		for (let j = 0; j <= sides; j++) {
+			const a = (j * 2 * Math.PI) / sides;
+			vertices.push(
+				r - 0.25 * height * (1 + Math.sin(a)),
+				0.085 * height * Math.cos(a),
+				z,
+			);
+			if (i < rows && j < sides) {
+				const k = i * (sides + 1) + j,
+					next = k + sides + 1;
+				indices.push(k, k + 1, next, next, k + 1, next + 1);
+			}
+		}
+	}
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute(
+		"position",
+		new THREE.Float32BufferAttribute(vertices, 3),
+	);
+	geometry.setIndex(indices);
+	geometry.computeVertexNormals();
+	return geometry;
 }

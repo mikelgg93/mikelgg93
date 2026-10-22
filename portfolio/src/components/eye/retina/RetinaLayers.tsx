@@ -3,12 +3,13 @@ import "../lens/lens.css";
 import "./retina.css";
 import { useState } from "react";
 import { useViewerDebug } from "../useViewerDebug";
+import RetinalCells from "./RetinalCells";
 import { layerBounds, retinalLayers } from "./retinaModel";
 
 export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
-		[pit, setPit] = useState(false),
-		[separate, setSeparate] = useState(false);
+		[pit, setPit] = useState(false);
+	const separate = false;
 	const root = useViewerDebug({
 		model: "Grouped retinal layers; illustrative drawing units",
 		fovea: pit,
@@ -36,7 +37,6 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 		{ pit, separate },
 		(initial) => {
 			setPit(initial.pit);
-			setSeparate(initial.separate);
 		},
 		root,
 	);
@@ -51,6 +51,26 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 						? "Bandas agrupadas · sin escala"
 						: "Grouped bands · not to scale"}
 				</span>
+			</div>
+			<div className="lens-controls">
+				<div className="lens-buttons">
+					<ParameterControl
+						hideReset
+						value={pit}
+						initial={defaults.pit}
+						onReset={setPit}
+						label="foveal pit view"
+						lang={lang}
+					>
+						<button
+							type="button"
+							aria-pressed={pit}
+							onClick={() => setPit(!pit)}
+						>
+							{es ? "Mostrar fóvea" : "Show fovea"}
+						</button>
+					</ParameterControl>
+				</div>
 			</div>
 			<svg
 				className="retina-figure"
@@ -90,6 +110,7 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 						</text>
 					</g>
 				))}
+				<RetinalCells pit={pit} />
 				<path
 					d="M40 80V320m-9-13 9 13 9-13"
 					fill="none"
@@ -111,53 +132,76 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 					? "↓ Luz entrante · ↑ Dirección general de la señal hacia las células ganglionares"
 					: "↓ Incoming light · ↑ Overall signal direction towards ganglion cells"}
 			</p>
-			<ol className="retina-bands">
-				{retinalLayers.map((layer, i) => (
-					<li key={layer.en}>
-						<span className="retina-dot" style={{ background: layer.color }} />
-						{i + 1}. {es ? layer.es : layer.en}
+			<ul
+				className="retina-cell-key"
+				aria-label={es ? "Tipos celulares" : "Cell types"}
+			>
+				{[
+					[
+						"#eee0b5",
+						es ? "Bastones / conos" : "Rods / cones",
+						"M8 3v16m8-16 4 16 4-16Z",
+					],
+					[
+						"#d5efe3",
+						es ? "Bipolares" : "Bipolar",
+						"M16 2v20m-5-20h10m-5 20h10",
+					],
+					[
+						"#f5ceb9",
+						es ? "Ganglionares" : "Ganglion",
+						"M4 21l12-9 12 9M16 12V4h14",
+					],
+					[
+						"#c6c9ee",
+						es ? "Horizontales" : "Horizontal",
+						"M3 18h26M16 18V7m-7 0h14",
+					],
+					[
+						"#c6c9ee",
+						es ? "Amacrinas" : "Amacrine",
+						"M16 6v8m-12 6 12-6 12 6m-18 0 6-6 6 6",
+					],
+					[
+						"#80b3a4",
+						es ? "Glía de Müller" : "Müller glia",
+						"M8 2q15 10 0 20M3 2h10M3 22h10",
+					],
+				].map(([color, label, d]) => (
+					<li key={label}>
+						<svg viewBox="0 0 32 24" aria-hidden="true">
+							<path d={d} stroke={color} fill="none" strokeWidth="2" />
+							<circle cx="16" cy="10" r="3" fill={color} />
+						</svg>
+						{label}
 					</li>
 				))}
-			</ol>
-			<div className="lens-controls">
-				<div className="lens-buttons">
-					<ParameterControl
-						value={pit}
-						initial={defaults.pit}
-						onReset={setPit}
-						label="foveal pit view"
-						lang={lang}
-					>
-						<button
-							type="button"
-							aria-pressed={pit}
-							onClick={() => setPit(!pit)}
-						>
-							{es ? "Mostrar fóvea" : "Show fovea"}
-						</button>
-					</ParameterControl>
-					<ParameterControl
-						value={separate}
-						initial={defaults.separate}
-						onReset={setSeparate}
-						label="layer separation"
-						lang={lang}
-					>
-						<button
-							type="button"
-							aria-pressed={separate}
-							onClick={() => setSeparate(!separate)}
-						>
-							{es ? "Separar bandas" : "Separate bands"}
-						</button>
-					</ParameterControl>
-				</div>
-				<p className="lens-note">
-					{es
-						? "Perfil esquemático: omite membranas limitantes y detalle de las fibras de Henle. Los huecos de la vista separada no existen en el tejido."
-						: "Schematic profile: limiting membranes and Henle-fibre detail are omitted. The separated-view gaps are not spaces in the tissue."}
-				</p>
-			</div>
+			</ul>
+			<p className="lens-note">
+				{es
+					? "Conos y bastones → bipolares → ganglionares. Horizontales y amacrinas conectan lateralmente; la glía de Müller sostiene el tejido, también en la fóvea. Su especialización central no se detalla aquí."
+					: "Rods and cones → bipolar → ganglion cells. Horizontal and amacrine cells connect laterally; Müller glia support the tissue, including the fovea. Their specialised central organisation is not detailed here."}
+			</p>
+
+			<details className="retina-layer-key">
+				<summary>{es ? "Clave de las siete bandas" : "Seven-band key"}</summary>
+				<ol className="retina-bands">
+					{retinalLayers.map((layer, i) => (
+						<li key={layer.en}>
+							<span
+								className="retina-dot"
+								style={{ background: layer.color }}
+							/>
+							{i + 1}. {es ? layer.es : layer.en}
+						</li>
+					))}
+				</ol>
+			</details>
+			<p className="lens-note">
+				{es
+					? "Las prolongaciones de Müller terminan en el límite externo; los segmentos receptores continúan más allá. La ruta del cono central es esquemática; se omiten la vía de los bastones y el detalle de las fibras de Henle."
+					: "Müller processes end at the external limiting boundary; receptor segments extend beyond it. The highlighted central cone route is schematic; the rod pathway and detailed Henle fibres are omitted."}
+			</p>
 		</div>
 	);
 }

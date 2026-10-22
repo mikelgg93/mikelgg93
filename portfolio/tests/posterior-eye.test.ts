@@ -2,8 +2,9 @@ import { expect, test } from "bun:test";
 import * as THREE from "three";
 import { disposeThree } from "../src/components/eye/disposeThree";
 import { createAssemblyCornea } from "../src/components/eye/lens/anteriorEyeGeometry";
+import { ciliaryWallRadius } from "../src/components/eye/lens/anteriorSegmentProfile";
+import { createRoundedLensGeometry } from "../src/components/eye/lens/lensConstruction";
 import { lensShape } from "../src/components/eye/lens/lensModel";
-import { createLensGeometry } from "../src/components/eye/lens/lensScene";
 import {
 	createPosteriorEye,
 	eyeCoats,
@@ -16,6 +17,7 @@ import {
 	RetinalVesselCurve,
 	retinalPoint,
 	vesselPaths,
+	vesselTaper,
 } from "../src/components/eye/retina/retinaAnatomy";
 import { CUP_CENTRE_Z } from "../src/components/eye/retina/retinaModel";
 
@@ -160,7 +162,7 @@ test("the optic nerve fits the shared canal, including the scleral exit ring", (
 
 test("displayed biometry matches mesh endpoints, and the real pit leaves a positive retinal wall", () => {
 	const cornea = createAssemblyCornea(),
-		lens = createLensGeometry();
+		lens = createRoundedLensGeometry();
 	lens.scale(1, 1, lensShape(0).thickness / 2);
 	const p = cornea.getAttribute("position"),
 		poles: number[] = [];
@@ -201,4 +203,75 @@ test("major vessel curves follow the pit-bearing surface and avoid the central a
 			expect(Math.hypot(p.x, p.y) - path.radius).toBeGreaterThan(0.65);
 		}
 	}
+});
+
+test("the external globe envelope stays proportionate without changing axial biometry", () => {
+	const eye = createPosteriorEye();
+	eye.update(false);
+	const box = new THREE.Box3().setFromObject(
+		eye.group.getObjectByName("sclera")!,
+	);
+	const size = box.getSize(new THREE.Vector3());
+	expect(size.x).toBeCloseTo(24.4, 1);
+	expect(size.y).toBeCloseTo(24.4, 1);
+	expect(5.6 - box.min.z).toBeCloseTo(25.4, 1);
+	expect(biometry.axl).toBeCloseTo(24.3, 10);
+	// Compare like endpoints: external width against external apex-to-sclera length.
+	expect(size.x / (5.6 - box.min.z)).toBeGreaterThan(0.95);
+	expect(size.x / (5.6 - box.min.z)).toBeLessThan(0.98);
+	disposeThree(eye.group);
+});
+
+test("anterior sclera meets the shared ciliary attachment and coats remain contiguous", () => {
+	const eye = createPosteriorEye();
+	eye.update(false);
+	const radialHits = (name: string, z: number) => {
+		const mesh = eye.group.getObjectByName(name)!.children[0] as THREE.Mesh;
+		(mesh.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+		return new THREE.Raycaster(
+			new THREE.Vector3(0, 0, z),
+			new THREE.Vector3(1, 0, 0),
+		)
+			.intersectObject(mesh)
+			.map((h) => h.distance)
+			.sort((a, b) => a - b);
+	};
+	for (const z of [-3.7, -3, -2, -1, 0, 1, 1.6]) {
+		const hits = radialHits("sclera", z);
+		expect(hits.length).toBeGreaterThan(0);
+		expect(Math.abs(hits[0]! - ciliaryWallRadius(z))).toBeLessThan(0.025);
+	}
+	for (const z of [-7, -6, -5, -4]) {
+		const retina = radialHits("retina", z),
+			choroid = radialHits("choroid", z),
+			sclera = radialHits("sclera", z);
+		expect(Math.abs(retina.at(-1)! - choroid[0]!)).toBeLessThan(0.025);
+		expect(Math.abs(choroid.at(-1)! - sclera[0]!)).toBeLessThan(0.025);
+	}
+	disposeThree(eye.group);
+});
+
+test("daughter vessel calibre derives from the local parent and branches meet its route", () => {
+	const paths = vesselPaths();
+	for (const branch of paths.filter((p) => p.parent !== undefined)) {
+		const parent = paths[branch.parent!]!,
+			curve = new RetinalVesselCurve(parent.points, 0);
+		const joint = curve.getPointAt(branch.parentFraction!);
+		expect(
+			joint.distanceTo(retinalPoint(branch.points[0]!.x, branch.points[0]!.y)),
+		).toBeLessThan(0.01);
+		expect(branch.radius).toBeLessThan(
+			parent.radius * vesselTaper(branch.parentFraction!),
+		);
+		expect(branch.radius).toBeGreaterThan(0);
+	}
+});
+
+test("surface lesson omits hidden coat and cutaway allocations", () => {
+	const eye = createPosteriorEye({ lesson: true });
+	eye.update(false, { choroid: false, sclera: false, nerve: true });
+	expect(eye.group.getObjectByName("sclera")).toBeUndefined();
+	expect(eye.group.getObjectByName("retina")!.children.length).toBe(1);
+	expect(eye.group.getObjectByName("optic-disc")).toBeDefined();
+	disposeThree(eye.group);
 });

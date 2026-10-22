@@ -1,18 +1,27 @@
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
+import { useInitialParameters } from "../ParameterControl";
 import "../lens/lens.css";
 import "./retina.css";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { CORNEAL_APEX_Z } from "../eyeDimensions";
+import { focusDemand, nearPupil } from "../lens/accommodationCycle";
 import {
 	assemblyIrisMaterial,
 	createAssemblyCornea,
 	createAssemblyIris,
+	updateAssemblyIris,
 } from "../lens/anteriorEyeGeometry";
 import { createCiliaryApparatus } from "../lens/ciliaryApparatus";
+import FocusCue, { updateFocusCue } from "../lens/FocusCue";
+import { lensSurfaceZ } from "../lens/lensConstruction";
+import { lensShape } from "../lens/lensModel";
 import { createLensScene } from "../lens/lensScene";
 import { createPosteriorEye, eyeCoats } from "./posteriorEye";
+import RetinalFocusInset, {
+	updateRetinalFocusInset,
+} from "./RetinalFocusInset";
 import { biometry, retinalLandmarks } from "./retinaAnatomy";
+import { rayHeight, retinalFocus } from "./retinalFocus";
 import { CUP_CENTRE_Z, CUP_RADIUS } from "./retinaModel";
 
 export default function RetinaAssembly({
@@ -24,17 +33,41 @@ export default function RetinaAssembly({
 		mount = useRef<HTMLDivElement>(null),
 		markers = useRef<(HTMLSpanElement | null)[]>([]),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
+	const focusInset = useRef<HTMLDivElement>(null);
+	const cue = useRef<HTMLDivElement>(null),
+		dimensions = useRef<HTMLDivElement>(null);
+	const [paused, setPaused] = useState(false),
+		[near, setNear] = useState(false),
+		[focus, setFocus] = useState(false);
 	const [section, setSection] = useState(true),
 		[anterior, setAnterior] = useState(true),
 		[choroid, setChoroid] = useState(true),
 		[sclera, setSclera] = useState(true),
 		[nerve, setNerve] = useState(true),
 		[error, setError] = useState(false);
-	const params = useRef({ section, anterior, choroid, sclera, nerve });
+	const params = useRef({
+		section,
+		anterior,
+		choroid,
+		sclera,
+		nerve,
+		paused,
+		near,
+		focus,
+	});
 	useEffect(() => {
-		params.current = { section, anterior, choroid, sclera, nerve };
+		params.current = {
+			section,
+			anterior,
+			choroid,
+			sclera,
+			nerve,
+			paused,
+			near,
+			focus,
+		};
 		viewRef.current?.invalidate();
-	}, [section, anterior, choroid, sclera, nerve]);
+	}, [section, anterior, choroid, sclera, nerve, paused, near, focus]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
@@ -45,7 +78,7 @@ export default function RetinaAssembly({
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(34, 35, 34);
+		view.camera.position.set(34, 20, 18);
 		view.controls.target.set(0, 0, -8);
 		const posterior = createPosteriorEye();
 		view.scene.add(posterior.group);
@@ -61,20 +94,120 @@ export default function RetinaAssembly({
 			new THREE.MeshPhongMaterial({
 				color: 0xb8e9ed,
 				transparent: true,
-				opacity: 0.12,
+				opacity: 0.08,
 				side: THREE.DoubleSide,
 				depthWrite: false,
-				shininess: 100,
+				shininess: 120,
+				specular: 0xffffff,
 			}),
 		);
 		front.add(cornea);
 		const cut = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
+		const raysGeometry = new THREE.BufferGeometry();
+		const rayPositions = new Float32Array(8 * 2 * 3);
+		raysGeometry.setAttribute(
+			"position",
+			new THREE.BufferAttribute(rayPositions, 3),
+		);
+		const rays = new THREE.LineSegments(
+			raysGeometry,
+			new THREE.LineBasicMaterial({
+				color: 0xe4bc79,
+				transparent: true,
+				opacity: 0.65,
+			}),
+		);
+		const principalGeometry = new THREE.BufferGeometry().setFromPoints(
+			Array.from(
+				{ length: 65 },
+				(_, i) =>
+					new THREE.Vector3(
+						3 * Math.cos((i * Math.PI) / 32),
+						3 * Math.sin((i * Math.PI) / 32),
+						retinalFocus(0, 0).principalZ,
+					),
+			),
+		);
+		const principalPlane = new THREE.Line(
+			principalGeometry,
+			new THREE.LineDashedMaterial({
+				color: 0xc6b1e7,
+				depthTest: false,
+				depthWrite: false,
+				dashSize: 0.35,
+				gapSize: 0.2,
+			}),
+		);
+		principalPlane.computeLineDistances();
+		principalPlane.renderOrder = 5;
+		view.scene.add(principalPlane);
+		rays.frustumCulled = false;
+		view.scene.add(rays);
+		let elapsed = 0,
+			accommodation = 0,
+			pupil = 5.8;
+		view.onReset(() => {
+			elapsed = 0;
+			accommodation = 0;
+			pupil = 5.8;
+			setPaused(false);
+			setNear(false);
+			setFocus(false);
+		});
 		let previous: boolean | undefined;
-		view.start(() => {
+		view.start((dt, reduced) => {
 			const p = params.current;
+			const fov = view.camera.aspect < 1.2 ? 47 : 35;
+			if (view.camera.fov !== fov) {
+				view.camera.fov = fov;
+				view.camera.updateProjectionMatrix();
+			}
 			front.visible = p.anterior;
 			posterior.update(p.section, p);
-			anatomy.update(0, p.section, false);
+			if (!p.paused && !reduced) elapsed += dt;
+			const demand = reduced ? (p.near ? 6 : 0) : focusDemand(elapsed);
+			if (!p.paused || reduced) {
+				accommodation +=
+					(demand - accommodation) * (reduced ? 1 : 1 - Math.exp(-dt / 0.25));
+				pupil +=
+					(nearPupil(accommodation) - pupil) *
+					(reduced ? 1 : 1 - Math.exp(-dt / 0.35));
+			}
+			anatomy.update(accommodation, p.section, false);
+			updateAssemblyIris(iris.geometry, pupil, accommodation);
+			irisAppearance.pupil.value = pupil / 2;
+			updateFocusCue(cue.current, demand, accommodation);
+			const shape = lensShape(accommodation);
+			if (dimensions.current) {
+				dimensions.current.children[1]!.textContent =
+					`ACD ${(5.05 - (shape.thickness * lensSurfaceZ(0)) / 2).toFixed(2)} mm`;
+				dimensions.current.children[2]!.textContent =
+					`LT ${shape.thickness.toFixed(2)} mm`;
+			}
+			const optical = retinalFocus(demand, accommodation);
+			updateRetinalFocusInset(focusInset.current, optical, pupil);
+			rays.visible = p.focus;
+			principalPlane.visible = p.focus;
+			for (let i = 0; i < 8; i++) {
+				const angle = (i * Math.PI * 2) / 8,
+					r = pupil / 2,
+					z = -3,
+					ratio = (z - optical.focusZ) / (optical.principalZ - optical.focusZ);
+				const endZ = Math.min(optical.focusZ, optical.retinalZ) - 0.3,
+					endHeight = rayHeight(r, endZ, optical);
+				rayPositions.set(
+					[
+						r * Math.cos(angle) * ratio,
+						r * Math.sin(angle) * ratio,
+						z,
+						endHeight * Math.cos(angle),
+						endHeight * Math.sin(angle),
+						endZ,
+					],
+					i * 6,
+				);
+			}
+			raysGeometry.attributes.position!.needsUpdate = true;
 			if (p.section !== previous) {
 				for (const material of [iris.material, cornea.material]) {
 					material.clippingPlanes = p.section ? cut : [];
@@ -83,6 +216,7 @@ export default function RetinaAssembly({
 				previous = p.section;
 			}
 			return {
+				animating: !reduced && !p.paused,
 				afterRender() {
 					retinalLandmarks.forEach((landmark, i) => {
 						const marker = markers.current[i];
@@ -110,7 +244,14 @@ export default function RetinaAssembly({
 					nerve: p.nerve,
 					cornealApexZ: CORNEAL_APEX_Z,
 					retinalPoleZ: CUP_CENTRE_Z - CUP_RADIUS,
-					biometry,
+					biometry: {
+						...biometry,
+						lt: shape.thickness,
+						acd: 5.05 - (shape.thickness * lensSurfaceZ(0)) / 2,
+					},
+					accommodation,
+					pupilDiameter: pupil,
+					focus: p.focus ? optical : null,
 				},
 			};
 		});
@@ -120,14 +261,17 @@ export default function RetinaAssembly({
 		};
 	}, [lang]);
 	const resetAnchor = useRef<HTMLDivElement>(null);
-	const defaults = useInitialParameters(
-		{ section, anterior, choroid, sclera, nerve },
+	useInitialParameters(
+		{ section, anterior, choroid, sclera, nerve, paused, near, focus },
 		(initial) => {
 			setSection(initial.section);
 			setAnterior(initial.anterior);
 			setChoroid(initial.choroid);
 			setSclera(initial.sclera);
 			setNerve(initial.nerve);
+			setPaused(initial.paused);
+			setNear(initial.near);
+			setFocus(initial.focus);
 		},
 		resetAnchor,
 	);
@@ -158,6 +302,14 @@ export default function RetinaAssembly({
 						{es ? "WebGL no está disponible." : "WebGL is unavailable."}
 					</p>
 				)}
+				<FocusCue
+					cueRef={cue}
+					lang={lang}
+					paused={paused}
+					onPause={() => setPaused(!paused)}
+					near={near}
+					onNear={() => setNear(!near)}
+				/>
 				{retinalLandmarks.map((landmark, i) => (
 					<span
 						key={landmark.en}
@@ -192,12 +344,15 @@ export default function RetinaAssembly({
 					{es ? "Nervio óptico" : "Optic nerve"}
 				</li>
 			</ul>
-			<p className="retina-reading">
-				{retinalLandmarks
-					.map((landmark, i) => `${i + 1}. ${es ? landmark.es : landmark.en}`)
-					.join(" · ")}
-			</p>
+			{!anterior && (
+				<p className="retina-reading">
+					{retinalLandmarks
+						.map((landmark, i) => `${i + 1}. ${es ? landmark.es : landmark.en}`)
+						.join(" · ")}
+				</p>
+			)}
 			<div
+				ref={dimensions}
 				className="retina-readouts"
 				role="group"
 				aria-label={es ? "Dimensiones del modelo" : "Model dimensions"}
@@ -209,147 +364,52 @@ export default function RetinaAssembly({
 			</div>
 			<div className="lens-controls">
 				<div className="lens-buttons">
-					<ParameterControl
-						value={section}
-						initial={defaults.section}
-						onReset={setSection}
-						label="section view"
-						lang={lang}
-					>
-						<button
-							type="button"
-							onClick={() => {
-								setSection(false);
-								setAnterior(false);
-								setChoroid(false);
-								setSclera(false);
+					<label>
+						{es ? "Vista" : "View"}{" "}
+						<select
+							value={anterior ? (section ? "section" : "whole") : "retina"}
+							onChange={(e) => {
+								const mode = e.target.value,
+									retinal = mode === "retina";
+								setSection(mode === "section");
+								setAnterior(!retinal);
+								setChoroid(!retinal);
+								setSclera(!retinal);
 								const view = viewRef.current;
-								if (!view) return;
-								view.setView("front");
-								view.camera.position.set(6, 2, 38);
-								view.controls.target.set(0, 0, -12);
-								view.controls.update();
-								view.invalidate();
+								if (view) {
+									view.setPose(retinal ? [6, 2, 38] : [34, 20, 18], [
+										0,
+										0,
+										retinal ? -12 : -8,
+									]);
+								}
 							}}
 						>
-							{es ? "Ver retina" : "Retinal view"}
-						</button>
-					</ParameterControl>
+							<option value="section">{es ? "Sección" : "Cutaway"}</option>
+							<option value="retina">{es ? "Retina" : "Retina"}</option>
+							<option value="whole">{es ? "Ojo completo" : "Whole eye"}</option>
+						</select>
+					</label>
 					<button
 						type="button"
-						aria-pressed={section}
-						onClick={() => setSection(!section)}
+						aria-pressed={focus}
+						onClick={() => setFocus(!focus)}
 					>
-						{es ? "Sección" : "Section"}
+						{es ? "Enfoque de ojo reducido" : "Reduced-eye focus"}
 					</button>
 				</div>
-				<details className="lens-display-options">
-					<summary>{es ? "Capas y restablecer" : "Layers and reset"}</summary>
-					<div className="lens-options">
-						<ParameterControl
-							value={choroid}
-							initial={defaults.choroid}
-							onReset={setChoroid}
-							label="choroid visibility"
-							lang={lang}
-						>
-							<label>
-								<input
-									type="checkbox"
-									checked={choroid}
-									onChange={(e) => setChoroid(e.target.checked)}
-								/>
-								{es ? "Coroides" : "Choroid"}
-							</label>
-						</ParameterControl>
-						<ParameterControl
-							value={sclera}
-							initial={defaults.sclera}
-							onReset={setSclera}
-							label="sclera visibility"
-							lang={lang}
-						>
-							<label>
-								<input
-									type="checkbox"
-									checked={sclera}
-									onChange={(e) => setSclera(e.target.checked)}
-								/>
-								{es ? "Esclerótica" : "Sclera"}
-							</label>
-						</ParameterControl>
-						<ParameterControl
-							value={nerve}
-							initial={defaults.nerve}
-							onReset={setNerve}
-							label="optic nerve visibility"
-							lang={lang}
-						>
-							<label>
-								<input
-									type="checkbox"
-									checked={nerve}
-									onChange={(e) => setNerve(e.target.checked)}
-								/>
-								{es ? "Nervio óptico" : "Optic nerve"}
-							</label>
-						</ParameterControl>
-						<ParameterControl
-							value={anterior}
-							initial={defaults.anterior}
-							onReset={setAnterior}
-							label="anterior segment visibility"
-							lang={lang}
-						>
-							<label>
-								<input
-									type="checkbox"
-									checked={anterior}
-									onChange={(e) => setAnterior(e.target.checked)}
-								/>
-								{es ? "Córnea, iris y cristalino" : "Cornea, iris and lens"}
-							</label>
-						</ParameterControl>
-						<button
-							type="button"
-							onClick={() => {
-								const view = viewRef.current;
-								if (!view) return;
-								setSection(true);
-								setAnterior(true);
-								setChoroid(true);
-								setSclera(true);
-								setNerve(true);
-								view.setView("reset");
-								view.controls.target.set(0, 0, -8);
-								view.controls.update();
-								view.invalidate();
-							}}
-						>
-							{es ? "Restablecer vista" : "Reset view"}
-						</button>
-					</div>
-				</details>
-				<p className="lens-note">
-					{es
-						? "Ver retina muestra los puntos numerados: fóvea en el centro de la mácula y papila hacia nasal. Relieve foveal en la malla; vasos principales estilizados. ACD interno, cristalino relajado; AXL hasta el límite que representa el EPR. No es biometría clínica."
-						: "Retinal view shows the numbered landmarks: fovea within the macula, disc towards nasal. The pit deforms the mesh; major vessels are stylised. Internal ACD, relaxed lens; AXL ends at the boundary representing the RPE. These are model dimensions, not clinical biometry."}
-				</p>
-				<p className="lens-note">
-					<a
-						href={
-							es
-								? "#convertir-la-superficie-en-tejido"
-								: "#turn-the-surface-into-a-tissue"
-						}
-					>
+				{focus && <RetinalFocusInset root={focusInset} lang={lang} />}
+				{focus && (
+					<p className="lens-note">
 						{es
-							? "Ver la sección foveal ampliada"
-							: "See the magnified foveal section"}
-					</a>
+							? "El aro violeta marca el plano principal equivalente de un ojo reducido de 60 D (n = 4/3). Los rayos dorados muestran su convergencia en el vítreo: no se calculan a través de la córnea o el cristalino dibujados."
+							: "The violet ring marks the equivalent principal plane of a 60 D reduced eye (n = 4/3). Gold rays show its convergence in the vitreous; they are not calculated through the displayed cornea or lens."}
+					</p>
+				)}
+				<p className="lens-note">
 					{es
-						? ": aquí el relieve sigue a escala del ojo."
-						: ": here the relief stays at whole-eye scale."}
+						? "Acomodación y miosis próxima ilustrativas. ACD interna y LT cambian con la animación; AXL termina en el EPR. Dimensiones elegidas, no biometría clínica."
+						: "Illustrative accommodation and near miosis. Internal ACD and LT follow the animation; AXL ends at the RPE. Chosen dimensions, not clinical biometry."}
 				</p>
 			</div>
 		</div>

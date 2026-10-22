@@ -10,8 +10,8 @@ export function bounded(
 		? Math.min(max, Math.max(min, value))
 		: fallback;
 }
-export const CUP_RADIUS = 12; // mm: schematic eye, not a universal retinal radius
-export const CUP_CENTRE_Z = -6.4; // mm, in Part III's assembly coordinates
+export const CUP_RADIUS = 10.8; // mm: schematic eye, not a universal retinal radius
+export const CUP_CENTRE_Z = -7.6; // mm, in Part III's assembly coordinates
 export function cupPoint(u: number, angle: number, curvature = 1) {
 	const theta = bounded(u, 0, 1) * Math.PI * 0.49;
 	const t = bounded(curvature, 0, 1);
@@ -115,12 +115,13 @@ export function samplingModel(frequency: number, count: number, phase: number) {
 export function receptorMosaic(central: boolean) {
 	const cones: { x: number; y: number }[] = [],
 		rods: { x: number; y: number }[] = [];
-	for (let row = -10; row <= 10; row++)
-		for (let column = -10; column <= 10; column++) {
+	for (let row = -12; row <= 12; row++)
+		for (let column = -12; column <= 12; column++) {
 			const x =
-				(column + (row & 1) * 0.5) * 0.48 +
+				(column + (row & 1) * 0.5) * (central ? 0.48 : 0.68) +
 				0.035 * Math.sin(row * 13 + column * 7);
-			const y = row * 0.42 + 0.035 * Math.cos(column * 11 - row * 5);
+			const y =
+				row * (central ? 0.42 : 0.59) + 0.035 * Math.cos(column * 11 - row * 5);
 			if (Math.hypot(x, y) > 4.7) continue;
 			if (central || (column + row * 3 + 100) % 5 === 0) cones.push({ x, y });
 			else rods.push({ x, y });
