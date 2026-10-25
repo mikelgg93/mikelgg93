@@ -53,7 +53,7 @@ The warm tint makes the surface visible; it is not a prediction of fundus colour
 
 ## Material and landmarks
 
-We are looking at the surface from inside the eye. The **fovea** is the small depression at the centre of the macula; the **retinal pigment epithelium (RPE)** lies behind the photoreceptors. The nerve leaves through the disc on the nasal side, passing through the eye’s outer wall, the **sclera**.
+We are looking at the surface from inside the eye. The **fovea** is the small depression at the centre of the **macula**, the central retinal region; the **retinal pigment epithelium (RPE)** lies behind the photoreceptors. The nerve leaves through the disc on the nasal side (towards the nose), passing through the eye’s outer wall, the **sclera**.
 
 The next sequence adds material, foveal relief, major vessels and the optic nerve exit. Colour helps us read the surface; it does not simulate a fundus photograph. The pit changes the mesh, and the vessels avoid the foveal centre. This is animated construction, not tissue growth.
 
@@ -77,7 +77,18 @@ const innerRadius = CUP_RADIUS
 
 `distance` measures surface distance from the foveal axis. The magnified profile keeps equal scales on both axes, exposing the pit without changing the eye geometry. We precompute the starting and final positions and normals; the GPU interpolates between them.
 
-The vessels are curves on that same surface, swept into tubes that taper towards their ends. The nerve occupies the nasal opening and bends outside the sclera. The sequence plays once and holds the result; **Replay** starts it again.
+Each vessel starts as a curve in the x–y plane. Project it onto the retinal surface, then sweep a tube along it:
+
+```ts
+// RetinalVesselCurve projects each curve sample onto retinalPoint(x, y).
+const curve = new RetinalVesselCurve(points, radius + 0.008);
+const vessel = new THREE.Mesh(
+  new THREE.TubeGeometry(curve, 80, radius, 6, false),
+  material,
+);
+```
+
+We taper those tubes towards their ends. A thin screen-space stroke keeps their routes legible when the tubes become smaller than a pixel; its width is a drawing aid, not a measured calibre. The nerve occupies the nasal opening and bends outside the sclera. The magnified profile remains available after the pit forms, including with reduced motion. The sequence plays once and holds the result; **Replay** starts it again.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaSurface client:visible /></div>
@@ -172,7 +183,7 @@ We can now place the cup behind the cornea, iris and lens from the earlier artic
 
 The outer envelope is approximately **24.4 mm wide and high**, and **25.4 mm from the corneal apex to the outer posterior sclera**. That last distance is not the AXL in the table, which ends at the RPE. The 10.8 mm retinal radius and centre at $z=-7.6\ \text{mm}$ locate this envelope in the same coordinate system as the anterior segment. The anterior inner wall follows the same attachment profile as the ciliary body. The coats share their boundaries and the retina tapers to a schematic ora serrata behind the ciliary body.
 
-These are **chosen dimensions**, not measurements from a person or a validated schematic optical eye. We retain the anterior parts from Part 3; we have not fitted their shape and spacing to a common biometric dataset. Optical biometry commonly defines axial length to the RPE, so that is the endpoint used here (Ostrin et al., 2023). The corneal apex is at $z=5.6\ \text{mm}$ and our RPE boundary at $z=-18.70\ \text{mm}$. The distance to the inner retina is different. We use **internal** ACD, excluding the corneal thickness.
+These are **chosen dimensions**, not measurements from a person or a validated schematic optical eye. We retain the anterior parts from Part 3; we have not fitted their shape and spacing, including ciliary-muscle thickness, to a common biometric dataset. Optical biometry commonly defines axial length to the RPE, so that is the endpoint used here (Ostrin et al., 2023). The corneal apex is at $z=5.6\ \text{mm}$ and our RPE boundary at $z=-18.70\ \text{mm}$. The distance to the inner retina is different. We use **internal** ACD, excluding the corneal thickness.
 
 The receiving surface needs a supporting wall. Outside the retina and RPE sits the **choroid**, a vascular coat that supplies the outer retina, including the photoreceptors. The retinal circulation supplies much of the inner retina (Kolb). Outside that is the **sclera**, the opaque, collagen-rich coat that gives the globe mechanical support and meets the cornea at the limbus (Watson & Young, 2004).
 

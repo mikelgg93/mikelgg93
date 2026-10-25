@@ -69,7 +69,7 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		const manual = () => {
 			autoCamera = false;
 		};
-		view.controls.addEventListener("start", manual);
+		view.onInteraction(manual);
 
 		let elapsed = 0;
 		const restart = () => {
@@ -101,6 +101,10 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 			}
 			const vessels = eye.group.getObjectByName("retinal-vessels");
 			vessels?.traverse((o) => {
+				if (o instanceof THREE.Mesh && o.name === "vessel-stroke") {
+					(o.geometry as THREE.InstancedBufferGeometry).instanceCount =
+						Math.floor(THREE.MathUtils.clamp((t - 9) / 3, 0, 1) * 80);
+				}
 				if (o instanceof THREE.Mesh && o.geometry instanceof THREE.TubeGeometry)
 					o.geometry.setDrawRange(
 						0,
@@ -108,7 +112,7 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 					);
 			});
 			if (profile.current) {
-				profile.current.hidden = t < 4 || t >= 12;
+				profile.current.hidden = t < 4;
 				const path = profile.current.querySelector("[data-pit-profile]");
 				path?.setAttribute(
 					"d",
@@ -143,6 +147,8 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 					model: "Surface construction; stylised pigmentation and vessels",
 					stage,
 					pit,
+					autoCamera,
+					elapsed,
 				},
 				animating: !reduced && !params.current.paused && elapsed < 16,
 			};
@@ -150,7 +156,6 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		return () => {
 			replay.current = null;
 			viewRef.current = null;
-			view.controls.removeEventListener("start", manual);
 			view.dispose();
 		};
 	}, [lang]);

@@ -12,6 +12,7 @@ import {
 	DISC_ANGLE,
 	innerRetinalRadius,
 	MACULA_RADIUS,
+	opticDiscDepth,
 	RETINAL_WALL,
 	SCLERAL_WALL,
 } from "./retinaAnatomy";
@@ -62,6 +63,7 @@ function wallGeometry(
 	half: boolean,
 	rows = 64,
 	reverse = false,
+	openStart = false,
 ) {
 	const positions: number[] = [],
 		indices: number[] = [];
@@ -93,7 +95,7 @@ function wallGeometry(
 			sectors,
 			side === 1,
 		);
-	for (const end of [0, 1])
+	for (const end of openStart ? [1] : [0, 1])
 		patch((s, v) => surface(s, end, start + span * v), 1, sectors, end === 0);
 	if (half)
 		for (const phi of [Math.PI, 2 * Math.PI])
@@ -223,13 +225,25 @@ export function createPosteriorEye({
 			envMapIntensity: 0.3,
 		});
 		const whole = new THREE.Mesh(
-			wallGeometry(surface, false, rows, key.includes("nerve")),
+			wallGeometry(
+				surface,
+				false,
+				rows,
+				key.includes("nerve"),
+				key === "optic-nerve",
+			),
 			material,
 		);
 		const cut = lesson
 			? whole
 			: new THREE.Mesh(
-					wallGeometry(surface, true, rows, key.includes("nerve")),
+					wallGeometry(
+						surface,
+						true,
+						rows,
+						key.includes("nerve"),
+						key === "optic-nerve",
+					),
 					material,
 				);
 		if (key === "retina") {
@@ -295,6 +309,9 @@ export function createPosteriorEye({
 			const r = sheath
 				? coreRadius + side * 0.4 * THREE.MathUtils.smoothstep(t, 0, 0.25)
 				: side * coreRadius;
+			// The cut face follows the disc depression; no flat cap occludes it.
+			if (!sheath && u <= 1 / 3)
+				point.addScaledVector(axis, opticDiscDepth(r) * (1 - 3 * u));
 			return point
 				.addScaledVector(across, r * Math.cos(phi))
 				.add(new THREE.Vector3(0, r * Math.sin(phi), 0));

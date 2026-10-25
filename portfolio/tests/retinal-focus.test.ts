@@ -5,7 +5,7 @@ import {
 } from "../src/components/eye/retina/retinalFocus";
 
 describe("separate reduced-eye focus illustration", () => {
-	test("matched demand and response focus on the inner foveal reference", () => {
+	test("matched demand and response focus on the photoreceptor-side reference", () => {
 		for (let d = 0; d <= 8; d += 0.25)
 			expect(Math.abs(retinalFocus(d, d).errorMm)).toBeLessThan(1e-12);
 	});

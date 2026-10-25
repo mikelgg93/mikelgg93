@@ -9,6 +9,9 @@ export function updateRetinalFocusInset(
 	if (!node) return;
 	const scale = Math.min(150, 100 / (Math.abs(model.errorMm) + 0.05));
 	const xFocus = 200 - model.errorMm * scale;
+	node
+		.querySelector("[data-scale-bar]")
+		?.setAttribute("x2", String(20 + 0.5 * scale));
 	node.querySelector("[data-focus-dot]")?.setAttribute("cx", String(xFocus));
 	const path = node.querySelector("[data-focus-rays]");
 	path?.setAttribute(
@@ -54,6 +57,18 @@ export default function RetinalFocusInset({
 						: "Rays pass through focus and reach the receiving reference"
 				}
 			>
+				<line
+					data-scale-bar
+					x1="20"
+					x2="95"
+					y1="28"
+					y2="28"
+					stroke="currentColor"
+					strokeWidth="2"
+				/>
+				<text x="20" y="20" fill="currentColor" fontSize="11">
+					{es ? "0,5 mm" : "0.5 mm"}
+				</text>
 				<path d="M200 20V105" stroke="#8cc4b5" strokeWidth="2" />
 				<path data-focus-rays stroke="#e4bc79" strokeWidth="1.5" fill="none" />
 				<line
@@ -74,10 +89,11 @@ export default function RetinalFocusInset({
 				</text>
 			</svg>
 			<span data-focus-error aria-live="off" />
+			<span> {es ? "(D: respuesta − demanda)" : "(D: response − demand)"}</span>
 			<p>
 				{es
-					? "Desplazamiento positivo: foco anterior a la referencia. Plano receptor ilustrativo a 0,05 mm delante del límite del EPR."
-					: "Positive displacement: focus anterior to the reference. Illustrative receiving plane 0.05 mm anterior to the RPE boundary."}
+					? "Desplazamiento positivo: foco anterior a la referencia. Plano receptor ilustrativo a 0,05 mm delante del límite del EPR. La abertura se sitúa en el plano principal de este ojo reducido."
+					: "Positive displacement: focus anterior to the reference. Illustrative receiving plane 0.05 mm anterior to the RPE boundary. The aperture is placed at this reduced eye’s principal plane."}
 			</p>
 		</div>
 	);

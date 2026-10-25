@@ -53,7 +53,7 @@ El tono cálido hace visible la superficie; no predice el color del fondo de ojo
 
 ## Material y puntos de referencia
 
-Miramos la superficie desde dentro del ojo. La **fóvea** es la pequeña depresión central de la mácula; el **epitelio pigmentario de la retina (EPR)** queda detrás de los fotorreceptores. El nervio sale por la papila, hacia el lado nasal, atravesando la pared externa del ojo, la **esclerótica**.
+Miramos la superficie desde dentro del ojo. La **fóvea** es la pequeña depresión en el centro de la **mácula**, la región central de la retina; el **epitelio pigmentario de la retina (EPR)** queda detrás de los fotorreceptores. El nervio sale por la papila, hacia el lado nasal (hacia la nariz), atravesando la pared externa del ojo, la **esclerótica**.
 
 La siguiente secuencia añade material, relieve foveal, vasos principales y salida del nervio óptico. El color ayuda a leer la superficie; no simula una fotografía del fondo de ojo. El relieve modifica la malla y los vasos evitan el centro foveal. Es una construcción animada, no crecimiento del tejido.
 
@@ -79,6 +79,19 @@ const innerRadius = CUP_RADIUS
 
 Los vasos son curvas sobre esa misma superficie, convertidas en tubos que se estrechan hacia sus extremos. El nervio ocupa la abertura nasal y se curva fuera de la esclerótica. La secuencia se reproduce una vez y conserva el resultado; **Repetir** vuelve al principio.
 
+Cada vaso empieza como una curva en el plano x–y. Proyectamos sus puntos sobre la superficie retiniana y recorremos esa curva con un tubo:
+
+```ts
+// RetinalVesselCurve proyecta cada muestra sobre retinalPoint(x, y).
+const curve = new RetinalVesselCurve(points, radius + 0.008);
+const vessel = new THREE.Mesh(
+  new THREE.TubeGeometry(curve, 80, radius, 6, false),
+  material,
+);
+```
+
+El tubo se estrecha hacia sus extremos. Un trazo fino en pantalla mantiene visible su recorrido cuando ocupa menos de un píxel; su anchura es una ayuda visual, no un calibre medido. El perfil ampliado permanece disponible después de formar la fóvea, también con movimiento reducido.
+
 <InteractiveViewer lang="es">
   <div slot="preview"><RetinaSurface lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.surface} lang="es" /></div>
@@ -90,7 +103,7 @@ La luz llega desde el **vítreo**, el espacio gelatinoso situado detrás del cri
 
 El EPR sostiene a los fotorreceptores: entre sus funciones están absorber luz parásita, participar en el ciclo visual y fagocitar el material que se desprende de los segmentos externos. Detrás está la **coroides**, vascularizada. La retina neural y su epitelio pigmentario están estrechamente asociados, pero no son dos nombres intercambiables para una misma capa (Kolb, *Simple Anatomy of the Retina*).
 
-La sección siguiente agrupa el tejido en siete bandas legibles. Las **capas nucleares** contienen cuerpos celulares; las **plexiformes**, muchas de las conexiones sinápticas. Es un mapa de los compartimentos principales, no el recuento convencional completo de capas. Agrupamos las fibras nerviosas y las células ganglionares, y marcamos esquemáticamente el límite externo de los fotorreceptores.
+La sección siguiente agrupa el tejido en siete bandas legibles. Las **capas nucleares** contienen cuerpos celulares; las **plexiformes**, muchas de las conexiones sinápticas. Es un mapa de los compartimentos principales, no el recuento convencional completo de capas. Agrupamos las fibras nerviosas y las células ganglionares, y marcamos esquemáticamente la membrana limitante externa.
 
 <InteractiveViewer lang="es">
   <div slot="preview"><RetinaLayers lang="es" client:visible /></div>
@@ -172,7 +185,7 @@ Ya podemos situar la copa detrás de la córnea, el iris y el cristalino de los 
 
 La envolvente externa mide aproximadamente **24,4 mm de ancho y alto**, y **25,4 mm desde el ápice corneal hasta la esclerótica posterior externa**. Esta última distancia no es la AXL de la tabla, que termina en el EPR. El radio retiniano de 10,8 mm y el centro en $z=-7,6\ \text{mm}$ sitúan esta envolvente en el mismo sistema de coordenadas que el segmento anterior. La pared anterior interna sigue el mismo perfil de unión que el cuerpo ciliar. Las capas comparten sus límites y la retina se adelgaza hasta una ora serrata esquemática detrás del cuerpo ciliar.
 
-Son **dimensiones elegidas**, no medidas de una persona ni un ojo óptico esquemático validado. Conservamos las piezas anteriores de la Parte 3; no hemos ajustado sus formas y distancias a un conjunto común de datos biométricos. La biometría óptica suele definir la longitud axial hasta el EPR, y usamos ese extremo aquí (Ostrin et al., 2023). El vértice corneal está en $z=5,6\ \text{mm}$ y el límite del EPR en $z=-18,70\ \text{mm}$. La distancia a la retina interna es distinta. Usamos ACD **interna**, que excluye el espesor corneal.
+Son **dimensiones elegidas**, no medidas de una persona ni un ojo óptico esquemático validado. Conservamos las piezas anteriores de la Parte 3; no hemos ajustado sus formas y distancias, incluido el espesor del músculo ciliar, a un conjunto común de datos biométricos. La biometría óptica suele definir la longitud axial hasta el EPR, y usamos ese extremo aquí (Ostrin et al., 2023). El vértice corneal está en $z=5,6\ \text{mm}$ y el límite del EPR en $z=-18,70\ \text{mm}$. La distancia a la retina interna es distinta. Usamos ACD **interna**, que excluye el espesor corneal.
 
 La superficie receptora necesita una pared de soporte. Por fuera de la retina y el EPR está la **coroides**, una capa vascular que nutre la retina externa, incluidos los fotorreceptores. La circulación retiniana nutre gran parte de la retina interna (Kolb). Por fuera queda la **esclerótica**, la cubierta opaca y rica en colágeno que da soporte mecánico al globo y se une a la córnea en el limbo (Watson y Young, 2004).
 

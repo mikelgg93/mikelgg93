@@ -1,4 +1,7 @@
 import * as THREE from "three";
+import { Line2 } from "three/examples/jsm/lines/Line2.js";
+import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { CORNEAL_APEX_Z, POSTERIOR_CORNEAL_APEX_Z } from "../eyeDimensions";
 import { LENS_THICKNESS, lensSurfaceZ } from "../lens/lensConstruction";
 import { CUP_CENTRE_Z, CUP_RADIUS } from "./retinaModel";
@@ -146,6 +149,9 @@ export function createRetinalVessels() {
 		shininess: 30,
 	});
 	const vein = new THREE.MeshPhongMaterial({ color: "#682b36", shininess: 24 });
+	const strokeMaterials = ["#a9332d", "#682b36"].map(
+		(color) => new LineMaterial({ color, linewidth: 1.2, depthWrite: false }),
+	);
 	for (const path of vesselPaths()) {
 		const curve = new RetinalVesselCurve(path.points, path.radius + 0.008);
 		const geometry = new THREE.TubeGeometry(curve, 80, path.radius, 6, false);
@@ -172,11 +178,34 @@ export function createRetinalVessels() {
 		geometry.computeVertexNormals();
 		geometry.computeBoundingSphere();
 		group.add(new THREE.Mesh(geometry, path.artery ? artery : vein));
+		// A small screen-space stroke preserves the route when the physical tube
+		// becomes subpixel. It is a drawing aid, not another vessel diameter.
+		const route = Array.from({ length: 81 }, (_, i) => {
+			const point = curve.getPointAt(i / 80);
+			point.z -= path.radius * (1 - vesselTaper(i / 80));
+			return point;
+		});
+		const stroke = new Line2(
+			new LineGeometry().setPositions(route.flatMap((p) => p.toArray())),
+			strokeMaterials[path.artery ? 0 : 1],
+		);
+		stroke.name = "vessel-stroke";
+		group.add(stroke);
 	}
 	group.add(createOpticDisc());
 	return group;
 }
 
+// One nerve-head boundary, shared by the disc and cut nerve tissue.
+export function opticDiscDepth(radius: number) {
+	return (
+		0.1 *
+		Math.max(
+			0,
+			Math.exp(-((radius / 0.4) ** 2)) - Math.exp(-((1.05 / 0.4) ** 2)),
+		)
+	);
+}
 // A restrained schematic nerve-head surface; not a clinical cup/disc model.
 function createOpticDisc() {
 	const axis = new THREE.Vector3(
@@ -187,7 +216,7 @@ function createOpticDisc() {
 		tangent = new THREE.Vector3(Math.cos(DISC_ANGLE), 0, Math.sin(DISC_ANGLE));
 	const centre = new THREE.Vector3(0, 0, CUP_CENTRE_Z).addScaledVector(
 		axis,
-		CUP_RADIUS * Math.cos(CANAL_ANGLE) - 0.025,
+		CUP_RADIUS * Math.cos(CANAL_ANGLE),
 	);
 	const positions: number[] = [],
 		indices: number[] = [];
@@ -196,7 +225,7 @@ function createOpticDisc() {
 			.clone()
 			.addScaledVector(tangent, r * Math.cos(phi))
 			.add(new THREE.Vector3(0, r * Math.sin(phi), 0))
-			.addScaledVector(axis, 0.1 * Math.exp(-((r / 0.4) ** 2)));
+			.addScaledVector(axis, opticDiscDepth(r));
 	positions.push(...at(0, 0).toArray());
 	for (let ring = 1; ring <= 12; ring++)
 		for (let j = 0; j < 64; j++)

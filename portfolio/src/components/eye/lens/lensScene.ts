@@ -54,9 +54,12 @@ export function createLensScene(
 	const initialUp = camera.up.clone();
 	const initialTarget = new THREE.Vector3();
 	let resetState = () => {};
+	let interaction = () => {};
+	const userInteraction = () => interaction();
 	const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 	function makeControls() {
 		const orbit = new OrbitControls(camera, renderer.domElement);
+		orbit.addEventListener("start", userInteraction);
 		orbit.enableDamping = !reducedMotion.matches;
 		orbit.enablePan = false;
 		orbit.minDistance = distance * 0.8;
@@ -161,6 +164,7 @@ export function createLensScene(
 		};
 		const delta = directions[event.key];
 		if (!delta) return;
+		userInteraction();
 		event.preventDefault();
 		event.stopPropagation();
 		const damping = controls.enableDamping;
@@ -227,6 +231,9 @@ export function createLensScene(
 		},
 		renderer,
 		invalidate,
+		onInteraction(callback: () => void) {
+			interaction = callback;
+		},
 		onReset(callback: () => void) {
 			resetState = callback;
 		},
@@ -236,6 +243,7 @@ export function createLensScene(
 			initialTarget.copy(controls.target);
 			// Callers may choose a different up axis before starting the scene.
 			controls.removeEventListener("change", invalidate);
+			controls.removeEventListener("start", userInteraction);
 			controls.dispose();
 			controls = makeControls();
 			controls.target.copy(initialTarget);
@@ -284,6 +292,7 @@ export function createLensScene(
 			// OrbitControls caches its up-axis basis in the constructor.
 			if (upChanged) {
 				controls.removeEventListener("change", invalidate);
+				controls.removeEventListener("start", userInteraction);
 				controls.dispose();
 				controls = makeControls();
 				controls.addEventListener("change", invalidate);
@@ -295,12 +304,14 @@ export function createLensScene(
 		},
 		dispose() {
 			disposed = true;
+			interaction = () => {};
 			viewer?.removeEventListener("eye:inspect", inspect);
 			cancelAnimationFrame(frame);
 			stopVisibility();
 			viewer?.removeEventListener("eye:reset", reset);
 			resize.disconnect();
 			controls.removeEventListener("change", invalidate);
+			controls.removeEventListener("start", userInteraction);
 			reducedMotion.removeEventListener("change", motionChanged);
 			renderer.domElement.removeEventListener(
 				"webglcontextrestored",

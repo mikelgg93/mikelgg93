@@ -36,7 +36,10 @@ test("posterior coats enclose the retina in order while leaving a real scleral c
 	const canal = new THREE.Raycaster(centre, axis);
 	for (const coat of eyeCoats)
 		expect(canal.intersectObject(whole(coat.key))).toHaveLength(0);
-	expect(canal.intersectObject(whole("optic-nerve")).length).toBeGreaterThan(0);
+	const disc = eye.group.getObjectByName("optic-disc") as THREE.Mesh;
+	const hits = canal.intersectObjects([disc, whole("optic-nerve")], false);
+	expect(hits.length).toBeGreaterThan(0);
+	expect(hits[0]!.object).toBe(disc);
 	const pole = new THREE.Raycaster(centre, new THREE.Vector3(0, 0, -1));
 	let previous = 0;
 	for (const coat of eyeCoats) {
@@ -63,10 +66,16 @@ test("closed and sectioned anatomy reuse finite geometry and dispose hidden view
 		if (!(o instanceof THREE.Mesh)) return;
 		geometries.add(o.geometry);
 		o.geometry.addEventListener("dispose", () => disposals++);
-		for (const name of ["position", "normal"])
-			expect(
-				[...o.geometry.getAttribute(name).array].every(Number.isFinite),
-			).toBe(true);
+		for (const name of o.name === "vessel-stroke"
+			? ["position", "instanceStart", "instanceEnd"]
+			: ["position", "normal"]) {
+			const attribute = o.geometry.getAttribute(name);
+			const array =
+				attribute instanceof THREE.InterleavedBufferAttribute
+					? attribute.data.array
+					: attribute.array;
+			expect([...array].every(Number.isFinite)).toBe(true);
+		}
 		const p = o.geometry.getAttribute("position");
 		expect(
 			[...o.geometry.index!.array].every((i) => i >= 0 && i < p.count),
@@ -297,6 +306,38 @@ test("outer globe has a smooth convex anterior silhouette without a pinched shou
 		const previousSlope = radii[i - 1]! - radii[i - 2]!;
 		const slope = radii[i]! - radii[i - 1]!;
 		expect(slope).toBeLessThan(previousSlope + 0.01);
+	}
+	disposeThree(eye.group);
+});
+
+test("the depressed disc stays visible across the nerve head instead of behind a flat cap", () => {
+	const eye = createPosteriorEye();
+	eye.update(false);
+	eye.group.updateMatrixWorld(true);
+	const disc = eye.group.getObjectByName("optic-disc") as THREE.Mesh;
+	const nerve = eye.group.getObjectByName("optic-nerve")!
+		.children[0] as THREE.Mesh;
+	const axis = new THREE.Vector3(
+		Math.sin(DISC_ANGLE),
+		0,
+		-Math.cos(DISC_ANGLE),
+	);
+	const across = new THREE.Vector3(
+		Math.cos(DISC_ANGLE),
+		0,
+		Math.sin(DISC_ANGLE),
+	);
+	for (const r of [0, 0.2, 0.4, 0.7, 1]) {
+		const origin = new THREE.Vector3(0, 0, CUP_CENTRE_Z).addScaledVector(
+			across,
+			r,
+		);
+		const hits = new THREE.Raycaster(origin, axis).intersectObjects(
+			[disc, nerve],
+			false,
+		);
+		expect(hits.length).toBeGreaterThan(0);
+		expect(hits[0]!.object).toBe(disc);
 	}
 	disposeThree(eye.group);
 });
