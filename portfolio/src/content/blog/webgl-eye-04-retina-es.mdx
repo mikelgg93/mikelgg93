@@ -55,7 +55,7 @@ El tono cálido hace visible la superficie; no predice el color del fondo de ojo
 
 Miramos la superficie desde dentro del ojo. La **fóvea** es la pequeña depresión en el centro de la **mácula**, la región central de la retina; el **epitelio pigmentario de la retina (EPR)** queda detrás de los fotorreceptores. El nervio sale por la papila, hacia el lado nasal (hacia la nariz), atravesando la pared externa del ojo, la **esclerótica**.
 
-La siguiente secuencia añade material, relieve foveal, vasos principales y salida del nervio óptico. El color ayuda a leer la superficie; no simula una fotografía del fondo de ojo. El relieve modifica la malla y los vasos evitan el centro foveal. Es una construcción animada, no crecimiento del tejido.
+La siguiente secuencia añade material, relieve foveal, vasos principales y salida del nervio óptico. Al mirar con un oftalmoscopio, el fondo de ojo suele verse anaranjado o rojizo, con una mácula más oscura y una papila más pálida. Su aspecto varía con la pigmentación y la iluminación (Clinical Methods, *The Funduscopic Examination*). Tomamos esa paleta para reconocer las estructuras; no es una fotografía calibrada ni significa que el tejido neural retiniano sea naranja opaco. El relieve modifica la malla y los vasos evitan el centro foveal. Es una construcción animada, no crecimiento del tejido.
 
 El material usa una superficie rugosa no metálica y colores por vértice: estos colores marcan regiones, mientras las normales controlan la respuesta a la luz. No estamos calculando la dispersión espectral del tejido.
 
@@ -64,7 +64,7 @@ El material usa una superficie rugosa no metálica y colores por vértice: estos
 geometry.setAttribute("color", new THREE.Float32BufferAttribute(colours, 3));
 const material = new THREE.MeshStandardMaterial({
   vertexColors: true,
-  roughness: 0.78,
+  roughness: 0.9,
 });
 ```
 
@@ -193,7 +193,7 @@ El **nervio óptico** es la vía de salida. Los axones ganglionares convergen en
 
 Para el modelo, construimos paredes anidadas con una abertura común desplazada y añadimos un tramo corto de nervio. Cada pared tiene una superficie interna, otra externa y bordes que las unen. El orden de los vértices de los triángulos debe apuntar fuera del tejido por ambos lados: hacia el vítreo en la superficie interna y hacia fuera en la externa. Dentro del canal, el nervio sigue su mismo eje y radio de abertura; la curvatura comienza fuera de la esclerótica. Guardamos las mallas completas y seccionadas, incluidas las caras del corte, para que cambiar de vista no reconstruya la geometría.
 
-La **mácula** rodea la fóvea; unos $5,5\ \text{mm}$ de diámetro son una descripción clínica habitual, aunque los límites dependen de la definición (Webvision, *The Architecture of the Human Fovea*). Aquí señalamos la región con un tinte discreto. Deformamos la superficie interna con una depresión gaussiana para crear la **fosita foveal**, manteniendo fijo el límite externo del EPR. Su profundidad de $0,10\ \text{mm}$ es un parámetro del modelo, no una medida foveal universal. A escala del ojo completo debe ser sutil: la vista de capas anterior estaba ampliada.
+La **mácula** rodea la fóvea; unos $5,5\ \text{mm}$ de diámetro son una descripción clínica habitual, aunque los límites dependen de la definición (Webvision, *The Architecture of the Human Fovea*). Aquí señalamos la región con una mancha suave, más oscura y de tono marrón anaranjado. Deformamos la superficie interna con una depresión gaussiana para crear la **fosita foveal**, manteniendo fijo el límite externo del EPR. Su profundidad de $0,10\ \text{mm}$ es un parámetro del modelo, no una medida foveal universal. A escala del ojo completo debe ser sutil: la vista de capas anterior estaba ampliada.
 
 Los principales **vasos retinianos** salen de la papila y forman arcadas por encima y por debajo de la mácula central, evitando el centro foveal (Kolb; Provis et al., 2013). Dibujamos sus rutas como curvas y construimos tubos pequeños cuyos centros siguen la misma superficie retiniana. Su distribución y sus calibres visibles están estilizados; no modelamos la red capilar ni el límite exacto de la zona avascular foveal.
 
@@ -231,3 +231,5 @@ Continúa con la [Parte 5: Modelos y poblaciones](/es/blog/webgl-eye-05-models):
 
 10. **Ostrin, L. A., et al. (2023).** [*IMI—The Dynamic Choroid: New Insights, Challenges, and Potential Significance for Human Myopia*](https://pmc.ncbi.nlm.nih.gov/articles/PMC10153586/). Investigative Ophthalmology & Visual Science, 64(6), 4. Extremos de la longitud axial y contribuciones coroideas.
 11. **Webvision.** [*The Architecture of the Human Fovea*](https://www.ncbi.nlm.nih.gov/books/NBK554706/). NCBI Bookshelf. Terminología macular y foveal.
+
+12. **Clinical Methods (1990).** [*The Funduscopic Examination*](https://www.ncbi.nlm.nih.gov/books/NBK221/). Color del fondo de ojo, aspecto macular y referencias de la papila.

@@ -150,8 +150,8 @@ export default function RetinaCup({ lang = "en" }: { lang?: "en" | "es" }) {
 				</div>
 				<p className="lens-note">
 					{es
-						? "Radio elegido: 10.8 mm. La cúpula ya está formada; los triángulos muestran su construcción."
-						: "Chosen radius: 10.8 mm. The dome is already formed; triangles show its construction."}
+						? "Radio elegido: 10.8 mm. La cúpula ya está formada; la guía de malla muestra su construcción."
+						: "Chosen radius: 10.8 mm. The dome is already formed; the sparse mesh guide shows its construction."}
 				</p>
 			</div>
 		</div>

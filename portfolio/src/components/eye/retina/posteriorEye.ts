@@ -34,7 +34,7 @@ export const eyeCoats = [
 		es: "Retina",
 		inner: CUP_RADIUS,
 		outer: CUP_RADIUS + RETINAL_WALL,
-		color: "#aa655c",
+		color: "#9f431b",
 	},
 	{
 		key: "choroid",
@@ -220,7 +220,7 @@ export function createPosteriorEye({
 		const material = new THREE.MeshStandardMaterial({
 			color,
 			side: THREE.FrontSide,
-			roughness: key === "sclera" ? 0.94 : 0.78,
+			roughness: key === "sclera" ? 0.94 : 0.9,
 			metalness: 0,
 			envMapIntensity: 0.3,
 		});
@@ -248,14 +248,48 @@ export function createPosteriorEye({
 				);
 		if (key === "retina") {
 			material.vertexColors = true;
+			material.color.set(0xffffff);
+			// Subtle procedural pigmentation, not a cellular or spectral tissue model.
+			material.onBeforeCompile = (shader) => {
+				shader.vertexShader =
+					`varying vec3 retinalPoint;\n${shader.vertexShader}`.replace(
+						"#include <project_vertex>",
+						"retinalPoint = transformed;\n#include <project_vertex>",
+					);
+				shader.fragmentShader = `
+                    varying vec3 retinalPoint;
+                    float pigmentHash(vec2 p) {
+                        vec3 q = fract(vec3(p.xyx) * 0.1031);
+                        q += dot(q, q.yzx + 33.33);
+                        return fract((q.x + q.y) * q.z);
+                    }
+                    float pigmentNoise(vec2 p) {
+                        vec2 i = floor(p), f = fract(p);
+                        f = f * f * (3.0 - 2.0 * f);
+                        return mix(mix(pigmentHash(i), pigmentHash(i + vec2(1,0)), f.x),
+                            mix(pigmentHash(i + vec2(0,1)), pigmentHash(i + vec2(1,1)), f.x), f.y);
+                    }
+                    ${shader.fragmentShader}`.replace(
+					"#include <color_fragment>",
+					`#include <color_fragment>
+                        float variation = 0.96 + 0.055 * pigmentNoise(retinalPoint.xy * 5.0)
+                            + 0.025 * pigmentNoise(retinalPoint.xy * 22.0);
+                        diffuseColor.rgb *= variation;`,
+				);
+			};
+			const background = new THREE.Color("#9f431b"),
+				macula = new THREE.Color("#55291e"),
+				colour = new THREE.Color();
 			for (const mesh of [whole, cut]) {
 				const p = mesh.geometry.getAttribute("position");
 				const colors: number[] = [];
 				for (let i = 0; i < p.count; i++) {
 					const rho = Math.hypot(p.getX(i), p.getY(i));
-					const tint = 1 - THREE.MathUtils.smoothstep(rho, 0.7, MACULA_RADIUS);
-					// Muted pigment cue, not a spectral or fundus-colour simulation.
-					colors.push(1, 1 - 0.16 * tint, 1 - 0.42 * tint);
+					const tint = 0.88 * Math.exp(-((rho / (MACULA_RADIUS * 0.65)) ** 2));
+					// Fundus-inspired display colours, not intrinsic neural-retinal reflectance.
+					// The macula is a soft darker region, not a black hole or a yellow spot.
+					colour.copy(background).lerp(macula, tint);
+					colors.push(colour.r, colour.g, colour.b);
 				}
 				mesh.geometry.setAttribute(
 					"color",

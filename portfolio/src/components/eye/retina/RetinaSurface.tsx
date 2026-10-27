@@ -1,3 +1,4 @@
+import { Pause, Play, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { createLensScene } from "../lens/lensScene";
@@ -225,6 +226,13 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 					aria-pressed={finished ? undefined : paused}
 					onClick={() => (finished ? replay.current?.() : setPaused(!paused))}
 				>
+					{finished ? (
+						<RotateCcw size={14} aria-hidden="true" />
+					) : paused ? (
+						<Play size={14} aria-hidden="true" />
+					) : (
+						<Pause size={14} aria-hidden="true" />
+					)}
 					{finished
 						? es
 							? "Repetir"

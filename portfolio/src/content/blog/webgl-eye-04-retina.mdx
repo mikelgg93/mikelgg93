@@ -55,7 +55,7 @@ The warm tint makes the surface visible; it is not a prediction of fundus colour
 
 We are looking at the surface from inside the eye. The **fovea** is the small depression at the centre of the **macula**, the central retinal region; the **retinal pigment epithelium (RPE)** lies behind the photoreceptors. The nerve leaves through the disc on the nasal side (towards the nose), passing through the eye’s outer wall, the **sclera**.
 
-The next sequence adds material, foveal relief, major vessels and the optic nerve exit. Colour helps us read the surface; it does not simulate a fundus photograph. The pit changes the mesh, and the vessels avoid the foveal centre. This is animated construction, not tissue growth.
+The next sequence adds material, foveal relief, major vessels and the optic nerve exit. Through an ophthalmoscope, the fundus often appears orange-red, with a darker macula and a paler optic disc. Its appearance varies with pigmentation and illumination (Clinical Methods, *The Funduscopic Examination*). We borrow that palette to make the landmarks recognisable; it is not a calibrated fundus photograph or a claim that neural retinal tissue is opaque orange. The pit changes the mesh, and the vessels avoid the foveal centre. This is animated construction, not tissue growth.
 
 The material uses a rough, nonmetallic surface and vertex colours: the colours identify regions, while the normals control how they respond to light. We are not calculating spectral scattering in tissue.
 
@@ -64,7 +64,7 @@ The material uses a rough, nonmetallic surface and vertex colours: the colours i
 geometry.setAttribute("color", new THREE.Float32BufferAttribute(colours, 3));
 const material = new THREE.MeshStandardMaterial({
   vertexColors: true,
-  roughness: 0.78,
+  roughness: 0.9,
 });
 ```
 
@@ -191,7 +191,7 @@ The **optic nerve** is the exit route. Ganglion-cell axons converge at the **opt
 
 For the model, build nested walls with a shared, offset opening and attach a short nerve segment. Each wall has an inner surface, an outer surface and edges joining them. Their triangle winding must face out of the tissue on both sides: into the vitreous on the inner surface, away from it on the outer surface. Inside the canal, the nerve follows the same axis and opening radius; its bend begins outside the sclera. We cache both the closed and sectioned meshes, including the cut faces, so switching views does not rebuild geometry.
 
-The **macula** surrounds the fovea; a roughly $5.5\ \text{mm}$ diameter is a common clinical description, with boundaries depending on the definition (Webvision, *The Architecture of the Human Fovea*). For this drawing we mark that region with a muted tint. We deform the inner surface with a shallow Gaussian depression for the **foveal pit**, leaving the outer RPE boundary in place. Its $0.10\ \text{mm}$ depth is a model parameter, not a universal foveal measurement. At whole-eye scale this should look subtle: the earlier layer view was magnified.
+The **macula** surrounds the fovea; a roughly $5.5\ \text{mm}$ diameter is a common clinical description, with boundaries depending on the definition (Webvision, *The Architecture of the Human Fovea*). For this drawing we mark that region with a soft, darker orange-brown patch. We deform the inner surface with a shallow Gaussian depression for the **foveal pit**, leaving the outer RPE boundary in place. Its $0.10\ \text{mm}$ depth is a model parameter, not a universal foveal measurement. At whole-eye scale this should look subtle: the earlier layer view was magnified.
 
 The major **retinal vessels** leave the disc and curve above and below the central macula, avoiding the foveal centre (Kolb; Provis et al., 2013). We sketch those routes as curves, then build small tubes whose centres follow the same retinal surface. Their arrangement and visible calibres are stylised; the capillary network and the exact foveal avascular-zone boundary are not modelled.
 
@@ -229,3 +229,5 @@ Continue with [Part 5: Models and populations](/blog/webgl-eye-05-models): compa
 
 10. **Ostrin, L. A., et al. (2023).** [*IMI—The Dynamic Choroid: New Insights, Challenges, and Potential Significance for Human Myopia*](https://pmc.ncbi.nlm.nih.gov/articles/PMC10153586/). Investigative Ophthalmology & Visual Science, 64(6), 4. Axial-length endpoints and choroidal contributions.
 11. **Webvision.** [*The Architecture of the Human Fovea*](https://www.ncbi.nlm.nih.gov/books/NBK554706/). NCBI Bookshelf. Macular and foveal terminology.
+
+12. **Clinical Methods (1990).** [*The Funduscopic Examination*](https://www.ncbi.nlm.nih.gov/books/NBK221/). Fundus colour, macular appearance and optic-disc landmarks.

@@ -38,10 +38,10 @@ export function updateRetinalCup(
 	geometry.computeBoundingSphere();
 }
 export function retinalMaterial() {
-	return new THREE.MeshPhongMaterial({
-		color: 0xaa655c,
+	return new THREE.MeshStandardMaterial({
+		color: 0x9f431b,
 		side: THREE.DoubleSide,
-		shininess: 16,
-		specular: 0x614946,
+		roughness: 0.9,
+		metalness: 0,
 	});
 }
