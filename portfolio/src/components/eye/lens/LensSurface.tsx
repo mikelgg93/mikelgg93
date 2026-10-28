@@ -11,11 +11,13 @@ import {
 import { clearLensMaterial } from "./lensMaterial";
 import { createLensScene } from "./lensScene";
 
+const INITIAL_REVEAL = 0.4865348624651811;
+
 export default function LensSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es";
 	const mount = useRef<HTMLDivElement>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
-	const [reveal, setReveal] = useState(0.5);
+	const [reveal, setReveal] = useState(INITIAL_REVEAL);
 	const split = useRef(reveal);
 	const [error, setError] = useState(false);
 	useEffect(() => {
@@ -32,7 +34,12 @@ export default function LensSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(21, 4, 7);
+		view.camera.position.set(
+			14.379805327218397,
+			4.521503810691852,
+			16.696622474057534,
+		);
+		view.camera.up.set(0, 1, 0);
 		const geometry = createRoundedLensGeometry();
 		const material = clearLensMaterial();
 		const lens = new THREE.Mesh(geometry, material);
@@ -44,8 +51,8 @@ export default function LensSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		view.scene.add(lens);
 		const renderSize = new THREE.Vector2();
 		view.onReset(() => {
-			split.current = 0.5;
-			setReveal(0.5);
+			split.current = INITIAL_REVEAL;
+			setReveal(INITIAL_REVEAL);
 		});
 		view.start(() => {
 			material.visible = split.current !== 1;

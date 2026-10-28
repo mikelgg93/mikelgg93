@@ -21,17 +21,17 @@ import LensGrin from '../../components/eye/lens/LensGrin';
 import LensCataract from '../../components/eye/lens/LensCataract';
 import LensAssembly from '../../components/eye/lens/LensAssembly';
 
-In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea. In [Part 2](/blog/webgl-eye-02-pupil) we gave the eye a living aperture. Light can now enter our model, but there is still a problem: a mountain and the words on your phone do not ask the eye to focus in the same way.
+With the cornea from [Part 1](/blog/webgl-eye-01-cornea) and the living aperture from [Part 2](/blog/webgl-eye-02-pupil), light can now enter our model. But a mountain and the words on your phone require different focus.
 
-A camera often solves this by moving its lenses. The eye mainly changes the shape of one: the **crystalline lens**, tucked behind the iris. The mechanism is called **accommodation**, and its motor is a ring of muscle around the lens. The surprising part is that focusing up close involves releasing some of the pull on the lens.
+A camera often solves this by moving its lenses. The eye mainly changes the shape of the **crystalline lens**, behind the iris. This is **accommodation**, driven by a ring of muscle around the lens. Surprisingly, focusing up close involves releasing some of the pull on it.
 
 We'll start with a deliberately crude shape, give it an optical interior, then add the machinery that moves it. Finally, we'll look at how we measure a real lens and what changes when it loses transparency or flexibility.
 
 ## First approximation: Two opposing domes
 
-In [Part 1](/blog/webgl-eye-01-cornea), we already built a dome and used $Q$ to change its asphericity. We can reuse that construction here: make a second dome, turn it around, and bring the rims together. There is our first **biconvex lens**.
+We already built a dome in Part 1 and used $Q$ to change its asphericity. Make a second dome, turn it around and bring the rims together: our first **biconvex lens**.
 
-The front of a relaxed lens is flatter than the back. We fix the central radii at **10.2 mm anterior** and **6 mm posterior**, taking their magnitudes from the unaccommodated Navarro schematic eye (Navarro et al., 1985). These are reference-model values, not universal anatomy. For this first mesh we keep $Q=0$ and a 9 mm rim diameter; we are borrowing the radii, not reproducing Navarro's aspheric prescription.
+The front of a relaxed lens is flatter than the back. We borrow central radii of **10.2 mm anterior** and **6 mm posterior** from the [unaccommodated Navarro schematic eye (1985)](https://pubmed.ncbi.nlm.nih.gov/4032096/). These are reference-model values, not universal anatomy. With $Q=0$ and a 9 mm rim diameter, this first mesh borrows Navarro's radii without reproducing its aspheric prescription.
 
 ```ts
 const front = new THREE.Mesh(createTeachingCap(10.2), frontMaterial);
@@ -40,7 +40,7 @@ back.rotation.y = Math.PI;
 // Both rims lie at z = 0: the two domes meet here.
 ```
 
-The domes start joined, then slowly separate and come together again. Rotate the view and follow the construction grid. The rims meet, but their slopes do not: the seam is a sharp ridge. The two meshes also remain separate objects. Joining their positions is only the first construction step.
+The domes slowly separate and rejoin. Rotate the view and follow the grid: their rims meet, but their slopes do not, leaving a sharp ridge between two separate meshes.
 
 <InteractiveViewer>
   <div slot="preview"><LensDomes client:visible /></div>
@@ -49,9 +49,9 @@ The domes start joined, then slowly separate and come together again. Rotate the
 
 ## Round the equator and add a material
 
-A real lens has a rounded **equator**, where its front and back meet. Smoothing the normals alone would disguise our ridge without changing its silhouette. We need to change the profile itself.
+A real lens has a rounded **equator**, where its front and back meet. Smoothing normals would hide our ridge without changing the silhouette, so we need to reshape the profile.
 
-Keep the central spherical patches, stop them before the edge, and use a short **cubic Bézier curve** to turn each patch into the equator. The first control handle follows the dome's tangent. The last handle points along the optical axis, so the front and back arrive at the equator with a common tangent. Revolving this continuous profile gives us one closed lens surface.
+Keep the central spherical patches and join them to the equator with a short [**cubic Bézier curve**](https://pomax.github.io/bezierinfo/#cubic). Its control handles set the end tangents: one follows the dome; the other follows the optical axis, bringing both halves to a common tangent at the equator. Revolving the profile gives one closed surface. Three.js provides [`CubicBezierCurve`](https://threejs.org/docs/pages/CubicBezierCurve.html) for this step.
 
 ```ts
 const blend = new THREE.CubicBezierCurve(
@@ -68,33 +68,33 @@ const geometry = new THREE.LatheGeometry(normalizedProfile, 96);
 geometry.rotateX(Math.PI / 2); // align the optical axis with z
 ```
 
-We now set a **4 mm central thickness**, also a relaxed Navarro reference value, while keeping the illustrative 9 mm diameter. The blend handles and the anterior/posterior thickness split are drawing choices. This is a smooth anatomical approximation, not a fitted peripheral lens shape. The construction grid below makes that curved edge easier to inspect.
+We set a **4 mm central thickness**, another relaxed Navarro reference value, and keep the illustrative 9 mm diameter. The blend handles and thickness split are drawing choices, giving a smooth approximation rather than a fit to a measured peripheral lens.
 
-The profile above is in millimetres; dividing its radial and axial coordinates by 4.5 and 2 prepares it for the scale below. Keep exactly the same mesh. Now reveal a transmitting material over the unfilled construction grid: low roughness, a faint warm tint, and reflections from our procedural lighting. The shape is unchanged; only its response to light changes.
+The profile is in millimetres; dividing its radial and axial coordinates by 4.5 and 2 prepares it for the scale below. Over the same unfilled grid, we reveal a transmitting material with low roughness, a faint warm tint and procedural reflections. Only the material changes, not the shape.
 
 ```ts
 const lens = new THREE.Mesh(geometry, clearLensMaterial());
 lens.scale.set(4.5, 4.5, 2); // unit mesh → 9 mm wide, 4 mm thick
 ```
 
-Inside `clearLensMaterial()`, Three.js supplies the physical-material shader. We use an approximate relative index of $1.40/1.336$ to suggest lens tissue immersed in ocular fluid. A small shader adjustment shortens the transmission path toward the equator, using an elliptical chord approximation. Tint, roughness and this path estimate control the appearance; they do not reproduce the full optical behaviour of the lens or its internal gradient.
+Inside `clearLensMaterial()`, Three.js supplies the physical-material shader. An approximate relative index of $1.40/1.336$ suggests lens tissue immersed in ocular fluid, while an elliptical chord estimate shortens the transmission path toward the equator. Together with tint and roughness, these settings control appearance; they do not calculate the lens's internal optical gradient.
 
 <InteractiveViewer>
   <div slot="preview"><LensSurface client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.surface} /></div>
 </InteractiveViewer>
 
-Drag the divider: the left side exposes the construction mesh, and the right shows the same rounded surface with its transparent material. Next, we distinguish that rendered appearance from what light does **inside** the lens.
+Drag the divider to compare the grid on the left with the transparent surface on the right. To understand what light does **inside** that surface, we need another model.
 
 ## Give the lens an interior: GRIN
 
-The crystalline lens is a biconvex body enclosed by an elastic **capsule**. Inside it, elongated fibre cells form the outer **cortex** and the older central **nucleus**. Here “nucleus” names the central lens region, not a cell nucleus. New fibres are added throughout life. The lens has no blood vessels; its transparency depends on specialised cellular organisation, including the loss of nuclei and other organelles from mature fibres and the arrangement of densely packed crystallin proteins. These features reduce the small-scale refractive-index variations that would scatter light (Bassnett et al., 2011).
+An elastic **capsule** encloses the lens. Inside, elongated fibre cells form the outer **cortex** and older central **nucleus**—a region of the lens, not a cell nucleus. New fibres are added throughout life. The lens has no blood vessels, and mature fibres lose their nuclei and other organelles. Along with the organisation of densely packed crystallin proteins, this reduces the microscopic index variations that would scatter light (Bassnett et al., 2011).
 
-It is not a piece of glass with one uniform refractive index, either. The index generally increases from the outer cortex toward the central region. A higher refractive index means light travels more slowly through that part of the lens. This **gradient refractive index**, or **GRIN**, contributes to the lens's optical power and aberrations, alongside the curvature of its surfaces. MRI measurements and MRI-derived estimates of refractive index indicate that both lens shape and the index distribution change with accommodation (Khan et al., 2018).
+Yet the index is not uniform: it generally rises from cortex to centre, where light travels more slowly. This **gradient refractive index**, or **GRIN**, contributes to optical power and aberrations alongside surface curvature. MRI measurements and MRI-derived index estimates indicate that both shape and index distribution change with accommodation (Khan et al., 2018).
 
-There is a link back to Part 1, too: measurements in young eyes show that internal ocular optics can partially compensate corneal aberrations (Artal et al., 2001). This balance involves the whole eye; increasing the gradient in an isolated lens does not automatically improve retinal image quality.
+As we saw in Part 1, internal ocular optics can partially compensate corneal aberrations in young eyes (Artal et al., 2001). That balance involves the whole eye; strengthening an isolated lens gradient does not automatically improve the retinal image.
 
-A smooth change in index across the lens steers light; irregular microscopic variations can scatter it. At a sharp interface, a ray changes direction according to Snell's law. Inside a smoothly varying index, its direction changes continuously. To show the difference, the next demo traces rays through an isolated lens with an illustrative quadratic profile:
+A smooth index gradient steers light, whereas irregular microscopic variations can scatter it. At a surface, the ray changes direction according to Snell's law; within a gradient, it bends continuously. The next demo isolates this difference using a quadratic profile:
 
 <details>
 <summary>Optional: The index profile and its parameters</summary>
@@ -105,14 +105,14 @@ Here $x$ is the optical axis, $y$ is the height above it, and $a$ and $b$ are th
 
 </details>
 
-Switch between **Uniform** and **GRIN**. The dashed rays keep the same surface geometry with a uniform index of $1.370$; the golden rays follow the selected internal gradient. Follow the highlighted upper ray and compare its tip with the dashed path on the right. The colour contours mark equal index, not physical tissue boundaries.
+Switch between **Uniform** and **GRIN**, following the highlighted upper ray. Dashed rays use the same surfaces with a uniform index of $1.370$; golden rays follow the selected gradient. The coloured contours mark equal index, not tissue boundaries.
 
 <InteractiveViewer>
   <div slot="preview"><LensGrin client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.grin} /></div>
 </InteractiveViewer>
 
-These rays use Snell refraction at both surfaces and numerical integration through the interior. Automated checks compare the uniform case with exact surface intersections and paraxial thick-lens optics, and the GRIN rays with an independent integration method as the step size decreases. Real lens profiles are more complex, with age-dependent central and peripheral structure. We are isolating what a gradient does, rather than calculating a complete eye or a retinal image.
+The calculation applies Snell refraction at both surfaces and numerical integration inside. Tests compare the uniform case with exact intersections and paraxial thick-lens optics, and the GRIN rays with an independent integration method as the step size decreases. This validates the teaching calculation, not a complete eye: real profiles have more complex, age-dependent structure.
 
 <details>
 <summary>Optional: Where the published models go further</summary>
@@ -133,13 +133,13 @@ The literature follows a similar progression, but each model answers a particula
 
 </details>
 
-Our opposing domes and rounded equator are the mesh lesson. The quadratic GRIN example adds internal ray bending, while the following anatomy model adds accommodation and mechanical relationships. These are deliberately separate demonstrations, not implementations of the full named models. A quantitative eye would need a consistent set of surfaces, index profiles, distances and accommodation rules, validated together. An optical prescription alone does not determine muscle forces or cataract scattering. A next step would be to reproduce one published model with its surfaces and GRIN coupled together.
+These demonstrations separate mesh construction, internal ray bending and accommodation. Reproducing a published eye would require its surfaces, index profiles, distances and accommodation rules to work together and be validated together; an optical prescription alone does not supply muscle forces or cataract scattering.
 
 ## The ciliary muscle: Pull less to focus closer
 
-Around the lens sits the **ciliary body**, containing the smooth **ciliary muscle**. Its cross-section is roughly wedge-shaped, with an outer **longitudinal** portion, an intermediate **radial or reticular** portion, and an inner **circular** portion. These fibre systems interweave; they are regions of one muscle, not three independent motors.
+To move our lens, we need the **ciliary body** and its smooth **ciliary muscle**. The muscle has a roughly wedge-shaped section, with outer **longitudinal**, intermediate **radial or reticular**, and inner **circular** regions. Their fibres interweave as parts of one muscle.
 
-The inward-facing **ciliary processes** are vascular, epithelial folds of the ciliary body, involved in aqueous humour production. They are not radial muscle fibres. The **zonules** form a fine supporting network between the ciliary apparatus and the capsule, with attachments on the anterior, equatorial and posterior regions of the lens (Bassnett, 2021).
+On the inner body, the **ciliary processes** are vascular, epithelial folds involved in aqueous humour production, not radial muscle fibres. Between this apparatus and the capsule, fine **zonules** attach to anterior, equatorial and posterior lens regions (Bassnett, 2021).
 
 In the classical Helmholtz account of accommodation:
 
@@ -147,22 +147,22 @@ In the classical Helmholtz account of accommodation:
 2. **For near**, the muscle contracts and the ciliary ring narrows. The main lens-flattening zonular load decreases, allowing the lens and capsule to adopt a rounder configuration.
 3. The lens becomes thicker centrally and its equatorial diameter decreases. Its optical power increases.
 
-The lens itself contains no focusing muscle. Nor do its supporting fibres detach when you look near. The real zonular network has several attachment regions and a more complex distribution of forces than our radial spokes can show. The useful idea is the change in load: the ring contracts, while the lens rounds up. Imaging studies measure these accompanying changes in the lens and ciliary muscle (Richdale et al., 2013).
+The lens contains no focusing muscle, and the zonules remain attached during near focus. Their real force distribution is more complex than our radial spokes, but the essential relationship is visible: the ring contracts while the lens rounds up. Imaging studies measure both changes during accommodation (Richdale et al., 2013).
 
-We keep the same rounded 9 mm × 4 mm lens from the construction lesson. As it thickens, its diameter decreases to preserve the volume of this scaled mesh. The zonules attach to that surface, and the iris follows its anterior contour. The cataract comparison and final assembly use this same profile; the separate GRIN ray diagram retains its simpler elliptical section.
+We reuse the rounded 9 mm × 4 mm lens, narrowing it as it thickens to preserve mesh volume. The zonules attach to its surface and the iris follows its anterior contour. This profile also serves the cataract and final demos; only the separate GRIN diagram keeps its simpler elliptical section.
 
-We now add the ciliary body. A continuous, rounded muscle carries subtle bundle detail; the optional colour map locates its interwoven regions. The brown longitudinal folds are ciliary processes, attached along the inner body rather than floating as separate beads. Yellow zonules course between them and fan out onto anterior, equatorial and posterior capsular regions. The lens surface stands in for the capsule; we do not resolve its thin layered structure. The iris and outer eye wall are omitted so we can see the apparatus.
+With the iris and outer wall removed, we can see the ciliary body and its inward-facing brown processes. Yellow zonules pass between the folds and fan onto the capsule, represented here by the lens surface. A divider reveals a colour map of the interwoven muscle regions within the anterior wedge.
 
-The section is already open. Watch it alternate between a distant landscape and a nearby book: the inner ciliary tissue moves inward and slightly forward as the lens rounds up. The small illustration suggests the change in focus; the bottom-right readout shows the **modelled response**, which drives the shape change rather than measuring the optical power of the mesh. Drag the divider to compare the muscle map with the tissue surface, or drag the model to turn it. The map identifies interwoven muscle regions within the anterior wedge, fading into the surrounding ciliary tissue rather than labelling the whole body as muscle. Pause at any point to inspect the shape.
+Watch the view alternate between a distant landscape and a nearby book: the inner ciliary tissue moves inward and slightly forward as the lens rounds up. The bottom-right readout is the **modelled response** driving that deformation, not a measurement of mesh power. Rotate or pause the model to inspect the connections, and drag the divider to compare muscle regions with the tissue surface.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.anatomy} /></div>
 </InteractiveViewer>
 
-For this visualisation, the automatic sequence maps $0$–$6\ \text{D}$ of model accommodation onto illustrative shape changes. Muscle boundaries, fold counts and fibre paths are simplified for readability. The mesh does not calculate its own optical power or solve tissue mechanics, and fibre length is not a measurement of zonular force.
+The sequence maps $0$–$6\ \text{D}$ onto illustrative shape changes. Muscle boundaries, folds and fibre paths are simplified; the mesh solves neither optical power nor tissue mechanics, and fibre length does not measure zonular force.
 
-In code, the geometry is allocated once. We deform the muscle and update the existing fibre buffers, rather than rebuilding meshes during the animation. The illustrative lens mesh keeps a constant volume as it thickens and narrows. The transition uses a first-order easing step:
+We allocate geometry once, then deform the muscle and update fibre buffers during animation. A first-order easing step smooths the transition:
 
 ```ts
 const tau = 0.25; // seconds: an animation parameter
@@ -174,29 +174,27 @@ That quarter-second value controls the animation, not a universal physiological 
 
 ## How OCT measures lens shape
 
-How do we get beyond an attractive mesh? **Optical coherence tomography**, or **OCT**, uses interference between returning light and a reference beam to resolve tissue structure in depth. Scanning across the eye builds a cross-section, often called a **B-scan**. Anterior-segment systems can image lens surfaces through the pupil, with the visible area depending on the instrument and acquisition.
+**Optical coherence tomography (OCT)** lets us move from a plausible mesh toward measured shape. Interference between returning light and a reference beam resolves depth; scanning across the eye builds a cross-section, or **B-scan**. Anterior-segment systems image lens surfaces through the pupil, within the area accessible to the instrument.
 
-In [Pérez-Merino et al. (2015)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4679276/), researchers used OCT volumes to reconstruct the anterior and posterior lens surfaces during accommodation. Figure 3(a) in the linked paper compares relaxed and accommodated scans; Figure 3(b) maps departures from fitted spherical surfaces in the central $4\ \text{mm}$ of the relaxed eye. Those asymmetries show what our rotationally symmetric mesh leaves out.
+In [Pérez-Merino et al. (2015)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4679276/), OCT volumes reconstruct both lens surfaces during accommodation. Figure 3(a) compares relaxed and accommodated scans; Figure 3(b) shows departures from fitted spheres in the central $4\ \text{mm}$ of the relaxed eye, revealing asymmetries our rotational mesh omits.
 
-There is an optical catch. OCT depth is based on optical path length, and the beam has already been refracted by the structures in front of the surface being measured. Reconstructing physical shape therefore requires refractive-index assumptions and distortion correction. Image brightness mainly describes the returned signal; it is not a direct GRIN map, a muscle-force measurement or a simple scale of visual transparency. MRI and other methods provide complementary information about the lens and ciliary apparatus.
+Recovering physical shape requires refractive-index assumptions and distortion correction: OCT measures optical path length, and the beam has already refracted through overlying structures. Image brightness describes returned signal, not a direct GRIN or transparency map. MRI provides complementary information about the lens and ciliary apparatus.
 
 ## From distance to dioptres
 
-The closer an object gets, the more its rays diverge before reaching the eye. To bring them back onto the retina, the eye needs more optical power.
-
-For an eye focused at infinity with accommodation relaxed, the approximate additional demand is the reciprocal of object distance in metres:
+A closer object sends more divergent rays toward the eye, requiring more power to focus them on the retina. For an eye relaxed and focused at infinity, the additional demand is approximately the reciprocal of object distance in metres:
 
 $$A_{\mathrm{demand}} \approx \frac{1}{d}$$
 
-A target at $1\ \text{m}$ asks for about $1\ \text{D}$; at $50\ \text{cm}$, $2\ \text{D}$; at $25\ \text{cm}$, $4\ \text{D}$. **Demand** describes the stimulus. **Response** describes what the eye actually supplies. Real responses can lag behind demand and depend on viewing conditions; they need not match this simple reciprocal exactly.
+A target at $1\ \text{m}$ asks for about $1\ \text{D}$; at $50\ \text{cm}$, $2\ \text{D}$; at $25\ \text{cm}$, $4\ \text{D}$. This **demand** is the stimulus; the **response** is what the eye supplies, which may lag behind it depending on viewing conditions.
 
-To make the optical bookkeeping visible, we now replace the entire eye with one **reduced-eye** element. We choose the conventional distance power $F_0 = 60\ \text{D}$ and image-space index $n' = 4/3$, as in Emsley's reduced eye (Harris, 2009). The equivalent element represents cornea and lens together. We are not assigning $60\ \text{D}$ to the crystalline lens, or simply adding the separate powers of two thick, separated lenses.
+We represent the whole eye with one **reduced-eye** element, using Emsley's conventional distance power $F_0 = 60\ \text{D}$ and image-space index $n' = 4/3$ (Harris, 2009). This combines cornea and lens into an equivalent element; it neither assigns $60\ \text{D}$ to the lens nor simply adds the powers of two separated lenses.
 
 In the paraxial approximation, the outgoing vergence is the incoming vergence plus the optical power. With a near demand $A_{\mathrm{demand}}$ and response $A_{\mathrm{response}}$, the image distance is:
 
 $$l' = \frac{n'}{F_0 + A_{\mathrm{response}} - A_{\mathrm{demand}}}$$
 
-Distances here are measured from the model's equivalent principal plane. We keep the retina at $n'/F_0 \approx 22.2\ \text{mm}$ behind that plane; this is a reduced-eye distance, not a claim about the anatomical length of every eye. When response matches demand, the focus stays on the retina.
+Distances start at the equivalent principal plane, with the retina fixed $n'/F_0 \approx 22.2\ \text{mm}$ behind it. This reduced-eye distance is not anatomical axial length. When response matches demand, focus stays on the retina.
 
 Move the target closer below. The central symbol changes shape to indicate increased whole-eye power, while the focus remains in place.
 
@@ -205,45 +203,45 @@ Move the target closer below. The central symbol changes shape to indicate incre
   <div slot="code"><SourceFiles files={lensSources.focus} /></div>
 </InteractiveViewer>
 
-The diagram uses paraxial rays and an ideal response with enough accommodative range. It leaves out aberrations, diffraction and the lens's internal index gradient. It explains where the focus goes; it does not predict retinal image quality or visual acuity.
+This paraxial diagram assumes an ideal response with enough accommodative range. It locates focus without modelling aberrations, diffraction or GRIN, so it does not predict image quality or visual acuity.
 
 ## Who tells the muscle to move?
 
 Accommodation is mainly driven by parasympathetic output. Preganglionic fibres from the Edinger-Westphal complex travel with **cranial nerve III** to the **ciliary ganglion**. Postganglionic fibres then reach the ciliary muscle through the **short ciliary nerves** (McDougal & Gamlin, 2015).
 
-This shares an outgoing route with the pupil pathway from Part 2, but the muscles do different jobs. The iris sphincter adjusts the aperture; the ciliary muscle changes the loading of the lens.
+The pathway is shared with the pupil circuit from Part 2, but its targets have different jobs: the iris sphincter adjusts the aperture, while the ciliary muscle changes the load on the lens.
 
-When we shift our gaze toward a near target, accommodation usually accompanies **convergence** of the eyes and **pupil constriction**: the near response. A smaller pupil can increase depth of focus, but it does not restore lost lens flexibility. The focus experiment below isolates accommodation; the final assembly then adds the accompanying pupil response.
+Looking near usually combines accommodation with **convergence** and **pupil constriction**: the near response. A smaller pupil can increase depth of focus, but cannot restore lens flexibility. Our focus diagrams isolate accommodation; the final assembly adds the accompanying pupil response.
 
 ## Cataracts: Losing transparency
 
-The transparent lens depends on its microscopic organisation. When that organisation changes, including changes to lens proteins and fibre structure, light can be scattered and absorbed differently. A **cataract** is an opacity of the lens. It can reduce contrast, cause glare and make colours appear faded or yellowed, as well as reduce sharpness.
+Changes to lens proteins and fibre organisation alter how light is scattered and absorbed. A **cataract**, or lens opacity, can reduce contrast and sharpness, cause glare, and make colours appear faded or yellowed.
 
-The location matters. **Nuclear** cataracts affect the central region and may yellow or brown. **Cortical** opacities often form peripheral spokes or wedges. **Posterior subcapsular** opacities sit just in front of the posterior capsule. These patterns can coexist; they are not three mandatory stages of one sequence (Aliancy & Mamalis, 2017).
+Its location shapes the opacity: **nuclear** cataracts affect the centre and may yellow or brown; **cortical** opacities often form peripheral spokes; **posterior subcapsular** opacities lie just in front of the posterior capsule. They can coexist rather than following a fixed sequence (Aliancy & Mamalis, 2017).
 
-Compare the clear lens with all three opacity patterns at once. They share the same rounded geometry, lighting and viewing angle. Drag to turn all four together and inspect where the cloudiness lies.
+Rotate the four lenses together to compare these patterns with a clear lens under the same geometry, lighting and viewing angle.
 
 <InteractiveViewer>
   <div slot="preview"><LensCataract client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.cataract} /></div>
 </InteractiveViewer>
 
-Light scattered back toward an observer helps reveal an opacity; light scattered forward toward the retina affects the retinal image. They are not interchangeable measurements (Crnej et al., 2017).
+Backscattered light reveals an opacity to an observer; forward scatter affects the retinal image. These are not interchangeable measurements (Crnej et al., 2017), and our cloudiness shader does not calculate multiple scattering, glare or a person's view through the lens.
 
-The shader adds cloudiness in selected regions without calculating multiple scattering, glare or a person's view through the lens. When cataract affects daily activities enough to warrant surgery, the cloudy lens is removed and usually replaced by an artificial intraocular lens (National Eye Institute).
+When cataract disrupts daily activities enough to warrant surgery, the cloudy lens is removed and usually replaced by an artificial intraocular lens (National Eye Institute).
 
 > [!NOTE]
 > **Before replacement lenses**
 >
-> Did cataract surgery begin in ancient Egypt? Claims about pharaonic Egypt remain disputed; the surviving evidence does not establish that origin (Blomstedt, 2014). Ancient **couching** displaced the cloudy lens out of the visual axis. It could clear an obstruction, but left the eye without the lens's focusing power and carried serious risks. Later extraction removed the lens; modern surgery usually replaces its optical role with an implant. Harold Ridley's first intraocular lens implantation in 1949 was a key step toward that approach (Leffler et al., 2020).
+> Claims that cataract surgery began in pharaonic Egypt remain disputed (Blomstedt, 2014). Ancient **couching** displaced the cloudy lens from the visual axis, clearing an obstruction but removing its focusing contribution and carrying serious risks. Later extraction removed the lens; modern surgery usually replaces its optical role. Harold Ridley's first intraocular lens implantation in 1949 marked a key step toward that approach (Leffler et al., 2020).
 
 ## Presbyopia: When the lens cannot keep up
 
-Accommodation declines with age, eventually making sustained near work difficult without help: **presbyopia**. A lens can remain optically clear while losing accommodative range; cataract and presbyopia describe different changes, although both can be present.
+With age, declining accommodation makes sustained near work difficult: **presbyopia**. It can occur while the lens remains clear, so it is distinct from cataract even when both are present.
 
-It is tempting to blame a tired focusing muscle, but measurements show that ciliary contraction can persist in older eyes (Strenk et al., 1999). Age-related changes in the lens's mechanical properties play a major role; its continuing growth and the geometry of the surrounding apparatus also matter. Experiments on donor lenses demonstrate a marked loss of the ability to change optical power with age (Glasser & Campbell, 1998).
+Ciliary contraction can persist in older eyes (Strenk et al., 1999). The lens's changing mechanical properties play a major role, alongside continued growth and surrounding geometry; donor-lens experiments show a marked age-related loss of the ability to change optical power (Glasser & Campbell, 1998).
 
-We can explore the optical consequence without pretending to calculate someone's age. Give the model an **available accommodation** and let its response stop at that limit:
+We can explore the consequence by limiting the response to an **available accommodation**:
 
 ```ts
 const response = Math.min(demand, availableAccommodation);
@@ -257,22 +255,22 @@ Start at $25\ \text{cm}$ with only $2\ \text{D}$ available. The target demands $
   <div slot="code"><SourceFiles files={lensSources.focus} /></div>
 </InteractiveViewer>
 
-The reserve slider is a model parameter, not an age scale or a clinical test. It also assumes accurate distance focus before accommodation begins. Real near vision depends on refractive correction, pupil size, depth of focus and the task, as well as accommodative amplitude.
+The reserve is a model parameter, not an age scale or clinical test. We assume accurate distance focus; real near vision also depends on correction, pupil size, depth of focus and the task.
 
 ## Bring the three parts together
 
-The cornea supplies the front refracting surface. The iris sets the opening, and the crystalline lens changes shape behind it. Here they finally share one scene.
+We can now bring our three parts into one scene: the cornea provides the front refracting surface, the iris sets the opening, and the lens changes shape behind it.
 
-The aqueous-filled **anterior chamber** lies between the posterior cornea and the iris, with the lens behind the pupil. It communicates with the posterior chamber through the pupil. The cornea continues into the sclera at the limbus, and the iris root joins the ciliary body near the chamber angle. A cutaway removes part of those boundaries to show the space; it does not mean that the chamber is open in an intact eye (AAO EyeWiki, *Gonioscopy*).
+The aqueous-filled **anterior chamber** lies between posterior cornea and iris, with the lens behind the pupil. It communicates with the posterior chamber through that opening. At its edges, cornea continues into sclera at the limbus and the iris root joins the ciliary body near the chamber angle. Our cutaway removes these boundaries for visibility; the intact chamber is enclosed (AAO EyeWiki, *Gonioscopy*).
 
-The eye stays open in section. As attention shifts toward the nearby object, the lens thickens and the pupil constricts; as it returns to distance, both relax toward their starting state. This illustrates the near response at constant lighting. The pupil range and timing are model parameters, not a universal relationship between dioptres and pupil diameter. Convergence would require a second eye and is not shown. Rotate the view or pause the animation to inspect the connections.
+As the target moves near, the lens thickens and pupil constricts; both relax when it returns to distance. This illustrates the near response at constant lighting, with illustrative pupil ranges and timing. Convergence needs a second eye and is omitted. Rotate or pause the view to inspect how the structures meet.
 
 <InteractiveViewer>
   <div slot="preview"><LensAssembly client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.assembly} /></div>
 </InteractiveViewer>
 
-This is an anatomical assembly of our teaching models. It brings together the conic cornea from Part 1, a pigmented iris with a real opening, and our deforming lens and ciliary apparatus. The lens uses a clear, subtly warm material with procedurally generated studio reflections. This final 3D lens does not contain a GRIN ray tracer: its transparent finish is an appearance shader. Internal ray bending is calculated only in the separate GRIN demonstration above. The ciliary-body envelope tapers posteriorly, with muscle in its outer portion and processes projecting inward. The posterior edge of this anterior-segment model is truncated. The dimensions and surface finishes are illustrative; the scene does not combine their optical calculations or predict a retinal image.
+The assembly combines the conic cornea, pigmented iris and deforming lens with its ciliary apparatus. The ciliary body tapers behind the muscle and inward-facing processes, ending at the truncated edge of this anterior-segment model. Its dimensions and materials are illustrative. Crucially, the clear 3D lens uses an appearance shader: **GRIN ray bending is calculated only in the separate demonstration above**. This scene joins the anatomy, not the optical calculations, and does not predict a retinal image.
 
 We have now explored three mechanisms: a fixed front surface, an adjustable aperture and a lens that changes focus. In the real eye, they work together to form the retinal image.
 
