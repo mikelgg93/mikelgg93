@@ -64,8 +64,9 @@ export default function LensDomes({ lang = "en" }: { lang?: "en" | "es" }) {
 			const moving = !params.current.paused && !reducedMotion;
 			if (moving) elapsed += dt;
 			const gap = domeSeparation(elapsed);
-			surfaces[0].position.z = gap;
-			surfaces[1].position.z = -gap;
+			surfaces.forEach((surface, i) => {
+				surface.position.z = i === 0 ? gap : -gap;
+			});
 			return {
 				state: {
 					model: "Opposing spherical caps; sharp equator",
