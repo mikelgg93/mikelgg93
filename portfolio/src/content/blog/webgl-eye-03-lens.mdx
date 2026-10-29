@@ -21,9 +21,9 @@ import LensGrin from '../../components/eye/lens/LensGrin';
 import LensCataract from '../../components/eye/lens/LensCataract';
 import LensAssembly from '../../components/eye/lens/LensAssembly';
 
-With the cornea from [Part 1](/blog/webgl-eye-01-cornea) and the living aperture from [Part 2](/blog/webgl-eye-02-pupil), light can now enter our model. But a mountain and the words on your phone require different focus.
+In [Part 1](/blog/webgl-eye-01-cornea) we shaped the cornea, and in [Part 2](/blog/webgl-eye-02-pupil) we added a living aperture. Light can now enter our model, but there is still a problem: focusing on a mountain requires a different adjustment from reading the words on your phone.
 
-A camera often solves this by moving its lenses. The eye mainly changes the shape of the **crystalline lens**, behind the iris. This is **accommodation**, driven by a ring of muscle around the lens. Surprisingly, focusing up close involves releasing some of the pull on it.
+A camera often solves this by moving its lenses, whereas the eye mainly changes the shape of the **crystalline lens**, which sits behind the iris. This mechanism, called **accommodation**, relies on a ring of muscle around the lens and has a surprising feature: focusing up close involves releasing some of the pull that keeps the lens flattened.
 
 We'll start with a deliberately crude shape, give it an optical interior, then add the machinery that moves it. Finally, we'll look at how we measure a real lens and what changes when it loses transparency or flexibility.
 
