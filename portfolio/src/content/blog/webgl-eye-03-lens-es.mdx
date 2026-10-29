@@ -21,9 +21,9 @@ import LensGrin from '../../components/eye/lens/LensGrin';
 import LensCataract from '../../components/eye/lens/LensCataract';
 import LensAssembly from '../../components/eye/lens/LensAssembly';
 
-Con la córnea de la [Parte 1](/es/blog/webgl-eye-01-cornea) y la apertura viva de la [Parte 2](/es/blog/webgl-eye-02-pupil), la luz ya puede entrar en nuestro modelo. Pero una montaña y las palabras de tu teléfono necesitan enfoques distintos.
+En la [Parte 1](/es/blog/webgl-eye-01-cornea) dimos forma a la córnea y en la [Parte 2](/es/blog/webgl-eye-02-pupil) añadimos una apertura viva. Ahora la luz ya puede entrar en nuestro modelo, pero todavía hay un problema: enfocar una montaña no requiere el mismo ajuste que leer las palabras de tu teléfono.
 
-Una cámara suele resolverlo desplazando sus lentes. El ojo cambia principalmente la forma del **cristalino**, detrás del iris. Es la **acomodación**, impulsada por un anillo muscular que lo rodea. Lo sorprendente es que enfocar de cerca implica reducir parte de la tracción sobre la lente.
+Una cámara suele resolverlo desplazando sus lentes, mientras que el ojo cambia principalmente la forma del **cristalino**, situado detrás del iris. Este mecanismo, llamado **acomodación**, depende de un anillo muscular que rodea la lente y tiene una particularidad: para enfocar de cerca, reduce parte de la tracción que la mantiene aplanada.
 
 Partiremos de una forma deliberadamente sencilla, le daremos un interior óptico y añadiremos el mecanismo que la mueve. Después veremos cómo medimos un cristalino real y qué cambia al perder transparencia o flexibilidad.
 
