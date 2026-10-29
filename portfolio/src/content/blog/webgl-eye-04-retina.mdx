@@ -20,17 +20,17 @@ import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
 import RetinaSampling from '../../components/eye/retina/RetinaSampling';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
-We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the <PublishedPost id="webgl-eye-03-lens" fallback="lens"><a href="/blog/webgl-eye-03-lens/">lens</a></PublishedPost> a way to change focus. There is now somewhere for light to go, but nobody to receive it.
+We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the <PublishedPost id="webgl-eye-03-lens" fallback="lens"><a href="/blog/webgl-eye-03-lens/">lens</a></PublishedPost> a way to change focus. Light can now travel through our model, but we still need something to receive it.
 
-Enter the **retina**: a curved sheet of neural tissue lining the back of the eye. Calling it the eye's camera sensor is a useful first approximation. It is also a trap. The retina does not simply record an image and send the pixels onwards. Its cells begin processing visual information before the signals leave the eye.
+That is the job of the **retina**, a curved sheet of neural tissue lining the back of the eye. Thinking of it as a camera sensor is a useful starting point, provided we remember that its cells do more than record an image: they begin processing visual information before the signals leave the eye.
 
-As before, we'll build the easy version first. One surface, then layers, then repeated cells. Only after that will we ask what happens when a continuous image meets a finite collection of photoreceptors.
+As before, we'll start with one surface, then add layers and repeated cells until we can explore what happens when a continuous image reaches a finite collection of photoreceptors.
 
 ## First approximation: A dome
 
-Our first retina is a cup. We sample angles around a sphere and retain its posterior portion. It is the opposite end of the construction we used for the cornea: this time we look into the concave surface.
+We can make our first retina by sampling angles around a sphere and keeping its posterior portion as a cup. This uses the opposite end of the construction from the cornea, with the view now looking into the concave surface.
 
-For this visualisation, choose a radius of $10.8\ \text{mm}$. This is a **schematic dimension**, not a universal retinal curvature. MRI measurements show that eye dimensions and shape vary, including with refractive error (Atchison et al., 2004). A spherical cup is a convenient starting mesh.
+For this visualisation, we choose a radius of $10.8\ \text{mm}$ as a **schematic dimension**. A spherical cup makes a convenient starting mesh, although real eye dimensions and shape vary, including with refractive error, as MRI measurements show (Atchison et al., 2004).
 
 ```ts
 const theta = u * Math.PI * 0.49;
@@ -40,24 +40,24 @@ const y = r * Math.sin(angle);
 const z = centreZ - radius * Math.cos(theta);
 ```
 
-Here, `u` runs from 0 at the posterior pole to 1 at the rim; `angle` runs from 0 to 2π around the axis. Coordinates are in millimetres, with positive z towards the cornea. The angle stops just short of a hemisphere. The dome is already formed; turn off **Mesh guide** to inspect the surface.
+Here, `u` runs from 0 at the posterior pole to 1 at the rim, while `angle` runs from 0 to 2π around the axis. Coordinates are in millimetres, with positive z towards the cornea and the cup stopping just short of a hemisphere. The dome is already formed, so you can turn off **Mesh guide** to inspect its surface.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaCup client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.cup} /></div>
 </InteractiveViewer>
 
-A single shared vertex closes the pole, and the last sector joins back to the first. This avoids collapsed triangles at the centre and a lighting seam around the cup.
+Closing the pole with one shared vertex avoids collapsed triangles at the centre, while joining the last sector back to the first prevents a lighting seam around the cup.
 
-The warm tint makes the surface visible; it is not a prediction of fundus colour. This shell gives us position and curvature. It has not yet given us a single light-sensitive cell.
+The warm tint helps us see the surface without predicting fundus colour. We now have position and curvature, but the shell still needs the landmarks and cells that make it a retina.
 
 ## Material and landmarks
 
-We are looking at the surface from inside the eye. The **fovea** is the small depression at the centre of the **macula**, the central retinal region; the **retinal pigment epithelium (RPE)** lies behind the photoreceptors. The nerve leaves through the disc on the nasal side (towards the nose), passing through the eye’s outer wall, the **sclera**.
+From inside the eye, we would see the **fovea**, a small depression at the centre of the **macula**, with the **retinal pigment epithelium (RPE)** behind the photoreceptors. Towards the nose, the nerve leaves through the optic disc and passes through the eye's outer wall, the **sclera**.
 
-The next sequence adds material, foveal relief, major vessels and the optic nerve exit. Through an ophthalmoscope, the fundus often appears orange-red, with a darker macula and a paler optic disc. Its appearance varies with pigmentation and illumination (Clinical Methods, *The Funduscopic Examination*). We borrow that palette to make the landmarks recognisable; it is not a calibrated fundus photograph or a claim that neural retinal tissue is opaque orange. The pit changes the mesh, and the vessels avoid the foveal centre. This is animated construction, not tissue growth.
+We add these landmarks in sequence: material, foveal relief, major vessels and the optic nerve exit. The palette follows the orange-red fundus often seen through an ophthalmoscope, with a darker macula and paler disc, although pigmentation and illumination affect its appearance (Clinical Methods, *The Funduscopic Examination*). These colours help identify regions rather than calibrating a fundus photograph or suggesting that neural retinal tissue is opaque orange. As the pit deforms the mesh, the vessels take routes around its centre; the animation shows construction, not tissue growth.
 
-The material uses a rough, nonmetallic surface and vertex colours: the colours identify regions, while the normals control how they respond to light. We are not calculating spectral scattering in tissue.
+A rough, nonmetallic material gives the surface its appearance, using vertex colours to distinguish regions and normals to control the lighting response. This lets us read the anatomy without calculating spectral scattering in tissue.
 
 ```ts
 // One linear-RGB triplet per vertex; chosen colours, not measured reflectance.
@@ -68,16 +68,16 @@ const material = new THREE.MeshStandardMaterial({
 });
 ```
 
-For the pit, move the inner surface outwards towards the RPE while keeping the outer boundary fixed. A Gaussian confines the change near the centre; then recompute the normals.
+To form the pit, we move the inner surface outwards towards the RPE while keeping the outer boundary fixed. A Gaussian confines the displacement near the centre, after which we recompute the normals.
 
 ```ts
 const innerRadius = CUP_RADIUS
   + PIT_DEPTH * Math.exp(-((distance / PIT_WIDTH) ** 2));
 ```
 
-`distance` measures surface distance from the foveal axis. The magnified profile keeps equal scales on both axes, exposing the pit without changing the eye geometry. We precompute the starting and final positions and normals; the GPU interpolates between them.
+Here, `distance` measures surface distance from the foveal axis. A magnified profile with equal scales on both axes reveals the pit without changing the eye geometry, while the GPU animates its formation by interpolating between precomputed starting and final positions and normals.
 
-Each vessel starts as a curve in the x–y plane. Project it onto the retinal surface, then sweep a tube along it:
+For each vessel, we start with a curve in the x–y plane, project it onto the retinal surface and sweep a tube along the result:
 
 ```ts
 // RetinalVesselCurve projects each curve sample onto retinalPoint(x, y).
@@ -88,7 +88,7 @@ const vessel = new THREE.Mesh(
 );
 ```
 
-We taper those tubes towards their ends. A thin screen-space stroke keeps their routes legible when the tubes become smaller than a pixel; its width is a drawing aid, not a measured calibre. The nerve occupies the nasal opening and bends outside the sclera. The magnified profile remains available after the pit forms, including with reduced motion. The sequence plays once and holds the result; **Replay** starts it again.
+As the tubes taper below a pixel in width, a thin screen-space stroke keeps their routes legible; its width is a drawing aid rather than a measured calibre. The nerve follows the nasal opening and bends outside the sclera. Once the sequence finishes, it holds the result and the magnified profile remains available, including with reduced motion. Use **Replay** to watch the construction again.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaSurface client:visible /></div>
@@ -97,36 +97,36 @@ We taper those tubes towards their ends. A thin screen-space stroke keeps their 
 
 ## Turn the surface into a tissue
 
-Light arrives from the **vitreous**, the gel-filled space behind the lens. In the vertebrate retina, rods and cones lie towards the outer side, close to the **retinal pigment epithelium**, or RPE. Light generally crosses the inner neural layers before reaching their light-sensitive outer segments.
+To turn this surface into tissue, we need to follow light arriving from the **vitreous**, the gel-filled space behind the lens. In the vertebrate retina, rods and cones sit towards the outer side near the **retinal pigment epithelium**, or RPE, so light generally crosses the inner neural layers before reaching their light-sensitive outer segments.
 
-The RPE supports photoreceptors: among its jobs are absorbing stray light, participating in the visual cycle, and phagocytosing shed outer-segment material. Behind it lies the vascular **choroid**. The neural retina and its pigment epithelium are closely associated, but they are not interchangeable names for one layer (Kolb, *Simple Anatomy of the Retina*).
+The RPE supports these photoreceptors by absorbing stray light, participating in the visual cycle and phagocytosing shed outer-segment material, with the vascular **choroid** lying behind it. Although closely associated, the neural retina and pigment epithelium are distinct tissues (Kolb, *Simple Anatomy of the Retina*).
 
-The section below groups the tissue into seven readable bands. **Nuclear layers** contain cell bodies; **plexiform layers** contain many of the synaptic connections. It is a map of the main compartments, not the complete conventional layer count. The nerve-fibre and ganglion-cell layers are grouped together, and the external limiting boundary is represented schematically.
+The section below maps the main compartments into seven readable bands, with cell bodies in the **nuclear layers** and many synaptic connections in the **plexiform layers**. This groups the nerve-fibre and ganglion-cell layers together and represents the external limiting boundary schematically, rather than reproducing the complete conventional layer count.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaLayers client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.layers} /></div>
 </InteractiveViewer>
 
-The cell icons add rods and cones, bipolar and ganglion cells, lateral horizontal and amacrine connections, and supporting Müller cells. Their shapes and wiring are schematic, not a reconstructed neural circuit (Kolb, *Simple Anatomy of the Retina*). The arrows distinguish incoming light from the overall signal route towards ganglion cells.
+Within the bands, icons locate rods and cones, bipolar and ganglion cells, lateral horizontal and amacrine connections, and supporting Müller cells. Their schematic shapes and wiring help orient us without reconstructing a neural circuit (Kolb, *Simple Anatomy of the Retina*), while arrows distinguish incoming light from the overall signal route towards ganglion cells.
 
 ## A pit with a purpose: The fovea
 
-Now turn on **Show fovea**. The inner layers thin out towards the centre while the outer bands remain. In a typical fovea, inner retinal tissue is displaced away from the centre; tightly packed central cones become narrow and elongated. The central region is also free of retinal blood vessels; its outer retina is supplied by the choroid, so “avascular” does not mean without a blood supply. The pit, cone specialisation and vascular arrangement are related features, rather than a hole punched through the retina (Provis et al., 2013).
+Turning on **Show fovea** reveals how this organisation changes at the centre: the inner layers thin while the outer bands remain. In a typical fovea, inner retinal tissue is displaced sideways and tightly packed central cones become narrow and elongated. The centre is free of retinal vessels, but its outer retina receives blood from the choroid, so “avascular” does not mean without a blood supply. Together, these features form a specialised region rather than a hole through the retina (Provis et al., 2013).
 
-Our profile captures that change in organisation, with exaggerated vertical dimensions. One highlighted cone route suggests lateral displacement; it does not reconstruct individual Henle fibres or measured layer thicknesses. Nor does pit depth alone determine visual acuity: central cone specialisation can occur even when a conventional pit is absent.
+Our profile makes this arrangement visible by exaggerating vertical dimensions, with one highlighted cone route suggesting lateral displacement. It does not reconstruct individual Henle fibres or measured layer thicknesses, and pit depth alone does not determine acuity: central cone specialisation can occur even without a conventional pit.
 
-**OCT** gives us a way to inspect retinal depth in a living eye. It uses [low-coherence interferometry](https://pubmed.ncbi.nlm.nih.gov/1957169/) to resolve backscattered light with depth. A cross-sectional B-scan often makes the foveal contour immediately recognisable. But an OCT image is not a photograph of seven painted sheets. Bright and dark bands depend on tissue scattering and the imaging system, and their anatomical interpretation requires care. Spaide and Curcio (2011), for example, examined how outer-retinal OCT bands correspond to photoreceptor structures.
+We can inspect this depth structure in a living eye with **OCT**, which uses [low-coherence interferometry](https://pubmed.ncbi.nlm.nih.gov/1957169/) to resolve backscattered light with depth. A B-scan often reveals the foveal contour clearly, although its bright and dark bands depend on tissue scattering and the imaging system rather than resembling painted sheets. Interpreting those bands anatomically requires care, as Spaide and Curcio (2011) explored when relating outer-retinal OCT bands to photoreceptor structures.
 
-The diagram above is an anatomical sketch, **not a simulated OCT scan**. Its colours label compartments; its brightness says nothing about OCT reflectivity.
+Our diagram instead uses colours to label anatomical compartments, so it is **not a simulated OCT scan** and its brightness carries no information about OCT reflectivity.
 
 ## Zoom into a receptor patch: Rods and cones
 
-A real retina contains far too many photoreceptors to draw each one in a lightweight browser demo. In their histological sample, Curcio et al. (1990) reported averages of roughly **4.6 million cones and 92 million rods per retina**, with substantial variation between eyes. These are measured study averages, not a fixed specification for every human eye.
+At the cellular scale, a whole retina is too large for us to draw every photoreceptor in a lightweight browser demo. Curcio et al. (1990) reported averages of roughly **4.6 million cones and 92 million rods per retina** in their histological sample, with substantial variation between eyes rather than a fixed count for every person.
 
-The distribution matters as much as the totals. Cone density peaks sharply near the foveal centre and falls away from it. Rods are absent from the central rod-free zone and abundant outside it; their density also varies across the retina. The optic disc, where ganglion-cell axons leave the eye, has no rods or cones and corresponds to the physiological blind spot.
+Where these cells sit matters as much as their total number. Cone density peaks sharply near the foveal centre and falls away from it, while rods are absent from the central rod-free zone and abundant beyond it, with density varying across the retina. Neither occurs at the optic disc, where ganglion-cell axons leave the eye, giving us the physiological blind spot.
 
-We will draw a small set of **enlarged photoreceptor icons**. A cone and a rod each need one geometry and material; `InstancedMesh` repeats them at different positions with relatively few draw calls.
+We can explore this distribution with a small set of **enlarged photoreceptor icons**, giving a cone and a rod one geometry and material each. `InstancedMesh` then repeats them at different positions with relatively few draw calls:
 
 ```ts
 const cells = new THREE.InstancedMesh(geometry, material, capacity);
@@ -141,38 +141,38 @@ cells.instanceMatrix.needsUpdate = true;
   <div slot="code"><SourceFiles files={retinaSources.mosaic} /></div>
 </InteractiveViewer>
 
-Compare the two equal-area patches from above. The **Foveal centre** has a denser, cone-only arrangement; **Away from centre** mixes cones with rods. **Show cell shapes** tilts both patches to reveal the narrower, longer central cones. These are deliberately magnified local patches, separate from the whole-eye shell, and their spacing is illustrative rather than a measured density map.
+Viewed from above, the two equal-area patches show a denser, cone-only **Foveal centre** beside an **Away from centre** patch mixing cones and rods. **Show cell shapes** tilts both to reveal the narrower, longer central cones. We magnify these local patches separately from the whole-eye shell and use illustrative spacing rather than a measured density map.
 
-Rods support very sensitive vision in dim conditions. Cones support daylight vision and colour discrimination. The S-, M- and L-cone classes have broad, overlapping spectral sensitivities: they are not red, green and blue screen pixels arranged in repeating triplets (Stockman & Sharpe, 2000). Our gold colour identifies *cones as a group*; the demo does not assign cone classes or simulate colour vision.
+The cell types also differ in function: rods support very sensitive vision in dim conditions, while cones support daylight vision and colour discrimination. S-, M- and L-cones have broad, overlapping spectral sensitivities rather than behaving like red, green and blue screen pixels in repeating triplets (Stockman & Sharpe, 2000). Our gold colour identifies *cones as a group*, without assigning classes or simulating colour vision.
 
 ## Sampling: More detail is not always more information
 
-Imagine projecting fine stripes onto a row of receptors. If the stripes become finer than that row can distinguish, two different patterns can produce the same samples. This is **aliasing**: detail can become ambiguous, rather than simply disappearing into a blur.
+Now imagine projecting fine stripes onto a row of these receptors. As the stripes become too fine for the row to distinguish, different patterns can produce the same samples. This ambiguity is **aliasing**, where detail can be misrepresented rather than simply disappearing into blur.
 
-To isolate the idea, leave the anatomy aside for a moment. The next demo uses equally spaced **point samples in one dimension**. Frequency is measured in cycles across the panel, not cycles per degree of visual angle. With $N$ samples across that interval, its Nyquist boundary is $N/2$ cycles per interval. At the boundary itself, phase can make the signal disappear from the samples; unique reconstruction requires appropriate band-limiting below it.
+We can isolate this effect by setting the anatomy aside and using equally spaced **point samples in one dimension**. Here frequency means cycles across the panel, not per degree of visual angle, and $N$ samples give a Nyquist boundary of $N/2$ cycles per interval. At the boundary, phase can make the signal disappear from the samples, so unique reconstruction requires appropriate band-limiting below it.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaSampling client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.sampling} /></div>
 </InteractiveViewer>
 
-Start with 16 samples and increase the stripes beyond 8 cycles. The bottom row shows a lower-frequency pattern that agrees at the sample positions. Add more samples and the boundary moves. **Shift ¼ cycle** changes where the stripes fall relative to the receptors; at certain settings, every sample can land on the same grey.
+Start with 16 samples and increase the stripes beyond 8 cycles to reveal a lower-frequency pattern in the bottom row that agrees at every sample position. Adding samples moves the boundary, while **Shift ¼ cycle** changes where the stripes fall relative to the receptors. At certain settings, every sample lands on the same grey.
 
-This is a sampling experiment, not a retinal-image or perception simulator. Receptors have finite collecting areas, ocular optics filter the incoming pattern, and neural circuitry, adaptation and eye movements also matter. Human foveal aliasing has been demonstrated experimentally under carefully controlled conditions (Williams, 1985); our regular one-dimensional row is a way to understand the ambiguity, not a way to calculate somebody's visual acuity.
+Real receptors have finite collecting areas, and ocular optics filter the pattern before neural circuitry, adaptation and eye movements also affect vision. Although human foveal aliasing has been demonstrated under carefully controlled conditions (Williams, 1985), our regular one-dimensional row only isolates the sampling ambiguity. It does not simulate retinal images or perception, or calculate someone's visual acuity.
 
 ## The retina is already doing computation
 
-An absorbed photon initiates a biochemical cascade. In rods and cones, the light response **hyperpolarises** the cell and reduces glutamate release. That change is the beginning of a neural message, not a tiny electrical photograph.
+Sampling is only the beginning of the retinal response. When a rod or cone absorbs a photon, it initiates a biochemical cascade that **hyperpolarises** the cell and reduces glutamate release, starting a neural message rather than producing a tiny electrical photograph.
 
-Bipolar cells pass signals towards ganglion cells; horizontal and amacrine cells contribute lateral interactions and other processing. ON and OFF pathways respond differently to light increments and decrements. Ganglion-cell axons form the optic nerve, carrying action potentials onwards. The real circuitry includes multiple cell types and parallel routes, not a single cone-to-wire connection (Kolb, *How the Retina Works*).
+Bipolar cells carry signals towards ganglion cells while horizontal and amacrine cells contribute lateral interactions and other processing. Along the way, ON and OFF pathways respond differently to light increments and decrements, before ganglion-cell axons carry action potentials onwards through the optic nerve. This circuitry has multiple cell types and parallel routes rather than a single cone-to-wire connection (Kolb, *How the Retina Works*).
 
-There is also a link back to Part 2. Melanopsin-expressing **ipRGCs** are ganglion cells: they can respond intrinsically to light and also receive rod/cone input. The retina's contribution to the pupil light reflex therefore is not confined to one kind of photoreceptor.
+This also connects to the pupil reflex from Part 2: melanopsin-expressing **ipRGCs** are ganglion cells that respond intrinsically to light as well as receiving rod/cone input. The retina therefore contributes to the reflex through more than one kind of photoreceptor.
 
-Our meshes show where some of these structures belong. They do not implement phototransduction, receptive fields or spike trains. That is a different layer of modelling, and it deserves more than an animated arrow.
+Our meshes locate some of these structures without implementing their phototransduction, receptive fields or spike trains. That would require another level of modelling, beyond what an animated arrow can explain.
 
 ## Put the receiving surface behind the optics
 
-We can now place the cup behind the cornea, iris and lens from the earlier articles. Their coordinate systems must agree. Here are the dimensions of the assembled, relaxed model, in millimetres:
+With the receiving tissue in place, we can position the cup behind the cornea, iris and lens from the earlier articles. Aligning their coordinate systems gives the following dimensions for the assembled, relaxed model, in millimetres:
 
 | Measurement | Endpoints in this model | Value |
 | --- | --- | ---: |
@@ -181,32 +181,32 @@ We can now place the cup behind the cornea, iris and lens from the earlier artic
 | Lens thickness (LT) | Anterior to posterior lens | 4.00 |
 | Axial length (AXL) | Anterior cornea to the boundary representing the RPE | 24.30 |
 
-The outer envelope is approximately **24.4 mm wide and high**, and **25.4 mm from the corneal apex to the outer posterior sclera**. That last distance is not the AXL in the table, which ends at the RPE. The 10.8 mm retinal radius and centre at $z=-7.6\ \text{mm}$ locate this envelope in the same coordinate system as the anterior segment. The anterior inner wall follows the same attachment profile as the ciliary body. The coats share their boundaries and the retina tapers to a schematic ora serrata behind the ciliary body.
+The outer envelope measures approximately **24.4 mm wide and high** and **25.4 mm from the corneal apex to the outer posterior sclera**, extending beyond the RPE endpoint used for AXL in the table. A 10.8 mm retinal radius and centre at $z=-7.6\ \text{mm}$ place it in the anterior segment's coordinate system. The anterior inner wall follows the ciliary body's attachment profile, while the coats share boundaries and the retina tapers to a schematic ora serrata behind the ciliary body.
 
-These are **chosen dimensions**, not measurements from a person or a validated schematic optical eye. We retain the anterior parts from Part 3; we have not fitted their shape and spacing, including ciliary-muscle thickness, to a common biometric dataset. Optical biometry commonly defines axial length to the RPE, so that is the endpoint used here (Ostrin et al., 2023). The corneal apex is at $z=5.6\ \text{mm}$ and our RPE boundary at $z=-18.70\ \text{mm}$. The distance to the inner retina is different. We use **internal** ACD, excluding the corneal thickness.
+These **chosen dimensions** retain the anterior parts from Part 3 without fitting their shapes and spacing, including ciliary-muscle thickness, to a common biometric dataset. They therefore describe neither a measured person nor a validated schematic optical eye. Following the common optical-biometry convention, our AXL runs to the RPE (Ostrin et al., 2023), from the corneal apex at $z=5.6\ \text{mm}$ to the boundary at $z=-18.70\ \text{mm}$. The inner retina lies at a different distance, and **internal** ACD excludes corneal thickness.
 
-The receiving surface needs a supporting wall. Outside the retina and RPE sits the **choroid**, a vascular coat that supplies the outer retina, including the photoreceptors. The retinal circulation supplies much of the inner retina (Kolb). Outside that is the **sclera**, the opaque, collagen-rich coat that gives the globe mechanical support and meets the cornea at the limbus (Watson & Young, 2004).
+Around the retina and RPE, the vascular **choroid** supplies the outer retina, including its photoreceptors, while retinal circulation supplies much of the inner retina (Kolb). Beyond the choroid sits the **sclera**, an opaque, collagen-rich coat that supports the globe mechanically and meets the cornea at the limbus (Watson & Young, 2004).
 
-The **optic nerve** is the exit route. Ganglion-cell axons converge at the **optic disc**, nasal to the fovea, then pass through the scleral canal. The disc has no rods or cones: this is the anatomical basis of the blind spot. It is not the fovea, and the nerve should not emerge from the centre of our foveal drawing.
+To leave this enclosure, ganglion-cell axons converge at the **optic disc**, nasal to the fovea, and pass through the scleral canal as the **optic nerve**. Since the disc has no rods or cones, it forms the anatomical basis of the blind spot. Our nerve must therefore leave beside the fovea rather than emerging from its centre.
 
-For the model, build nested walls with a shared, offset opening and attach a short nerve segment. Each wall has an inner surface, an outer surface and edges joining them. Their triangle winding must face out of the tissue on both sides: into the vitreous on the inner surface, away from it on the outer surface. Inside the canal, the nerve follows the same axis and opening radius; its bend begins outside the sclera. We cache both the closed and sectioned meshes, including the cut faces, so switching views does not rebuild geometry.
+We construct nested walls with a shared, offset opening for a short nerve segment. Each wall joins inner and outer surfaces with edges, with triangle winding facing out of the tissue: into the vitreous on the inner surface and away from it outside. The nerve matches the canal's axis and opening radius before bending beyond the sclera. Caching both closed and sectioned meshes, including cut faces, lets us switch views without rebuilding geometry.
 
-The **macula** surrounds the fovea; a roughly $5.5\ \text{mm}$ diameter is a common clinical description, with boundaries depending on the definition (Webvision, *The Architecture of the Human Fovea*). For this drawing we mark that region with a soft, darker orange-brown patch. We deform the inner surface with a shallow Gaussian depression for the **foveal pit**, leaving the outer RPE boundary in place. Its $0.10\ \text{mm}$ depth is a model parameter, not a universal foveal measurement. At whole-eye scale this should look subtle: the earlier layer view was magnified.
+We mark the **macula** around the fovea with a soft, darker orange-brown patch, using the common clinical description of a roughly $5.5\ \text{mm}$ diameter, whose boundaries depend on the definition (Webvision, *The Architecture of the Human Fovea*). A shallow Gaussian depression shapes the **foveal pit** in the inner surface while leaving the outer RPE boundary fixed. Its $0.10\ \text{mm}$ depth is a model parameter rather than a universal measurement, and the pit appears subtle at whole-eye scale compared with the earlier magnified layer view.
 
-The major **retinal vessels** leave the disc and curve above and below the central macula, avoiding the foveal centre (Kolb; Provis et al., 2013). We sketch those routes as curves, then build small tubes whose centres follow the same retinal surface. Their arrangement and visible calibres are stylised; the capillary network and the exact foveal avascular-zone boundary are not modelled.
+The major **retinal vessels** curve from the disc above and below the central macula, avoiding the foveal centre (Kolb; Provis et al., 2013). We sketch these routes as curves and build small tubes along the retinal surface, keeping their arrangement and visible calibres stylised without modelling the capillary network or exact foveal avascular-zone boundary.
 
 <InteractiveViewer>
   <div slot="preview"><RetinaAssembly client:visible /></div>
   <div slot="code"><SourceFiles files={retinaSources.assembly} /></div>
 </InteractiveViewer>
 
-Choose **Retina** to expose the numbered landmarks, **Cutaway** to inspect the coats and anterior segment, or **Whole eye** to see the nerve exit. Accommodation and near miosis animate together using the shared Part III construction. **Reduced-eye focus** adds a separate 60 D reduced-eye approximation: the violet ring identifies its equivalent principal plane; gold lines show straight rays in the vitreous. Neither is a calculation of refraction through the rendered surfaces. The magnified inset follows the rays through the focus to their footprint on a receiving reference, chosen 0.05 mm anterior to the RPE boundary. This is an illustrative photoreceptor-side plane, not a measured focal layer. Signed displacement and defocus expose the small lag without exaggerating the whole-eye geometry.
+Choose **Retina** for numbered landmarks, **Cutaway** to inspect the coats and anterior segment, or **Whole eye** for the nerve exit. Accommodation and near miosis animate together using the shared Part III construction. Turning on **Reduced-eye focus** adds a separate 60 D approximation, with a violet ring at its equivalent principal plane and gold lines tracing straight rays through the vitreous. These do not calculate refraction through the rendered surfaces. The magnified inset follows the rays through focus to a reference plane 0.05 mm anterior to the RPE boundary, illustrating the photoreceptor side rather than a measured focal layer. Signed displacement and defocus reveal the small lag without exaggerating the eye geometry.
 
-For this visualisation, wall thicknesses, colours, the disc offset and the short nerve segment are drawing parameters. The scleral rim meets the earlier corneal mesh; the anterior joins are schematic. We omit capillaries, the detailed lamina cribrosa, individual axons and meningeal layers. The layer diagram and receptor mosaic remain separate magnified views, not millimetre-sized cells added to this eye.
+Wall thicknesses, colours, disc offset and the short nerve segment remain drawing parameters, with schematic anterior joins where the scleral rim meets the earlier corneal mesh. We leave out capillaries, detailed lamina cribrosa, individual axons and meningeal layers. The layer diagram and receptor mosaic remain separate magnified views rather than millimetre-sized cells added to this eye.
 
-We now have the main anatomical pieces of an eye model. Putting them in one scene does not yet make a complete optical or neural simulation. To predict a retinal image we would have to couple and validate the surfaces, refractive indices and distances; to predict vision we would need to model what the retina and brain do with that image too.
+We now have the main anatomical pieces in one scene, though predicting a retinal image would still require us to couple and validate their surfaces, refractive indices and distances. Predicting vision would go further, modelling how the retina and brain use that image as well.
 
-For now, the construction has reached a useful milestone: light has a surface to reach, cells to sample it, and a reason that “more polygons” and “more visual information” are different things.
+For now, the construction gives light a surface to reach and cells to sample it, showing why adding more polygons does not necessarily add more visual information.
 
 <PublishedPost id="webgl-eye-05-models">
 
