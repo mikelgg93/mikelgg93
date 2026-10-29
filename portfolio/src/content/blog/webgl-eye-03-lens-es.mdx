@@ -25,13 +25,13 @@ En la [Parte 1](/es/blog/webgl-eye-01-cornea) dimos forma a la córnea y en la [
 
 Una cámara suele resolverlo desplazando sus lentes, mientras que el ojo cambia principalmente la forma del **cristalino**, situado detrás del iris. Este mecanismo, llamado **acomodación**, depende de un anillo muscular que rodea la lente y tiene una particularidad: para enfocar de cerca, reduce parte de la tracción que la mantiene aplanada.
 
-Partiremos de una forma deliberadamente sencilla, le daremos un interior óptico y añadiremos el mecanismo que la mueve. Después veremos cómo medimos un cristalino real y qué cambia al perder transparencia o flexibilidad.
+Para construirla, partiremos de una forma sencilla y le daremos un interior óptico antes de añadir el mecanismo que la mueve. Con ese modelo en mente, veremos cómo se mide un cristalino real y qué ocurre cuando pierde transparencia o flexibilidad.
 
 ## Primera aproximación: Dos cúpulas opuestas
 
-En la Parte 1 construimos una cúpula y usamos $Q$ para cambiar su asfericidad. Basta con hacer otra, invertirla y juntar los bordes para obtener nuestra primera **lente biconvexa**.
+Podemos empezar aprovechando la cúpula que construimos en la Parte 1, donde usamos $Q$ para cambiar su asfericidad. Si hacemos otra, la invertimos y juntamos los bordes, ya tenemos nuestra primera **lente biconvexa**.
 
-La superficie anterior de un cristalino relajado es más plana que la posterior. Tomamos radios centrales de **10,2 mm anterior** y **6 mm posterior** del [ojo esquemático de Navarro sin acomodación (1985)](https://pubmed.ncbi.nlm.nih.gov/4032096/). Son valores de referencia, no una anatomía universal. Con $Q=0$ y un diámetro de 9 mm, esta primera malla utiliza sus radios sin reproducir su prescripción asférica.
+Como la superficie anterior de un cristalino relajado es más plana que la posterior, usaremos radios distintos para cada cara: **10,2 mm anterior** y **6 mm posterior**, tomados del [ojo esquemático de Navarro sin acomodación (1985)](https://pubmed.ncbi.nlm.nih.gov/4032096/). Son valores de un modelo de referencia, no medidas universales. Conservamos $Q=0$ y un diámetro de 9 mm para esta primera malla, de modo que aprovechamos sus radios sin reproducir todavía su prescripción asférica.
 
 ```ts
 const front = new THREE.Mesh(createTeachingCap(10.2), frontMaterial);
@@ -40,7 +40,7 @@ back.rotation.y = Math.PI;
 // Ambos bordes quedan en z = 0: aquí se unen las cúpulas.
 ```
 
-Las cúpulas se separan lentamente y vuelven a unirse. Al girar la vista y seguir la cuadrícula se ve el problema: los bordes coinciden, pero sus pendientes no, de modo que queda una arista entre dos mallas independientes.
+En la animación, las cúpulas se separan lentamente y vuelven a unirse para mostrar cómo encajan. Al girar la vista y seguir la cuadrícula aparece el problema que resolveremos a continuación: sus bordes coinciden, pero las pendientes no, y queda una arista entre las dos mallas.
 
 <InteractiveViewer>
   <div slot="preview"><LensDomes lang="es" client:visible /></div>
@@ -49,9 +49,9 @@ Las cúpulas se separan lentamente y vuelven a unirse. Al girar la vista y segui
 
 ## Redondear el ecuador y añadir un material
 
-Un cristalino real tiene un **ecuador** redondeado, donde se unen ambas caras. Suavizar las normales ocultaría nuestra arista sin cambiar la silueta; necesitamos modificar el perfil.
+Esa arista no corresponde al **ecuador** redondeado de un cristalino real, donde ambas caras se unen suavemente. Podríamos disimularla suavizando las normales, pero la silueta seguiría siendo la misma, así que necesitamos modificar el perfil.
 
-Conservamos las zonas esféricas centrales y las enlazamos al ecuador con una [**curva Bézier cúbica**](https://pomax.github.io/bezierinfo/#cubic). Sus puntos de control determinan las tangentes de los extremos: una sigue la cúpula y otra el eje óptico, de modo que ambas mitades llegan al ecuador con una tangente común. Al girar el perfil obtenemos una superficie cerrada. Three.js proporciona [`CubicBezierCurve`](https://threejs.org/docs/pages/CubicBezierCurve.html) para este paso.
+Para hacerlo, conservamos las zonas esféricas centrales y las enlazamos al ecuador mediante una [**curva Bézier cúbica**](https://pomax.github.io/bezierinfo/#cubic), disponible en Three.js como [`CubicBezierCurve`](https://threejs.org/docs/pages/CubicBezierCurve.html). Sus puntos de control permiten orientar las tangentes: una sigue la cúpula y otra el eje óptico, de modo que ambas mitades llegan al ecuador con una tangente común. Al girar el perfil completo obtenemos una sola superficie cerrada.
 
 ```ts
 const blend = new THREE.CubicBezierCurve(
@@ -68,16 +68,16 @@ const geometry = new THREE.LatheGeometry(normalizedProfile, 96);
 geometry.rotateX(Math.PI / 2); // eje óptico alineado con z
 ```
 
-Fijamos un **espesor central de 4 mm**, otro valor del modelo relajado de Navarro, y conservamos el diámetro ilustrativo de 9 mm. Los puntos de control y el reparto del espesor son decisiones de dibujo: obtenemos una aproximación suave, no un ajuste a una periferia medida.
+Con la unión resuelta, fijamos un **espesor central de 4 mm**, otro valor del modelo relajado de Navarro, y mantenemos el diámetro ilustrativo de 9 mm. Los puntos de control y el reparto del espesor siguen siendo decisiones de dibujo, por lo que esta forma suave es una aproximación y no un ajuste a una periferia medida.
 
-El perfil está en milímetros; dividir las coordenadas radial y axial por 4,5 y 2 prepara la escala siguiente. Sobre la misma cuadrícula sin relleno revelamos un material que transmite luz, con poca rugosidad, un leve tinte cálido y reflejos generados por código. Cambia el material, no la forma.
+Como hemos definido el perfil en milímetros, dividimos sus coordenadas radial y axial por 4,5 y 2 antes de aplicar la escala siguiente. Ya podemos comparar la cuadrícula sin relleno con un material transparente sobre esa misma forma, usando poca rugosidad, un leve tinte cálido y reflejos generados por código.
 
 ```ts
 const lens = new THREE.Mesh(geometry, clearLensMaterial());
 lens.scale.set(4.5, 4.5, 2); // malla unitaria → 9 mm de ancho, 4 mm de espesor
 ```
 
-Dentro de `clearLensMaterial()`, Three.js aporta el shader del material físico. Un índice relativo aproximado de $1.40/1.336$ sugiere tejido del cristalino inmerso en los medios oculares, mientras una estimación de cuerda elíptica acorta el recorrido de transmisión hacia el ecuador. Junto con el tinte y la rugosidad, estos ajustes controlan la apariencia; no calculan el gradiente óptico interno.
+El material se configura en `clearLensMaterial()`, que utiliza el shader físico de Three.js con un índice relativo aproximado de $1.40/1.336$ para sugerir tejido del cristalino inmerso en los medios oculares. También acortamos el recorrido de transmisión hacia el ecuador mediante una estimación de cuerda elíptica. Estos ajustes, junto con el tinte y la rugosidad, dan apariencia a la lente, aunque no calculan su gradiente óptico interno.
 
 <InteractiveViewer>
   <div slot="preview"><LensSurface lang="es" client:visible /></div>
@@ -88,31 +88,31 @@ Arrastra el divisor para comparar la cuadrícula de la izquierda con la superfic
 
 ## Darle un interior a la lente: GRIN
 
-Una **cápsula** elástica envuelve el cristalino. Dentro, células alargadas forman la **corteza** externa y el **núcleo** central, más antiguo: una región de la lente, no un núcleo celular. Se añaden fibras durante toda la vida. El cristalino carece de vasos sanguíneos y sus fibras maduras pierden núcleos y otros orgánulos. Junto con la organización de las proteínas cristalinas, esto reduce las variaciones microscópicas del índice que dispersarían la luz (Bassnett et al., 2011).
+Bajo su **cápsula** elástica, el cristalino contiene células alargadas que forman la **corteza** externa y el **núcleo** central, más antiguo; aquí «núcleo» designa una región de la lente, no una estructura celular. A lo largo de la vida se añaden nuevas fibras a este tejido sin vasos sanguíneos. Al madurar, las fibras pierden sus núcleos y otros orgánulos, lo que, junto con la organización de las proteínas cristalinas, reduce las variaciones microscópicas del índice que dispersarían la luz (Bassnett et al., 2011).
 
-El índice, sin embargo, no es uniforme: suele aumentar desde la corteza al centro, donde la luz viaja más despacio. Este **gradiente de índice de refracción**, o **GRIN**, contribuye a la potencia y a las aberraciones junto con la curvatura superficial. Las mediciones por resonancia magnética y las estimaciones del índice derivadas de ellas indican que la forma y la distribución del índice cambian durante la acomodación (Khan et al., 2018).
+Esa transparencia no implica que el índice sea uniforme: suele aumentar desde la corteza hacia el centro, donde la luz viaja más despacio. Esta distribución, llamada **gradiente de índice de refracción** o **GRIN**, contribuye a la potencia y a las aberraciones junto con la curvatura de las superficies. Las mediciones por resonancia magnética y las estimaciones del índice derivadas de ellas indican, además, que tanto la forma como la distribución del índice cambian durante la acomodación (Khan et al., 2018).
 
-Como vimos en la Parte 1, la óptica interna puede compensar parcialmente las aberraciones corneales en ojos jóvenes (Artal et al., 2001). Ese equilibrio involucra al ojo completo; aumentar el gradiente de una lente aislada no mejora automáticamente la imagen retiniana.
+Esto enlaza con lo que vimos en la Parte 1: en ojos jóvenes, la óptica interna puede compensar parcialmente las aberraciones corneales (Artal et al., 2001). Como ese equilibrio depende del ojo completo, aumentar el gradiente de una lente aislada no mejora automáticamente la imagen retiniana.
 
-Un gradiente suave desvía la luz, mientras que las variaciones microscópicas irregulares pueden dispersarla. En una superficie, el rayo cambia de dirección según Snell; dentro del gradiente, se curva continuamente. La siguiente demo aísla esta diferencia con un perfil cuadrático:
+Para entender su efecto conviene distinguir un gradiente suave, que desvía los rayos, de las variaciones microscópicas irregulares que pueden dispersar la luz. Al cruzar una superficie, el rayo cambia de dirección según la ley de Snell, mientras que dentro del gradiente se curva de forma continua. La siguiente demo permite seguir ese recorrido con un perfil cuadrático:
 
 <details>
 <summary>Opcional: El perfil de índice y sus parámetros</summary>
 
 $$n(x,y) = n_{\mathrm{borde}} + \Delta n\left(1 - \frac{x^2}{a^2} - \frac{y^2}{b^2}\right)$$
 
-Aquí $x$ es el eje óptico, $y$ es la altura respecto a él, y $a$ y $b$ son los semiejes axial y ecuatorial. La fórmula se aplica dentro de la sección elíptica. Elegimos $a=2\ \text{mm}$, $b=4.5\ \text{mm}$ y $n_{\mathrm{borde}}=1.37$ como parámetros del modelo. Con $\Delta n=0.05$, el índice central es $1.42$. Asignamos $1.336$ al medio circundante, aproximando el acuoso y el vítreo para este ejemplo de una sola longitud de onda. Es un perfil didáctico, no un ajuste del GRIN de una persona.
+En esta sección elíptica, $x$ sigue el eje óptico y $y$ mide la altura respecto a él, mientras $a$ y $b$ son los semiejes axial y ecuatorial. Elegimos $a=2\ \text{mm}$, $b=4.5\ \text{mm}$ y $n_{\mathrm{borde}}=1.37$, de modo que con $\Delta n=0.05$ el índice central es $1.42$. Para el medio circundante usamos $1.336$, aproximando el acuoso y el vítreo en este ejemplo de una sola longitud de onda. Estos valores definen un perfil didáctico, no un ajuste al GRIN de una persona.
 
 </details>
 
-Alterna entre **Uniforme** y **GRIN** siguiendo el rayo superior resaltado. Los rayos discontinuos atraviesan las mismas superficies con un índice uniforme de $1.370$; los dorados siguen el gradiente seleccionado. Los contornos de color indican igual índice, no fronteras anatómicas.
+Al alternar entre **Uniforme** y **GRIN**, sigue el rayo superior resaltado y compáralo con la trayectoria discontinua. Ambos atraviesan las mismas superficies, pero los rayos discontinuos usan un índice uniforme de $1.370$ y los dorados siguen el gradiente seleccionado. Los contornos de color ayudan a leer esa distribución: unen puntos de igual índice, no fronteras anatómicas.
 
 <InteractiveViewer>
   <div slot="preview"><LensGrin lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.grin} lang="es" /></div>
 </InteractiveViewer>
 
-El cálculo aplica Snell en ambas superficies e integración numérica en el interior. Las pruebas comparan el caso uniforme con intersecciones exactas y óptica paraxial de lente gruesa, y los rayos GRIN con otro método de integración al reducir el paso. Esto valida el cálculo didáctico, no un ojo completo: los perfiles reales son más complejos y cambian con la edad.
+Para obtener esas trayectorias aplicamos Snell en ambas superficies e integramos numéricamente el recorrido interior. Comprobamos el caso uniforme mediante intersecciones exactas y óptica paraxial de lente gruesa, y contrastamos los rayos GRIN con otro método de integración al reducir el paso. Así verificamos el cálculo didáctico, aunque los perfiles de un cristalino real tienen una estructura más compleja y cambian con la edad.
 
 <details>
 <summary>Opcional: Hasta dónde llegan los modelos publicados</summary>
@@ -133,13 +133,13 @@ La literatura sigue una progresión parecida, aunque cada modelo responde a una 
 
 </details>
 
-Estas demos separan la construcción de la malla, la curvatura interna de los rayos y la acomodación. Reproducir un ojo publicado exigiría que sus superficies, índices, distancias y reglas de acomodación funcionasen y se validasen en conjunto; una prescripción óptica tampoco proporciona fuerzas musculares ni dispersión por catarata.
+Hasta aquí hemos separado la construcción de la malla y la curvatura interna de los rayos para poder entenderlas por separado; ahora añadiremos la acomodación. Reproducir uno de los ojos publicados exigiría validar sus superficies, índices, distancias y reglas de acomodación en conjunto, y aun así su prescripción óptica no proporcionaría las fuerzas musculares ni la dispersión de una catarata.
 
 ## El músculo ciliar: Tirar menos para enfocar más cerca
 
-Para mover la lente necesitamos el **cuerpo ciliar** y su **músculo ciliar**, de tipo liso. Su sección tiene forma aproximada de cuña, con regiones **longitudinal** externa, **radial o reticular** intermedia y **circular** interna. Sus fibras se entrelazan como partes de un mismo músculo.
+El cambio de forma depende del **cuerpo ciliar** y del **músculo ciliar**, de tipo liso, que contiene. En su sección, aproximadamente en forma de cuña, distinguimos una región **longitudinal** externa, otra **radial o reticular** intermedia y una **circular** interna, cuyas fibras se entrelazan como partes del mismo músculo.
 
-En la cara interna, los **procesos ciliares** son pliegues vasculares y epiteliales que participan en la producción de humor acuoso, no fibras musculares radiales. Entre este aparato y la cápsula, las finas **zónulas** se insertan en las regiones anterior, ecuatorial y posterior del cristalino (Bassnett, 2021).
+En la cara interna del cuerpo ciliar aparecen los **procesos ciliares**, pliegues vasculares y epiteliales que participan en la producción de humor acuoso. Aunque su disposición pueda recordar a fibras radiales, no son músculo. La conexión con la cápsula la forman las finas **zónulas**, que se insertan en las regiones anterior, ecuatorial y posterior del cristalino (Bassnett, 2021).
 
 Según la explicación clásica de Helmholtz:
 
@@ -147,22 +147,22 @@ Según la explicación clásica de Helmholtz:
 2. **Para cerca**, el músculo se contrae y el anillo ciliar se estrecha. Disminuye la carga zonular que aplana la lente, permitiendo que el cristalino y su cápsula adopten una forma más redondeada.
 3. El cristalino aumenta su espesor central y reduce su diámetro ecuatorial. Su potencia óptica aumenta.
 
-El cristalino no contiene un músculo de enfoque y las zónulas siguen unidas al mirar de cerca. La distribución real de fuerzas es más compleja que nuestros radios, pero la relación esencial se ve: el anillo se contrae mientras la lente se redondea. Los estudios de imagen miden ambos cambios durante la acomodación (Richdale et al., 2013).
+El cristalino, por tanto, cambia de forma sin contener un músculo propio y sin que las zónulas se desprendan al mirar de cerca. La distribución real de fuerzas es más compleja que la de nuestras fibras radiales, pero el modelo permite ver la relación esencial: mientras el anillo se contrae, la lente se redondea. Los estudios de imagen miden ambos cambios durante la acomodación (Richdale et al., 2013).
 
-Reutilizamos la lente redondeada de 9 mm × 4 mm, estrechándola al engrosarse para conservar el volumen de la malla. Las zónulas se insertan en su superficie y el iris sigue su contorno anterior. Las demos de cataratas y el montaje final comparten este perfil; solo el diagrama GRIN conserva la sección elíptica más sencilla.
+Para llevar esa relación a la escena reutilizamos la lente redondeada de 9 mm × 4 mm y la estrechamos a medida que se engrosa, conservando el volumen de la malla. Las zónulas se insertan en su superficie y el iris sigue el contorno anterior, un perfil que también usaremos en las cataratas y el montaje final. El diagrama GRIN conserva su sección elíptica más sencilla.
 
-Al retirar el iris y la pared externa vemos el cuerpo ciliar y sus procesos marrones orientados hacia dentro. Las zónulas amarillas pasan entre los pliegues y se abren sobre la cápsula, representada por la superficie del cristalino. El divisor revela un mapa de color de las regiones musculares entrelazadas en la cuña anterior.
+Retiramos el iris y la pared externa para dejar a la vista el cuerpo ciliar, con sus procesos marrones orientados hacia dentro. Entre ellos pasan las zónulas amarillas, que se abren sobre la cápsula representada por la superficie del cristalino. El divisor permite descubrir, sobre esa misma vista, un mapa de las regiones musculares entrelazadas en la cuña anterior.
 
-Observa cómo alterna entre un paisaje lejano y un libro cercano: el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras la lente se redondea. El valor inferior derecho es la **respuesta modelada** que dirige esa deformación, no una medida de la potencia de la malla. Gira o pausa el modelo para inspeccionar las conexiones y arrastra el divisor para comparar las regiones musculares con la superficie del tejido.
+Cuando la escena pasa del paisaje lejano al libro cercano, el tejido ciliar interno se desplaza hacia dentro y ligeramente hacia delante mientras la lente se redondea. El valor inferior derecho muestra la **respuesta modelada** que dirige esa deformación, no una medida de la potencia de la malla. Puedes girar o pausar la escena para inspeccionar las conexiones y arrastrar el divisor para localizar las regiones musculares.
 
 <InteractiveViewer>
   <div slot="preview"><LensAnatomy lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.anatomy} lang="es" /></div>
 </InteractiveViewer>
 
-La secuencia traduce $0$–$6\ \text{D}$ en cambios de forma ilustrativos. Los límites musculares, pliegues y trayectos de las fibras están simplificados; la malla no resuelve potencia óptica ni mecánica tisular, y la longitud de una fibra no mide su fuerza.
+La secuencia recorre $0$–$6\ \text{D}$ de acomodación modelada mediante cambios de forma ilustrativos. Simplificamos los límites musculares, los pliegues y los trayectos para hacerlos legibles, sin resolver la potencia óptica ni la mecánica tisular; por eso, la longitud de una fibra tampoco representa una medida de su fuerza.
 
-Creamos la geometría una vez y después deformamos el músculo y actualizamos los búferes de fibras. Una respuesta de primer orden suaviza la transición:
+En el código, esta animación se obtiene deformando una geometría creada una sola vez y actualizando los búferes de las fibras. Para que el cambio sea gradual, usamos una respuesta de primer orden:
 
 ```ts
 const tau = 0.25; // segundos: parámetro de animación
@@ -170,63 +170,63 @@ shownAccommodation += (targetAccommodation - shownAccommodation)
   * (1 - Math.exp(-dt / tau));
 ```
 
-Ese cuarto de segundo controla la animación, no representa un tiempo de respuesta fisiológico universal. La demo también respeta la preferencia del navegador de reducir el movimiento.
+El cuarto de segundo elegido determina la suavidad de la animación, no un tiempo fisiológico universal. Si el navegador tiene activada la preferencia de reducir el movimiento, la demo la respeta.
 
 ## Cómo mide la OCT la forma del cristalino
 
-La **tomografía de coherencia óptica (OCT)** permite pasar de una malla plausible a una forma medida. La interferencia entre la luz que regresa y un haz de referencia resuelve la profundidad; el barrido construye una sección o **B-scan**. Los sistemas de segmento anterior captan las superficies del cristalino a través de la pupila, dentro del área accesible al instrumento.
+Para saber cuánto se parece nuestra malla a un cristalino real necesitamos medir su forma, y ahí entra la **tomografía de coherencia óptica (OCT)**. La interferencia entre la luz que regresa y un haz de referencia permite resolver la profundidad; al barrer lateralmente se construye una sección o **B-scan**. Los sistemas de segmento anterior aprovechan la abertura pupilar para captar las superficies del cristalino dentro del área accesible al instrumento.
 
 En [Pérez-Merino et al. (2015)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4679276/), los volúmenes OCT reconstruyen ambas superficies durante la acomodación. La Figura 3(a) compara secciones relajadas y acomodadas; la Figura 3(b) muestra desviaciones respecto a esferas ajustadas en los $4\ \text{mm}$ centrales del ojo relajado, revelando asimetrías que nuestra malla de revolución omite.
 
-Recuperar la forma física requiere supuestos sobre el índice y corrección de distorsiones: la OCT mide camino óptico y el haz ya se ha refractado en las estructuras anteriores. El brillo describe la señal recibida, no un mapa directo del GRIN o de la transparencia. La resonancia magnética aporta información complementaria del cristalino y el aparato ciliar.
+Pasar de esas imágenes a una forma física requiere supuestos sobre el índice y corrección de distorsiones, porque la OCT mide camino óptico y el haz ya se ha refractado en las estructuras anteriores. Del mismo modo, el brillo refleja la señal recibida, de modo que no puede leerse directamente como un mapa del GRIN o de la transparencia. La resonancia magnética aporta información complementaria del cristalino y del aparato ciliar.
 
 ## De la distancia a las dioptrías
 
-Un objeto cercano envía rayos más divergentes hacia el ojo, que necesita más potencia para enfocarlos sobre la retina. Si partimos de un ojo relajado y enfocado al infinito, la demanda adicional se aproxima al inverso de la distancia en metros:
+Ya hemos visto cómo cambia la forma, pero ¿cuánta potencia adicional hace falta para enfocar de cerca? Un objeto próximo envía rayos más divergentes hacia el ojo, que necesita compensarlos para mantener el foco sobre la retina. Si partimos de un ojo relajado y enfocado al infinito, la demanda adicional se aproxima al inverso de la distancia en metros:
 
 $$A_{\mathrm{demanda}} \approx \frac{1}{d}$$
 
-Un objeto a $1\ \text{m}$ pide aproximadamente $1\ \text{D}$; a $50\ \text{cm}$, $2\ \text{D}$; a $25\ \text{cm}$, $4\ \text{D}$. Esa **demanda** es el estímulo; la **respuesta** es lo que aporta el ojo y puede quedarse por debajo según las condiciones de observación.
+Así, un objeto a $1\ \text{m}$ pide aproximadamente $1\ \text{D}$; a $50\ \text{cm}$, $2\ \text{D}$; y a $25\ \text{cm}$, $4\ \text{D}$. Esta **demanda** describe el estímulo, mientras que la **respuesta** es lo que aporta el ojo, que puede quedarse por debajo según las condiciones de observación.
 
-Representamos el ojo completo con un elemento de **ojo reducido**, usando la potencia de lejos convencional de Emsley, $F_0 = 60\ \text{D}$, y el índice del espacio imagen $n' = 4/3$ (Harris, 2009). Este elemento equivalente reúne córnea y cristalino; no asigna $60\ \text{D}$ al cristalino ni suma sin más las potencias de dos lentes separadas.
+Para seguir el foco sin calcular cada superficie, representamos el ojo completo mediante un **ojo reducido**, usando la potencia de lejos convencional de Emsley, $F_0 = 60\ \text{D}$, y el índice del espacio imagen $n' = 4/3$ (Harris, 2009). El elemento equivalente reúne el efecto de córnea y cristalino, por lo que esos $60\ \text{D}$ no corresponden al cristalino solo ni a una simple suma de dos lentes separadas.
 
 En la aproximación paraxial, la vergencia de salida es la de entrada más la potencia óptica. Con una demanda de cerca $A_{\mathrm{demanda}}$ y una respuesta $A_{\mathrm{respuesta}}$, la distancia imagen es:
 
 $$l' = \frac{n'}{F_0 + A_{\mathrm{respuesta}} - A_{\mathrm{demanda}}}$$
 
-Las distancias parten del plano principal equivalente, con la retina fija a $n'/F_0 \approx 22.2\ \text{mm}$ detrás. Esta distancia del ojo reducido no es la longitud axial anatómica. Cuando la respuesta iguala la demanda, el foco permanece sobre la retina.
+Medimos las distancias desde el plano principal equivalente y mantenemos la retina a $n'/F_0 \approx 22.2\ \text{mm}$ detrás de él. Se trata de una distancia del ojo reducido, no de la longitud axial anatómica, y permite ver que el foco permanece sobre la retina cuando la respuesta iguala la demanda.
 
-Acerca el objeto en la demo. El símbolo central cambia de forma para indicar el aumento de potencia del ojo completo, mientras el foco permanece en su sitio.
+Puedes comprobarlo acercando el objeto en la demo: el símbolo central cambia de forma para indicar que aumenta la potencia del ojo completo, mientras el foco permanece en su sitio.
 
 <InteractiveViewer>
   <div slot="preview"><LensFocus lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.focus} lang="es" /></div>
 </InteractiveViewer>
 
-Este diagrama paraxial supone una respuesta ideal con suficiente rango de acomodación. Localiza el foco sin modelar aberraciones, difracción ni GRIN, por lo que no predice calidad de imagen o agudeza visual.
+Aquí hemos supuesto una respuesta ideal con suficiente rango de acomodación. El diagrama paraxial permite localizar el foco, pero deja fuera las aberraciones, la difracción y el GRIN, por lo que no predice la calidad de imagen ni la agudeza visual.
 
 ## ¿Quién le dice al músculo que se mueva?
 
-La acomodación depende principalmente de la salida parasimpática. Las fibras preganglionares del complejo de Edinger-Westphal viajan con el **III par craneal** hasta el **ganglio ciliar**. Desde allí, las fibras posganglionares llegan al músculo ciliar a través de los **nervios ciliares cortos** (McDougal & Gamlin, 2015).
+En el ojo real, esa respuesta llega al músculo principalmente por la vía parasimpática. Las fibras preganglionares del complejo de Edinger-Westphal viajan con el **III par craneal** hasta el **ganglio ciliar**, desde donde las fibras posganglionares alcanzan el músculo ciliar a través de los **nervios ciliares cortos** (McDougal & Gamlin, 2015).
 
-La vía se comparte con el circuito pupilar de la Parte 2, pero sus destinos tienen tareas distintas: el esfínter del iris ajusta la apertura y el músculo ciliar modifica la carga sobre la lente.
+Esta parte del recorrido se comparte con el circuito pupilar de la Parte 2, aunque cada músculo tiene su tarea: el esfínter del iris ajusta la apertura y el músculo ciliar modifica la carga sobre la lente.
 
-Mirar de cerca suele combinar acomodación, **convergencia** y **constricción pupilar**: la respuesta de cerca. Una pupila menor puede aumentar la profundidad de foco, pero no devuelve flexibilidad al cristalino. Nuestros diagramas de enfoque aíslan la acomodación; el montaje final añade la respuesta pupilar.
+Al mirar de cerca solemos observar acomodación junto con **convergencia** y **constricción pupilar**, lo que conocemos como respuesta de cerca. Una pupila menor puede aumentar la profundidad de foco, pero no devuelve flexibilidad al cristalino. En los diagramas hemos aislado la acomodación para entenderla mejor; en el montaje final añadiremos la respuesta pupilar.
 
 ## Cataratas: Perder transparencia
 
-Los cambios en las proteínas y la organización de las fibras alteran cómo se dispersa y absorbe la luz. Una **catarata**, u opacidad del cristalino, puede reducir contraste y nitidez, causar deslumbramiento y apagar o amarillear los colores.
+Hasta ahora hemos tratado el cristalino como una lente transparente, pero los cambios en sus proteínas y en la organización de sus fibras pueden alterar cómo se dispersa y absorbe la luz. Una **catarata**, u opacidad del cristalino, puede reducir contraste y nitidez, causar deslumbramiento y hacer que los colores parezcan apagados o amarillentos.
 
-La localización define el patrón: las cataratas **nucleares** afectan al centro y pueden amarillear o tornarse marrones; las **corticales** suelen formar radios periféricos; las **subcapsulares posteriores** quedan justo delante de la cápsula posterior. Pueden coexistir, sin seguir una secuencia fija (Aliancy & Mamalis, 2017).
+El aspecto depende de dónde aparezca la opacidad: las cataratas **nucleares** afectan al centro y pueden amarillear o tornarse marrones, las **corticales** suelen formar radios periféricos y las **subcapsulares posteriores** quedan justo delante de la cápsula posterior. Estos patrones pueden coexistir y no representan etapas de una secuencia fija (Aliancy & Mamalis, 2017).
 
-Gira los cuatro cristalinos juntos para comparar estos patrones con una lente transparente bajo la misma geometría, iluminación y ángulo de visión.
+En el render mantenemos la misma geometría, iluminación y ángulo para comparar los tres patrones con un cristalino transparente. Al girar las cuatro lentes juntas puedes seguir la localización de cada opacidad.
 
 <InteractiveViewer>
   <div slot="preview"><LensCataract lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.cataract} lang="es" /></div>
 </InteractiveViewer>
 
-La luz dispersada hacia atrás revela una opacidad al observador; la dispersada hacia delante afecta a la imagen retiniana. No son medidas intercambiables (Crnej et al., 2017), y nuestro shader de turbidez no calcula dispersión múltiple, deslumbramiento ni la visión de una persona a través de la lente.
+Lo que vemos desde fuera depende de la luz dispersada hacia atrás, mientras que la dispersada hacia delante afecta a la imagen retiniana. Ambas medidas no son intercambiables (Crnej et al., 2017), por lo que la turbidez de nuestro shader no debe interpretarse como la visión de una persona: no estamos calculando dispersión múltiple ni deslumbramiento.
 
 Cuando la catarata dificulta las actividades diarias lo suficiente para justificar cirugía, se extrae el cristalino opaco y normalmente se sustituye por una lente intraocular artificial (National Eye Institute).
 
@@ -237,42 +237,42 @@ Cuando la catarata dificulta las actividades diarias lo suficiente para justific
 
 ## Presbicia: Cuando el cristalino no llega
 
-Con la edad, la pérdida de acomodación dificulta el trabajo prolongado de cerca: es la **presbicia**. Puede aparecer mientras el cristalino sigue transparente, por lo que es distinta de la catarata aunque ambas coexistan.
+La transparencia, sin embargo, no es el único requisito para enfocar. Con la edad disminuye la acomodación y se dificulta el trabajo prolongado de cerca, lo que llamamos **presbicia**. Puede aparecer aunque el cristalino siga transparente, de modo que es distinta de la catarata, aun cuando ambas coexistan.
 
-La contracción ciliar puede persistir en ojos de mayor edad (Strenk et al., 1999). Los cambios mecánicos del cristalino desempeñan un papel importante, junto con su crecimiento y la geometría circundante; los experimentos con lentes de donantes muestran una marcada pérdida de capacidad para cambiar la potencia con la edad (Glasser & Campbell, 1998).
+Esta pérdida no se explica simplemente por un músculo que deja de contraerse, ya que la contracción ciliar puede persistir en ojos de mayor edad (Strenk et al., 1999). Los cambios mecánicos del cristalino tienen un papel importante, junto con su crecimiento y la geometría circundante, y los experimentos con lentes de donantes muestran una marcada pérdida de capacidad para cambiar la potencia con la edad (Glasser & Campbell, 1998).
 
-Podemos explorar la consecuencia limitando la respuesta a una **acomodación disponible**:
+Podemos explorar su consecuencia óptica con el mismo ojo reducido, limitando ahora la respuesta a la **acomodación disponible**:
 
 ```ts
 const response = Math.min(demand, availableAccommodation);
 const unmetDemand = demand - response;
 ```
 
-Empieza a $25\ \text{cm}$ con solo $2\ \text{D}$ disponibles. El objeto exige $4\ \text{D}$: faltan $2\ \text{D}$ y el foco queda detrás de la retina. Aleja el objeto hasta $50\ \text{cm}$ y la demanda vuelve a entrar en el rango disponible.
+Prueba con un objeto a $25\ \text{cm}$ y solo $2\ \text{D}$ disponibles: como la demanda es de $4\ \text{D}$, faltan $2\ \text{D}$ y el foco queda detrás de la retina. Si alejas el objeto hasta $50\ \text{cm}$, la demanda vuelve a entrar en el rango que el modelo puede aportar.
 
 <InteractiveViewer>
   <div slot="preview"><LensFocus lang="es" showReserve client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.focus} lang="es" /></div>
 </InteractiveViewer>
 
-La reserva es un parámetro, no una escala de edad ni una prueba clínica. Suponemos un enfoque correcto de lejos; la visión próxima también depende de la corrección, el tamaño pupilar, la profundidad de foco y la tarea.
+Ese límite es un parámetro del modelo, no una escala de edad ni una prueba clínica. Además, partimos de un enfoque correcto de lejos, mientras que la visión próxima real también depende de la corrección, el tamaño pupilar, la profundidad de foco y la tarea.
 
 ## Reunir las tres piezas
 
-Ya podemos reunir las tres piezas: la córnea aporta la superficie refractora anterior, el iris define la apertura y el cristalino cambia de forma detrás.
+Con estas relaciones claras, podemos reunir las tres piezas en una misma escena: la córnea aporta la superficie refractora anterior, el iris define la apertura y el cristalino cambia de forma detrás de ella.
 
-La **cámara anterior**, llena de humor acuoso, queda entre córnea posterior e iris, con el cristalino detrás de la pupila. Se comunica con la cámara posterior por esa abertura. En sus bordes, la córnea continúa en la esclera a través del limbo y la raíz del iris se une al cuerpo ciliar cerca del ángulo. Nuestro corte retira estos límites para ver el interior; la cámara intacta está delimitada por ellos (AAO EyeWiki, *Gonioscopy*).
+Entre la cara posterior de la córnea y el iris queda la **cámara anterior**, llena de humor acuoso y comunicada con la cámara posterior a través de la pupila, detrás de la cual se encuentra el cristalino. En la periferia, la córnea continúa en la esclera a través del limbo y la raíz del iris se une al cuerpo ciliar cerca del ángulo. Nuestro corte retira parte de estos límites para mostrar el interior, pero en el ojo intacto delimitan la cámara (AAO EyeWiki, *Gonioscopy*).
 
-Al acercarse el objeto, el cristalino se engrosa y la pupila se contrae; ambos se relajan al volver a lejos. Ilustramos la respuesta de cerca con luz constante, usando rangos pupilares y tiempos orientativos. La convergencia necesita otro ojo y se omite. Gira o pausa la vista para inspeccionar las uniones.
+Observa cómo el cristalino se engrosa y la pupila se contrae al acercarse el objeto, y cómo ambos recuperan su estado de lejos cuando se aleja. Así ilustramos la respuesta de cerca con luz constante, usando rangos pupilares y tiempos orientativos. La convergencia queda fuera porque necesitaríamos un segundo ojo, pero puedes girar o pausar este para inspeccionar cómo se unen sus estructuras.
 
 <InteractiveViewer>
   <div slot="preview"><LensAssembly lang="es" client:visible /></div>
   <div slot="code"><SourceFiles files={lensSources.assembly} lang="es" /></div>
 </InteractiveViewer>
 
-El montaje combina la córnea cónica, el iris pigmentado y la lente deformable con su aparato ciliar. El cuerpo ciliar se estrecha por detrás del músculo y los procesos orientados hacia dentro, hasta el extremo truncado de este modelo anterior. Sus dimensiones y materiales son ilustrativos. El cristalino transparente usa un shader de apariencia: **la curvatura de rayos GRIN solo se calcula en la demo independiente anterior**. Aquí unimos anatomía, no cálculos ópticos, y no predecimos una imagen retiniana.
+En este montaje, la córnea cónica y el iris pigmentado acompañan a la lente deformable y su aparato ciliar. El cuerpo ciliar se estrecha hacia atrás, más allá del músculo y de los procesos que sobresalen hacia dentro, hasta el borde truncado de nuestro modelo anterior. Las dimensiones y los materiales siguen siendo ilustrativos, y el cristalino transparente utiliza un shader de apariencia: **la curvatura de rayos GRIN solo se calcula en la demo independiente anterior**. Hemos reunido las estructuras anatómicas, pero todavía no sus cálculos ópticos en una predicción de la imagen retiniana.
 
-Hemos explorado tres mecanismos: una superficie anterior fija, una abertura ajustable y una lente que cambia el enfoque. En el ojo real, trabajan juntos para formar la imagen retiniana.
+A lo largo de estas tres partes hemos construido una superficie anterior fija, una abertura ajustable y una lente capaz de cambiar el enfoque. En el ojo real, sus efectos se combinan para formar la imagen sobre la retina, la siguiente pieza del modelo.
 
 <PublishedPost id="webgl-eye-04-retina-es">
 
