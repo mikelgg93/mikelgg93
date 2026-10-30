@@ -237,3 +237,37 @@
 .prose .markdown-alert > p:has(> strong:only-child),
 .prose .markdown-alert > p:has(> em:only-child) { margin-top: 0; margin-bottom: .5rem; }
 .prose .markdown-alert > :last-child { margin-bottom: 0; }
+
+/* Transparent demos inherit the paper; transmission scenes also set it in WebGL. */
+:root:not(.dark) .interactive-viewer [data-content="preview"],
+:root:not(.dark) .lens-demo .lens-scene,
+:root:not(.dark) .lens-animation-footer,
+:root:not(.dark) .lens-demo .lens-legend {
+  background: var(--background);
+}
+:root:not(.dark) .lens-demo .lens-orientation {
+  background: color-mix(in srgb, var(--background) 90%, transparent);
+  color: var(--muted-foreground);
+}
+:root:not(.dark) .lens-focus-picture,
+:root:not(.dark) .lens-focus-readout,
+:root:not(.dark) .lens-focus-readout output,
+:root:not(.dark) .lens-comparison-labels,
+:root:not(.dark) .lens-cataract-labels,
+:root:not(.dark) .models-camera,
+:root:not(.dark) .lens-demo .lens-legend,
+:root:not(.dark) .lens-demo .lens-focus-cue button,
+:root:not(.dark) .lens-demo .lens-motion-pause {
+  color: var(--foreground);
+}
+:root:not(.dark) .lens-focus-picture .focus-near {
+  fill: var(--background);
+}
+:root:not(.dark) .lens-demo .lens-map-divider::before {
+  background: color-mix(in srgb, var(--foreground) 45%, transparent);
+}
+:root:not(.dark) .lens-demo .lens-map-divider > span {
+  background: var(--background);
+  border-color: var(--muted-foreground);
+  color: var(--foreground);
+}

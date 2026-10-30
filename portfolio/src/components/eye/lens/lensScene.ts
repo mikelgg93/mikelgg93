@@ -28,7 +28,8 @@ export function createLensScene(
 	container.appendChild(renderer.domElement);
 	const scene = new THREE.Scene();
 	// Transmission samples the WebGL background, not the CSS behind the canvas.
-	scene.background = new THREE.Color(0x092a2a);
+	const background = new THREE.Color(0x092a2a);
+	scene.background = background;
 	scene.environmentIntensity = 0.45;
 	// Original procedural studio reflections; no photographic environment assets.
 	function createEnvironment() {
@@ -112,6 +113,23 @@ export function createLensScene(
 		)
 			frame = requestAnimationFrame(animate);
 	}
+	function syncTheme() {
+		const root = document.documentElement;
+		const dark = root.classList.contains("dark");
+		scene.userData.theme = dark ? "dark" : "light";
+		background.set(
+			dark
+				? "#092a2a"
+				: getComputedStyle(root).getPropertyValue("--background").trim(),
+		);
+		invalidate();
+	}
+	const themeObserver = new MutationObserver(syncTheme);
+	themeObserver.observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: ["class"],
+	});
+	syncTheme();
 	function animate(now: number) {
 		frame = 0;
 		if (disposed || !visible || document.hidden || !update) return;
@@ -282,6 +300,7 @@ export function createLensScene(
 		},
 		dispose() {
 			disposed = true;
+			themeObserver.disconnect();
 			viewer?.removeEventListener("eye:inspect", inspect);
 			cancelAnimationFrame(frame);
 			stopVisibility();
