@@ -18,7 +18,7 @@ export default function ThemeToggle() {
     
     const meta = document.getElementById("theme-color-meta");
     if (meta) {
-      meta.setAttribute("content", newTheme === "dark" ? "#001e19" : "#f6fffd");
+      meta.setAttribute("content", newTheme === "dark" ? "#001e19" : "#f3eee3");
     }
   };
 

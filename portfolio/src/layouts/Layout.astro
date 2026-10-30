@@ -65,7 +65,7 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
 
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
-    <meta name="theme-color" content="#f6fffd" id="theme-color-meta" />
+    <meta name="theme-color" content="#f3eee3" id="theme-color-meta" />
     <script is:inline>
       const setTheme = () => {
         const theme = (() => {
@@ -83,7 +83,7 @@ const ogImage = new URL(image || "/hero.png", canonicalURL);
         const meta = document.getElementById("theme-color-meta");
         if (theme === "light") {
           document.documentElement.classList.remove("dark");
-          if (meta) meta.setAttribute("content", "#f6fffd");
+          if (meta) meta.setAttribute("content", "#f3eee3");
         } else {
           document.documentElement.classList.add("dark");
           if (meta) meta.setAttribute("content", "#001e19");

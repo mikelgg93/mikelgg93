@@ -84,7 +84,7 @@ export default function CommandPalette() {
 					}
 					document
 						.getElementById("theme-color-meta")
-						?.setAttribute("content", dark ? "#001e19" : "#f6fffd");
+						?.setAttribute("content", dark ? "#001e19" : "#f3eee3");
 				} else if (code === "b" || code === "j") {
 					event.preventDefault();
 					const es = location.pathname.startsWith("/es");
