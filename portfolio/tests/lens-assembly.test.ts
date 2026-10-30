@@ -4,10 +4,16 @@ import { disposeThree } from "../src/components/eye/disposeThree";
 import {
 	createAssemblyCornea,
 	createAssemblyIris,
+	createAssemblySclera,
 	updateAssemblyIris,
 } from "../src/components/eye/lens/anteriorEyeGeometry";
 import { createCiliaryApparatus } from "../src/components/eye/lens/ciliaryApparatus";
+import { ciliaryPoint } from "../src/components/eye/lens/ciliaryGeometry";
 import { createIntraocularLens } from "../src/components/eye/lens/intraocularLens";
+import {
+	createRoundedLensGeometry,
+	lensSurfaceZ,
+} from "../src/components/eye/lens/lensConstruction";
 import { lensShape } from "../src/components/eye/lens/lensModel";
 
 test("assembly iris leaves the requested opening throughout the pupil range", () => {
@@ -19,7 +25,7 @@ test("assembly iris leaves the requested opening throughout the pupil range", ()
 			Math.hypot(p.getX(i), p.getY(i)),
 		);
 		expect(Math.min(...radii)).toBeCloseTo(diameter / 2, 5);
-		expect(Math.max(...radii)).toBeCloseTo(5.6, 5);
+		expect(Math.max(...radii)).toBeCloseTo(6, 5);
 		expect(
 			[...geometry.getAttribute("normal").array].every(Number.isFinite),
 		).toBe(true);
@@ -115,4 +121,115 @@ test("generic IOL optic and haptics fit within the illustrative retained bag", (
 		});
 	}
 	disposeThree(group);
+});
+
+test("cornea and sclera share both limbal boundaries", () => {
+	const cornea = createAssemblyCornea(),
+		sclera = createAssemblySclera();
+	const edge = cornea.parameters.points.filter(
+		(p) => Math.abs(p.x - 5.8) < 1e-6,
+	);
+	expect(edge.length).toBe(2);
+	for (const p of edge)
+		expect(sclera.parameters.points.some((q) => q.distanceTo(p) < 1e-6)).toBe(
+			true,
+		);
+	cornea.dispose();
+	sclera.dispose();
+});
+
+test("iris root stays attached and iris clears the lens across pupil and accommodation ranges", () => {
+	const iris = createAssemblyIris();
+	for (const accommodation of [0, 4, 8])
+		for (const pupil of [2, 4, 8]) {
+			updateAssemblyIris(iris, pupil, accommodation);
+			const shape = lensShape(accommodation),
+				p = iris.getAttribute("position");
+			for (let i = 0; i < p.count; i++) {
+				const r = Math.hypot(p.getX(i), p.getY(i));
+				if (Math.abs(r - 6) < 1e-5) expect(p.getZ(i)).toBeCloseTo(1.3, 5);
+				if (r <= shape.lensRadius) {
+					const surface =
+						(shape.thickness / 2) * lensSurfaceZ(r / shape.lensRadius);
+					expect(p.getZ(i)).toBeGreaterThan(surface);
+				}
+			}
+		}
+	iris.dispose();
+});
+
+test("iris insertion in the ciliary body remains fixed during accommodation", () => {
+	const apparatus = createCiliaryApparatus();
+	const tissue = apparatus.support.children[0] as THREE.Mesh;
+	for (const value of [0, 4, 8]) {
+		apparatus.update(value, false, false);
+		const p = tissue.geometry.getAttribute("position");
+		expect(
+			Array.from(
+				{ length: p.count },
+				(_, i) =>
+					Math.abs(Math.hypot(p.getX(i), p.getY(i)) - 6) < 1e-5 &&
+					Math.abs(p.getZ(i) - 1.3) < 1e-5,
+			).some(Boolean),
+		).toBe(true);
+	}
+	disposeThree(apparatus.group);
+});
+
+test("anatomy uses the construction mesh and zonules terminate on its scaled capsule", () => {
+	const apparatus = createCiliaryApparatus(),
+		reference = createRoundedLensGeometry();
+	const shell = apparatus.lens.children[0] as THREE.Mesh;
+	expect(Array.from(shell.geometry.getAttribute("position").array)).toEqual(
+		Array.from(reference.getAttribute("position").array),
+	);
+	const fibers = apparatus.support.children.find(
+		(o) => o instanceof THREE.LineSegments,
+	) as THREE.LineSegments;
+	for (const response of [0, 2, 4, 6, 8]) {
+		const shape = apparatus.update(response, true, false);
+		expect(apparatus.lens.scale.x).toBe(shape.lensRadius);
+		expect(apparatus.lens.scale.z * 2).toBe(shape.thickness);
+		const points = fibers.geometry.getAttribute("position");
+		for (let i = 3; i < points.count; i += 4) {
+			const r = Math.hypot(points.getX(i), points.getY(i)),
+				z = points.getZ(i);
+			expect(r).toBeLessThanOrEqual(shape.lensRadius + 1e-6);
+			expect(z).toBeCloseTo(
+				(shape.thickness / 2) * lensSurfaceZ(r / shape.lensRadius, z > 0),
+				4,
+			);
+		}
+	}
+	reference.dispose();
+	disposeThree(apparatus.group);
+});
+
+test("process ridges have outward normals and remain attached along the inner body", () => {
+	const apparatus = createCiliaryApparatus();
+	const folds = apparatus.support.children.find(
+		(o) => o instanceof THREE.InstancedMesh,
+	) as THREE.InstancedMesh;
+	// At the positive tangential edge, the outward normal points towards +y.
+	const normal = folds.geometry.getAttribute("normal");
+	expect(normal.getY(16 * 17)).toBeGreaterThan(0);
+	for (const response of [0, 4, 8]) {
+		apparatus.update(response, false, false);
+		const p = folds.geometry.getAttribute("position");
+		// The contact rail (angle 3π/2) follows the undeformed inner body and
+		// shares its deformation, rather than floating as an isolated ellipsoid.
+		for (let row = 1; row < 32; row++) {
+			const z = -1.4 + (1.95 * row) / 32;
+			const bodyR =
+				z < -0.4
+					? 6.5 + ((-0.4 - z) * 1.45) / 1.6
+					: 6.5 - ((z + 0.4) * 0.65) / 0.95;
+			const expected = ciliaryPoint(bodyR, 0, z, response / 8),
+				i = row * 17 + 12;
+			expect(p.getX(i)).toBeCloseTo(expected.x, 5);
+			expect(p.getY(i)).toBeCloseTo(0, 5);
+			expect(p.getZ(i)).toBeCloseTo(expected.z, 5);
+		}
+	}
+	disposeThree(apparatus.group);
 });

@@ -1,5 +1,4 @@
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
+import { useInitialParameters } from "../ParameterControl";
 import "./lens.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GRIN_EDGE_INDEX, traceGrinRay } from "./lensOptics";
@@ -40,7 +39,7 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 				2,
 			);
 	}, [gradient, rays]);
-	const defaults = useInitialParameters(
+	useInitialParameters(
 		{ gradient },
 		(initial) => {
 			setGradient(initial.gradient);
@@ -151,14 +150,11 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 							? "Sigue el rayo superior resaltado y compara su extremo dorado con el discontinuo de la derecha. El gradiente añade curvatura dentro de la lente."
 							: "Follow the highlighted upper ray and compare its golden tip with the dashed path on the right. The gradient adds bending inside the lens."}
 				</p>
-				<ParameterControl
-					value={gradient}
-					initial={defaults.gradient}
-					onReset={setGradient}
-					label="index gradient"
-					lang={lang}
-					context={parameterContext.grin}
-				>
+
+				<details className="lens-options">
+					<summary>
+						{es ? "Intensidad del gradiente" : "Gradient strength"}
+					</summary>
 					<label>
 						<span className="lens-value">
 							<span>
@@ -177,16 +173,17 @@ export default function LensGrin({ lang = "en" }: { lang?: "en" | "es" }) {
 							onChange={(e) => setGradient(Number(e.target.value))}
 						/>
 					</label>
-				</ParameterControl>
-				<div className="lens-value">
-					<span>
-						{es ? "Borde" : "Edge"}: {GRIN_EDGE_INDEX.toFixed(3)}
-					</span>
-					<span>
-						{es ? "Centro" : "Centre"}:{" "}
-						{(GRIN_EDGE_INDEX + gradient).toFixed(3)}
-					</span>
-				</div>
+
+					<div className="lens-value">
+						<span>
+							{es ? "Borde" : "Edge"}: {GRIN_EDGE_INDEX.toFixed(3)}
+						</span>
+						<span>
+							{es ? "Centro" : "Centre"}:{" "}
+							{(GRIN_EDGE_INDEX + gradient).toFixed(3)}
+						</span>
+					</div>
+				</details>
 				<div className="lens-buttons">
 					<button
 						type="button"

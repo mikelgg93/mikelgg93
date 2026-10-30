@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import * as THREE from "three";
 import { disposeThree } from "../src/components/eye/disposeThree";
 import { createAssemblyCornea } from "../src/components/eye/lens/anteriorEyeGeometry";
+import { createRoundedLensGeometry } from "../src/components/eye/lens/lensConstruction";
 import { lensShape } from "../src/components/eye/lens/lensModel";
-import { createLensGeometry } from "../src/components/eye/lens/lensScene";
 import {
 	createPosteriorEye,
 	eyeCoats,
@@ -160,7 +160,7 @@ test("the optic nerve fits the shared canal, including the scleral exit ring", (
 
 test("displayed biometry matches mesh endpoints, and the real pit leaves a positive retinal wall", () => {
 	const cornea = createAssemblyCornea(),
-		lens = createLensGeometry();
+		lens = createRoundedLensGeometry();
 	lens.scale(1, 1, lensShape(0).thickness / 2);
 	const p = cornea.getAttribute("position"),
 		poles: number[] = [];

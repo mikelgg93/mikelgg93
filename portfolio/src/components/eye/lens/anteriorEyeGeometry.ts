@@ -1,19 +1,27 @@
 import * as THREE from "three";
 import { conicSag } from "../cornea/conic";
 import { CORNEAL_APEX_Z, POSTERIOR_CORNEAL_APEX_Z } from "../eyeDimensions";
+import {
+	CILIARY_OUTER_PROFILE,
+	IRIS_ROOT_RADIUS,
+	IRIS_ROOT_Z,
+	LIMBUS_RADIUS,
+} from "./anteriorSegmentProfile";
+import { lensSurfaceZ } from "./lensConstruction";
+import { lensShape } from "./lensModel";
 import { finiteClamp } from "./lensOptics";
 
 // Reuse Part I's conic surface in an illustrative anterior-eye assembly (mm).
 export function createAssemblyCornea() {
 	const profile: THREE.Vector2[] = [];
 	for (let i = 0; i <= 64; i++) {
-		const r = (5.8 * i) / 64;
+		const r = (LIMBUS_RADIUS * i) / 64;
 		profile.push(
 			new THREE.Vector2(r, CORNEAL_APEX_Z - conicSag(r, 0, 7.8, 7.8, -0.26)),
 		);
 	}
 	for (let i = 64; i >= 0; i--) {
-		const r = (5.8 * i) / 64;
+		const r = (LIMBUS_RADIUS * i) / 64;
 		profile.push(
 			new THREE.Vector2(
 				r,
@@ -30,16 +38,25 @@ export function createAssemblyCornea() {
 export function updateAssemblyIris(
 	geometry: THREE.BufferGeometry,
 	diameter: number,
+	accommodation = 0,
 ) {
 	const inner = finiteClamp(diameter, 2, 8) / 2;
+	const lens = lensShape(accommodation);
+	const rimZ =
+		(lens.thickness / 2) * lensSurfaceZ(inner / lens.lensRadius) + 0.04;
 	const p = geometry.getAttribute("position");
 	let k = 0;
 	for (let ring = 0; ring <= 16; ring++)
 		for (let j = 0; j <= 96; j++) {
 			const t = ring / 16,
-				r = inner + (5.6 - inner) * t,
+				r = inner + (IRIS_ROOT_RADIUS - inner) * t,
 				a = (j * Math.PI) / 48;
-			p.setXYZ(k++, r * Math.cos(a), r * Math.sin(a), 2.05 + 0.18 * (1 - t));
+			p.setXYZ(
+				k++,
+				r * Math.cos(a),
+				r * Math.sin(a),
+				rimZ * (1 - t) + IRIS_ROOT_Z * t + 0.1 * Math.sin(Math.PI * t),
+			);
 		}
 	p.needsUpdate = true;
 	geometry.computeVertexNormals();
@@ -69,7 +86,7 @@ export function assemblyIrisMaterial() {
 				"#include <color_fragment>",
 				`#include <color_fragment>
    float a=atan(irisPoint.y,irisPoint.x),r=length(irisPoint.xy);
-   float t=clamp((r-irisPupil)/(5.6-irisPupil),0.0,1.0);
+   float t=clamp((r-irisPupil)/(6.0-irisPupil),0.0,1.0);
    float irregular=sin(a*17.0+sin(a*31.0))*0.05;
    float fibres=0.5+0.5*sin(a*173.0+sin(a*37.0)*2.0+t*5.0);
    float crypt=0.5+0.5*sin(a*41.0+sin(a*19.0));
@@ -80,4 +97,46 @@ export function assemblyIrisMaterial() {
 			);
 	};
 	return { material, pupil };
+}
+
+// Closed annular wall joins both corneal surfaces at the limbus and continues
+// around the ciliary body. Its posterior edge is a truncation of this segment.
+export function createAssemblySclera() {
+	const r = LIMBUS_RADIUS;
+	const front = CORNEAL_APEX_Z - conicSag(r, 0, 7.8, 7.8, -0.26);
+	const back = POSTERIOR_CORNEAL_APEX_Z - conicSag(r, 0, 6.5, 6.5, -0.4);
+	const profile = [
+		[r, front],
+		[6.85, 2.15],
+		[7.85, 0],
+		[8.95, -2],
+		[9.65, -3.8],
+		...CILIARY_OUTER_PROFILE.toReversed(),
+		[6.25, 1.85],
+		[r, back],
+		[r, front],
+	].map(([radius, z]) => new THREE.Vector2(radius, z));
+	const geometry = new THREE.LatheGeometry(profile, 96);
+	geometry.rotateX(Math.PI / 2);
+	return geometry;
+}
+
+// Fill the exposed wall thickness on the same y=0 section as the other parts.
+export function createWallSection(
+	geometry: THREE.LatheGeometry,
+	material: THREE.Material,
+) {
+	const group = new THREE.Group();
+	for (const side of [-1, 1]) {
+		const section = new THREE.ShapeGeometry(
+			new THREE.Shape(geometry.parameters.points),
+		);
+		const positions = section.getAttribute("position");
+		for (let i = 0; i < positions.count; i++) {
+			positions.setXYZ(i, side * positions.getX(i), 0, positions.getY(i));
+		}
+		section.computeVertexNormals();
+		group.add(new THREE.Mesh(section, material));
+	}
+	return group;
 }

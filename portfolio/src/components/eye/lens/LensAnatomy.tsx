@@ -1,25 +1,29 @@
-import ParameterControl, { useInitialParameters } from "../ParameterControl";
-import { parameterContext } from "../parameterContext";
 import "./lens.css";
 import { useEffect, useRef, useState } from "react";
+import { focusDemand } from "./accommodationCycle";
 import { createCiliaryApparatus } from "./ciliaryApparatus";
-import LensViews from "./LensViews";
-import { MAX_ACCOMMODATION } from "./lensModel";
+import FocusCue, { updateFocusCue } from "./FocusCue";
 import { createLensScene } from "./lensScene";
 
 export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es";
 	const mount = useRef<HTMLDivElement>(null);
+	const cue = useRef<HTMLDivElement>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
-	const [accommodation, setAccommodation] = useState(0);
-	const [cutaway, setCutaway] = useState(false);
-	const [fibreMap, setFibreMap] = useState(false);
-	const [error, setError] = useState(false);
-	const params = useRef({ accommodation, cutaway, fibreMap });
+	const [reveal, setReveal] = useState(0.5);
+	const [paused, setPaused] = useState(false);
+	const [near, setNear] = useState(false);
+	const nearRef = useRef(false);
 	useEffect(() => {
-		params.current = { accommodation, cutaway, fibreMap };
+		nearRef.current = near;
 		viewRef.current?.invalidate();
-	}, [accommodation, cutaway, fibreMap]);
+	}, [near]);
+	const [error, setError] = useState(false);
+	const params = useRef({ reveal, paused });
+	useEffect(() => {
+		params.current = { reveal, paused };
+		viewRef.current?.invalidate();
+	}, [reveal, paused]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
@@ -30,26 +34,67 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			return;
 		}
 		viewRef.current = view;
-		view.camera.position.set(16, 12, 22);
+		view.camera.up.set(0, 0, 1);
+		view.camera.position.set(
+			14.442104491645564,
+			16.45276657482724,
+			20.82527526556307,
+		);
 		const apparatus = createCiliaryApparatus();
 		view.scene.add(apparatus.group);
-		let shown = params.current.accommodation;
+		let elapsed = 0,
+			shown = 0;
+		view.onReset(() => {
+			elapsed = 0;
+			nearRef.current = false;
+			setNear(false);
+			shown = 0;
+			params.current = { reveal: 0.5, paused: false };
+			setReveal(0.5);
+			setPaused(false);
+		});
 		view.start((dt, reducedMotion) => {
-			const p = params.current;
-			shown +=
-				(p.accommodation - shown) *
-				(reducedMotion ? 1 : 1 - Math.exp(-dt / 0.25));
-			if (Math.abs(p.accommodation - shown) < 1e-4) shown = p.accommodation;
-			const shape = apparatus.update(shown, p.cutaway, p.fibreMap);
+			const moving = !params.current.paused && !reducedMotion;
+			if (moving) elapsed += dt;
+			const target = reducedMotion
+				? nearRef.current
+					? 6
+					: 0
+				: focusDemand(elapsed);
+			if (reducedMotion) shown = target;
+			if (moving) shown += (target - shown) * (1 - Math.exp(-dt / 0.25));
+			const shape = apparatus.update(shown, true, params.current.reveal === 1);
+			updateFocusCue(cue.current, target, shown);
 			return {
 				state: {
-					model: "Illustrative smooth-muscle bundles and zonular suspension",
+					model:
+						"Illustrative ciliary body and zonular suspension; automatic near/far sequence",
 					accommodation: shown,
+					demand: target,
 					...shape,
-					fibreMap: p.fibreMap,
-					cutaway: p.cutaway,
+					cutaway: true,
+					muscleMapReveal: params.current.reveal,
+					paused: !moving,
 				},
-				animating: shown !== p.accommodation,
+				animating: moving,
+				afterRender: () => {
+					if (params.current.reveal <= 0 || params.current.reveal >= 1) return;
+					const width = view.renderer.domElement.clientWidth;
+					const height = view.renderer.domElement.clientHeight;
+					apparatus.update(shown, true, true);
+					view.renderer.setScissor(
+						0,
+						0,
+						Math.round(width * params.current.reveal),
+						height,
+					);
+					view.renderer.setScissorTest(true);
+					try {
+						view.renderer.render(view.scene, view.camera);
+					} finally {
+						view.renderer.setScissorTest(false);
+					}
+				},
 			};
 		});
 		return () => {
@@ -57,144 +102,97 @@ export default function LensAnatomy({ lang = "en" }: { lang?: "en" | "es" }) {
 			view.dispose();
 		};
 	}, [lang]);
-	const defaults = useInitialParameters(
-		{ accommodation, cutaway, fibreMap },
-		(initial) => {
-			setAccommodation(initial.accommodation);
-			setCutaway(initial.cutaway);
-			setFibreMap(initial.fibreMap);
-		},
-		mount,
-	);
 	return (
 		<div className="lens-demo">
 			<div className="lens-heading">
 				<strong>
 					{es
-						? "Músculo ciliar y suspensión zonular"
-						: "Ciliary muscle and zonular suspension"}
+						? "Cuerpo ciliar y suspensión zonular"
+						: "Ciliary body and zonular suspension"}
 				</strong>
 				<span className="lens-muted">
 					{es ? "Arrastra para girar" : "Drag to orbit"}
 				</span>
 			</div>
-			{error ? (
-				<p className="p-4" role="status">
-					{es ? "WebGL no está disponible." : "WebGL is unavailable."}
-				</p>
-			) : (
-				<div
-					ref={mount}
-					className="lens-scene"
-					role="img"
-					aria-label={
-						es
-							? "Músculo ciliar con fibras longitudinales, radiales y circulares, procesos ciliares y zónulas"
-							: "Ciliary muscle with longitudinal, radial and circular fibres, ciliary processes and zonules"
-					}
-				/>
-			)}
-			<div className="lens-legend">
-				{fibreMap ? (
-					<>
-						<span style={{ color: "#d4a1bb" }}>Longitudinal</span>
-						<span style={{ color: "#e3bb85" }}>Radial</span>
-						<span style={{ color: "#e8a28a" }}>Circular</span>
-						<span>{es ? "Dorado: zónulas" : "Gold: zonules"}</span>
-					</>
+			<div className="lens-animated-scene">
+				{error ? (
+					<p role="status">
+						{es ? "WebGL no está disponible." : "WebGL is unavailable."}
+					</p>
 				) : (
-					<span>
-						{es
-							? "Músculo liso · haces entrelazados"
-							: "Smooth muscle · interwoven bundles"}
-					</span>
+					<div
+						ref={mount}
+						className="lens-scene"
+						role="img"
+						aria-label={
+							es
+								? "Sección del cuerpo ciliar que acomoda de lejos a cerca"
+								: "Ciliary-body cutaway accommodating from far to near"
+						}
+					/>
 				)}
-			</div>
-			<div className="lens-controls">
-				<LensViews
+				<FocusCue
+					cueRef={cue}
 					lang={lang}
-					section={cutaway}
-					onView={(view) => viewRef.current?.setView(view)}
+					paused={paused}
+					near={near}
+					onNear={() => setNear(!near)}
+					onPause={() => setPaused(!paused)}
 				/>
-				<ParameterControl
-					value={accommodation}
-					initial={defaults.accommodation}
-					onReset={setAccommodation}
-					label="accommodation"
-					lang={lang}
-					context={parameterContext.accommodation}
+				<button
+					type="button"
+					role="slider"
+					aria-label={es ? "Mostrar mapa muscular" : "Reveal muscle map"}
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-valuenow={Math.round(reveal * 100)}
+					className="lens-map-divider"
+					style={{ left: `${reveal * 100}%` }}
+					onKeyDown={(e) => {
+						const value =
+							e.key === "Home"
+								? 0
+								: e.key === "End"
+									? 1
+									: e.key === "ArrowLeft"
+										? reveal - 0.05
+										: e.key === "ArrowRight"
+											? reveal + 0.05
+											: null;
+						if (value !== null) {
+							e.preventDefault();
+							setReveal(Math.max(0, Math.min(1, value)));
+						}
+					}}
+					onPointerDown={(e) => {
+						e.stopPropagation();
+						e.currentTarget.setPointerCapture(e.pointerId);
+					}}
+					onPointerMove={(e) => {
+						if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+						const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+						setReveal(
+							Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+						);
+					}}
+					onPointerUp={(e) =>
+						e.currentTarget.releasePointerCapture(e.pointerId)
+					}
 				>
-					<label>
-						<span className="lens-value">
-							<span>
-								{es ? "Acomodación del modelo" : "Model accommodation"}
-							</span>
-							<output>{accommodation.toFixed(1)} D</output>
-						</span>
-						<input
-							type="range"
-							min="0"
-							max={MAX_ACCOMMODATION}
-							step="0.1"
-							value={accommodation}
-							onChange={(e) => setAccommodation(Number(e.target.value))}
-						/>
-					</label>
-				</ParameterControl>
-				<div className="lens-value lens-note">
-					<span>{es ? "Lejos" : "Distance"}</span>
-					<span>{es ? "Cerca" : "Near"}</span>
-				</div>
-				<div className="lens-buttons">
-					<ParameterControl
-						value={cutaway}
-						initial={defaults.cutaway}
-						onReset={setCutaway}
-						label="cutaway"
-						lang={lang}
-					>
-						<button
-							type="button"
-							aria-pressed={cutaway}
-							onClick={() => {
-								setCutaway(!cutaway);
-								viewRef.current?.setView(cutaway ? "reset" : "section");
-							}}
-						>
-							{es ? "Sección abierta" : "Open section"}
-						</button>
-					</ParameterControl>
-					<ParameterControl
-						value={fibreMap}
-						initial={defaults.fibreMap}
-						onReset={setFibreMap}
-						label="fibre map"
-						lang={lang}
-					>
-						<button
-							type="button"
-							aria-pressed={fibreMap}
-							onClick={() => setFibreMap(!fibreMap)}
-						>
-							{es ? "Mapa muscular" : "Muscle map"}
-						</button>
-					</ParameterControl>
-				</div>
-				<p className="lens-note" aria-live="polite">
-					{accommodation === 0
-						? es
-							? "Para lejos: mayor carga zonular de aplanamiento."
-							: "Distance: greater zonular flattening load."
-						: es
-							? "Hacia cerca: el anillo se estrecha y disminuye la carga que aplana el cristalino. Indicación cualitativa, no medida de fuerza."
-							: "Toward near: the ring narrows and the lens-flattening load decreases. A qualitative cue, not a force measurement."}
-				</p>
-				<p className="lens-note">
-					{es
-						? "Los pliegues marrones son procesos ciliares. El detalle fino sugiere haces de músculo liso a una escala ilustrativa. Activa el mapa muscular para localizar las regiones entrelazadas. El valor en D controla la animación; esta malla no calcula potencia óptica."
-						: "Brown folds are ciliary processes. Fine markings suggest smooth-muscle bundles at an illustrative scale. Turn on the muscle map to locate the interwoven regions. The D value drives the animation; this mesh does not calculate optical power."}
-				</p>
+					<span aria-hidden="true">↔</span>
+				</button>
 			</div>
+			<div className="lens-legend">
+				<span style={{ color: "#d4a1bb" }}>Longitudinal</span>
+				<span style={{ color: "#e3bb85" }}>Radial</span>
+				<span style={{ color: "#e8a28a" }}>Circular</span>
+				<span>{es ? "Dorado: zónulas" : "Gold: zonules"}</span>
+			</div>
+			<p className="lens-note lens-animation-note">
+				{es
+					? "Arrastra el divisor: mapa muscular a la izquierda, tejido a la derecha. Enfoque y movimiento ilustrativos, no una medida de fuerza ni de potencia óptica."
+					: "Drag the divider: muscle map on the left, tissue on the right. Illustrative focus and motion, not a measurement of force or optical power."}
+			</p>
 		</div>
 	);
 }

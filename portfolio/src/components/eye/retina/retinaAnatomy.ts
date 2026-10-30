@@ -1,10 +1,6 @@
 import * as THREE from "three";
-import {
-	CORNEAL_APEX_Z,
-	LENS_FRONT_FACTOR,
-	POSTERIOR_CORNEAL_APEX_Z,
-	RELAXED_LENS_THICKNESS,
-} from "../eyeDimensions";
+import { CORNEAL_APEX_Z, POSTERIOR_CORNEAL_APEX_Z } from "../eyeDimensions";
+import { LENS_THICKNESS, lensSurfaceZ } from "../lens/lensConstruction";
 import { CUP_CENTRE_Z, CUP_RADIUS } from "./retinaModel";
 
 // Chosen geometry in mm. The RPE is represented by the outer retinal boundary.
@@ -18,9 +14,8 @@ export const DISC_ANGLE = 0.39; // ~4.7 mm surface distance from the fovea
 export const CANAL_ANGLE = Math.asin(1.05 / CUP_RADIUS); // enlarged disc opening
 export const biometry = {
 	cct: CORNEAL_APEX_Z - POSTERIOR_CORNEAL_APEX_Z,
-	acd:
-		POSTERIOR_CORNEAL_APEX_Z - (RELAXED_LENS_THICKNESS * LENS_FRONT_FACTOR) / 2,
-	lt: RELAXED_LENS_THICKNESS,
+	acd: POSTERIOR_CORNEAL_APEX_Z - (LENS_THICKNESS * lensSurfaceZ(0)) / 2,
+	lt: LENS_THICKNESS,
 	axl: CORNEAL_APEX_Z - (CUP_CENTRE_Z - CUP_RADIUS - RETINAL_WALL),
 };
 export function innerRetinalRadius(direction: THREE.Vector3) {

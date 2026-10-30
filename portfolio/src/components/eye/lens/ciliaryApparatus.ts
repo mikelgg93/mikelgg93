@@ -1,30 +1,33 @@
 import * as THREE from "three";
-import { ciliaryPoint, deformCiliary, muscleGeometry } from "./ciliaryGeometry";
+import {
+	CILIARY_BODY_PROFILE,
+	ciliaryWallRadius,
+} from "./anteriorSegmentProfile";
+import {
+	ciliaryPoint,
+	ciliaryProcessGeometry,
+	deformCiliary,
+	muscleGeometry,
+} from "./ciliaryGeometry";
+import { createRoundedLensGeometry, lensSurfaceZ } from "./lensConstruction";
 import { clearLensMaterial } from "./lensMaterial";
 import { lensShape } from "./lensModel";
-import { createLensGeometry } from "./lensScene";
 
-// A continuous, rounded muscle body. Coordinates and bundle texture are
-// illustrative; smooth muscle does not have skeletal-muscle striations.
-const contour = new THREE.CatmullRomCurve3(
-	[
-		[7.04, 0, 1.02],
-		[7.1, 0, 0.55],
-		[7.08, 0, -2.55],
-		[6.97, 0, -2.7],
-		[6.63, 0, -1.95],
-		[6.2, 0, -0.8],
-		[5.86, 0, -0.22],
-		[5.85, 0, 0.42],
-		[6.02, 0, 0.88],
-		[6.52, 0, 1.08],
-	].map(([r, y, z]) => new THREE.Vector3(r, y, z)),
-	true,
-	"centripetal",
-);
-export const CILIARY_PROFILE = contour
-	.getPoints(64)
-	.map((p) => [p.x, p.z] as const);
+// A tapered ciliary-body envelope: the muscle occupies its outer part;
+// the processes project from the inner anterior portion. This is an exposed
+// teaching view, not a histological reconstruction of each tissue layer.
+export const CILIARY_PROFILE = CILIARY_BODY_PROFILE.flatMap((point, i) => {
+	const next = CILIARY_BODY_PROFILE[i + 1];
+	if (!next) return [point];
+	return Array.from(
+		{ length: 8 },
+		(_, j) =>
+			[
+				point[0] + ((next[0] - point[0]) * j) / 8,
+				point[1] + ((next[1] - point[1]) * j) / 8,
+			] as const,
+	);
+});
 
 // Shallow, irregular relief follows the long bundles instead of crossing them.
 // This is a drawing detail, not a measurement of individual muscle cells.
@@ -32,8 +35,8 @@ function bundleRelief(r: number, angle: number, z: number) {
 	const outer = THREE.MathUtils.smoothstep(r, 6.2, 6.85);
 	return (
 		outer *
-		(0.018 * Math.sin(angle * 29 + z * 0.9 + Math.sin(angle * 7)) +
-			0.011 * Math.sin(angle * 17 - z * 0.65))
+		(0.004 * Math.sin(angle * 29 + z * 0.9 + Math.sin(angle * 7)) +
+			0.003 * Math.sin(angle * 17 - z * 0.65))
 	);
 }
 
@@ -42,7 +45,7 @@ function tissueMaterial() {
 		color: 0xffffff,
 		vertexColors: true,
 		specular: 0x362b2b,
-		shininess: 12,
+		shininess: 7,
 		side: THREE.DoubleSide,
 	});
 	material.onBeforeCompile = (shader) => {
@@ -65,14 +68,14 @@ function tissueMaterial() {
    float longitudinal=tissueNoise(vec2(a*57.0 + sin(tissuePoint.z*1.3),tissuePoint.z*1.6));
    float circular=tissueNoise(vec2(a*3.0,tissuePoint.z*25.0 + sin(a*5.0)));
    float grain=mix(circular,longitudinal,outer);
-   diffuseColor.rgb *= 0.78 + 0.28*grain;
+   diffuseColor.rgb *= 0.94 + 0.06*grain;
   `,
 		);
 		shader.fragmentShader = shader.fragmentShader.replace(
 			"#include <normal_fragment_maps>",
 			`#include <normal_fragment_maps>
    // A small surface-gradient bump gives the bundles depth as the eye rotates.
-   float tissueHeight=0.009*grain;
+   float tissueHeight=0.0015*grain;
    vec3 sx=dFdx(-vViewPosition), sy=dFdy(-vViewPosition);
    vec3 tx=cross(sy,normal), ty=cross(normal,sx);
    float determinant=dot(sx,tx);
@@ -139,7 +142,7 @@ export function createCiliaryApparatus() {
 		tissues.push({ geometry, rest: new Float32Array(p.array) });
 	}
 	support.add(section);
-	const shape = createLensGeometry();
+	const shape = createRoundedLensGeometry();
 	const lens = new THREE.Group();
 	const shell = clearLensMaterial();
 	lens.add(new THREE.Mesh(shape, shell));
@@ -163,8 +166,12 @@ export function createCiliaryApparatus() {
 	);
 	lens.add(rim);
 	group.add(lens);
+	const foldGeometry = ciliaryProcessGeometry();
+	const foldRest = new Float32Array(
+		foldGeometry.getAttribute("position").array,
+	);
 	const folds = new THREE.InstancedMesh(
-		new THREE.SphereGeometry(1, 20, 12),
+		foldGeometry,
 		new THREE.MeshPhongMaterial({ color: 0x6e4137, shininess: 18 }),
 		56,
 	);
@@ -198,15 +205,11 @@ export function createCiliaryApparatus() {
 		if (accommodation !== lastAccommodation) {
 			for (const t of tissues) deformCiliary(t.geometry, t.rest, s.fraction);
 			lens.scale.set(s.lensRadius, s.lensRadius, s.thickness / 2);
+			deformCiliary(foldGeometry, foldRest, s.fraction);
 			for (let i = 0; i < 56; i++) {
 				const angle = (i * Math.PI * 2) / 56;
-				transform.position.copy(ciliaryPoint(5.85, angle, 0.05, s.fraction));
 				transform.rotation.z = angle;
-				transform.scale.set(
-					0.47 + 0.04 * Math.sin(i * 2.7),
-					0.085,
-					0.26 + 0.035 * Math.sin(i * 1.9),
-				);
+				transform.scale.set(1, 1 + 0.12 * Math.sin(i * 2.7), 1);
 				transform.updateMatrix();
 				folds.setMatrixAt(i, transform.matrix);
 			}
@@ -216,16 +219,14 @@ export function createCiliaryApparatus() {
 			for (let i = 0; i < 56; i++)
 				for (const side of [-1, 0, 1]) {
 					const angle = ((i + 0.5) * Math.PI * 2) / 56;
-					const a = side === 0 ? 1 : 0.96;
+					const a = side === 0 ? 1 : 0.93 + 0.02 * Math.sin(i * 2.1) ** 2;
 					const end = new THREE.Vector3(
 						s.lensRadius * a * Math.cos(angle),
 						s.lensRadius * a * Math.sin(angle),
-						((side * s.thickness) / 2) *
-							(side > 0 ? 0.85 : 1.15) *
-							Math.sqrt(1 - a * a),
+						(s.thickness / 2) * lensSurfaceZ(a, side > 0),
 					);
-					const origin = ciliaryPoint(6.58, angle, -1.95, s.fraction);
-					const guide = ciliaryPoint(5.72, angle, -0.32, s.fraction);
+					const origin = ciliaryPoint(7.95, angle, -2, s.fraction);
+					const guide = ciliaryPoint(6.1, angle, 0.18, s.fraction);
 					for (const p of [origin, guide, guide, end])
 						zonules.setXYZ(k++, p.x, p.y, p.z);
 				}
@@ -234,22 +235,27 @@ export function createCiliaryApparatus() {
 			lastAccommodation = accommodation;
 		}
 		if (map !== lastMap) {
-			const outer = new THREE.Color(map ? 0x995d7a : 0xb47b7c);
-			const middle = new THREE.Color(map ? 0xc58b56 : 0xbb8380);
-			const inner = new THREE.Color(map ? 0xe8a28a : 0xa9696d);
+			const outer = new THREE.Color(map ? 0x995d7a : 0x865651);
+			const middle = new THREE.Color(map ? 0xc58b56 : 0x93615a);
+			const inner = new THREE.Color(map ? 0xe8a28a : 0x794941);
 			const color = new THREE.Color();
+			const epithelialColor = new THREE.Color(0x6e4137);
 			for (const t of tissues) {
 				const colors = t.geometry.getAttribute("color");
 				for (let i = 0; i < colors.count; i++) {
 					const r = Math.hypot(t.rest[i * 3]!, t.rest[i * 3 + 1]!);
-					if (r > 6.55)
-						color
-							.copy(middle)
-							.lerp(outer, THREE.MathUtils.smoothstep(r, 6.55, 7.1));
-					else
-						color
-							.copy(inner)
-							.lerp(middle, THREE.MathUtils.smoothstep(r, 5.85, 6.55));
+					const z = t.rest[i * 3 + 2]!;
+					const depth = ciliaryWallRadius(z) - r;
+					// The posterior/inner body is not all muscle. The map fades
+					// into vascular/epithelial tissue outside the anterior wedge.
+					const width = 0.25 + 1.05 * THREE.MathUtils.smoothstep(z, -2.8, 0.5);
+					const region = THREE.MathUtils.clamp(depth / width, 0, 1);
+					color
+						.copy(outer)
+						.lerp(middle, THREE.MathUtils.smoothstep(region, 0.15, 0.65));
+					color.lerp(inner, THREE.MathUtils.smoothstep(region, 0.6, 1));
+					const tissue = THREE.MathUtils.smoothstep(depth, width, width + 0.3);
+					color.lerp(epithelialColor, tissue);
 					colors.setXYZ(i, color.r, color.g, color.b);
 				}
 				colors.needsUpdate = true;
