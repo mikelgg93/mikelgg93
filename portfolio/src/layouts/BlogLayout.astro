@@ -1,5 +1,6 @@
 ---
 import { Image } from "astro:assets";
+import ModelThemeNotice from "@/components/blog/ModelThemeNotice";
 import ArticleDates from "@/components/blog/ArticleDates.astro";
 import HeadingLinks from "@/components/blog/HeadingLinks.astro";
 import { articleDates } from "@/lib/articleDates";
@@ -39,6 +40,7 @@ const mobileHint = hasMobileModelControls
 <Layout title={frontmatter.title} description={frontmatter.description} image={ogImage} article={structuredArticle}>
   <HeadingLinks />
   <BlogFeatures client:load />
+  {Astro.url.pathname.includes("/webgl-eye-") && <ModelThemeNotice client:load lang={isSpanish ? "es" : "en"} />}
 
   <div class="md:hidden relative h-0 z-40">
     <div class="absolute top-[60px] inset-x-0 bg-amber-500/10 backdrop-blur-md border-y border-amber-500/20 text-amber-600 dark:text-amber-400 px-4 py-2.5 text-xs font-medium text-center">
