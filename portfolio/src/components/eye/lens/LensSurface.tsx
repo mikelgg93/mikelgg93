@@ -55,6 +55,9 @@ export default function LensSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 			setReveal(INITIAL_REVEAL);
 		});
 		view.start(() => {
+			grid.material.color.set(
+				view.scene.userData.theme === "dark" ? 0xdce9e7 : 0x53665c,
+			);
 			material.visible = split.current !== 1;
 			grid.visible = split.current === 1;
 			return {
