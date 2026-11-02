@@ -246,3 +246,20 @@
 .retina-demo.lens-demo .lens-focus-cue button:hover { color: #e5b773; }
 .retina-demo.lens-demo .lens-focus-readout { gap: 0; }
 .retina-demo.lens-demo .retina-readouts { font-variant-numeric: tabular-nums; }
+
+/* Labels over a 3D scene follow its theme; dark diagnostic plots keep their own palette. */
+:root:not(.dark) .retina-demo .retina-camera,
+:root:not(.dark) .retina-demo .retina-patch-labels,
+:root:not(.dark) .retina-demo .retina-pit-inset,
+:root:not(.dark) .retina-demo .lens-focus-readout,
+:root:not(.dark) .retina-demo .lens-focus-cue button {
+    color: var(--foreground);
+}
+:root:not(.dark) .retina-demo .retina-pit-inset svg {
+    color: #dce9e7;
+}
+:root:not(.dark) .retina-demo .retina-landmark {
+    background: var(--card);
+    color: var(--foreground);
+    border-color: var(--foreground);
+}
