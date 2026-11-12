@@ -3,6 +3,7 @@ import { simulationSources } from "../simulationSources";
 import profile from "./globeProfile.ts?raw";
 import posterior from "./posteriorEye.ts?raw";
 import assembly from "./RetinaAssembly.tsx?raw";
+import coats from "./RetinaCoats.tsx?raw";
 import cup from "./RetinaCup.tsx?raw";
 import layers from "./RetinaLayers.tsx?raw";
 import cells from "./RetinalCells.tsx?raw";
@@ -73,6 +74,21 @@ export const retinaSources = {
 		file("receptiveField.ts", fieldModel),
 		...shared,
 		...styles,
+	],
+	coats: [
+		file("RetinaCoats.tsx", coats),
+		file("posteriorEye.ts", posterior),
+		file("globeProfile.ts", profile),
+		file("retinaAnatomy.ts", anatomy),
+		...shared,
+		...common3D,
+		...lensSources.assembly.filter((f) =>
+			[
+				"eye/cornea/conic.ts",
+				"eye/lens/anteriorSegmentProfile.ts",
+				"eye/lens/lensConstruction.ts",
+			].includes(f.path),
+		),
 	],
 	assembly: [
 		file("RetinaAssembly.tsx", assembly),

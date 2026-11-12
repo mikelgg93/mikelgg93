@@ -341,3 +341,58 @@ test("the depressed disc stays visible across the nerve head instead of behind a
 	}
 	disposeThree(eye.group);
 });
+
+test("posterior coat interfaces stay coincident around the cup, not only at its pole", () => {
+	const eye = createPosteriorEye();
+	eye.update(false);
+	eye.group.updateMatrixWorld(true);
+	const centre = new THREE.Vector3(0, 0, CUP_CENTRE_Z);
+	const axis = new THREE.Vector3(
+		Math.sin(DISC_ANGLE),
+		0,
+		-Math.cos(DISC_ANGLE),
+	);
+	for (const theta of [0, 0.2, 0.5, 0.8, 1.1]) {
+		for (const phi of [0, 0.7, 1.8, 3.4, 4.7]) {
+			const direction = new THREE.Vector3(
+				Math.sin(theta) * Math.cos(phi),
+				Math.sin(theta) * Math.sin(phi),
+				-Math.cos(theta),
+			);
+			if (direction.dot(axis) >= Math.cos(CANAL_ANGLE + 0.02)) continue;
+			let outer: number | undefined;
+			for (const coat of eyeCoats) {
+				const mesh = eye.group.getObjectByName(coat.key)!
+					.children[0] as THREE.Mesh;
+				(mesh.material as THREE.Material).side = THREE.DoubleSide;
+				const hits = new THREE.Raycaster(centre, direction).intersectObject(
+					mesh,
+				);
+				expect(hits.length).toBeGreaterThanOrEqual(2);
+				const inner = hits[0]!.distance;
+				const end = hits.at(-1)!.distance;
+				expect(end - inner).toBeGreaterThan(0.18);
+				if (outer !== undefined)
+					expect(Math.abs(inner - outer)).toBeLessThan(0.015);
+				outer = end;
+			}
+		}
+	}
+	disposeThree(eye.group);
+});
+
+test("the anterior choroidal rim matches both edges of the schematic ciliary attachment", () => {
+	const eye = createPosteriorEye();
+	const mesh = eye.group.getObjectByName("choroid")!.children[0] as THREE.Mesh;
+	const points = mesh.geometry.getAttribute("position");
+	const rim: number[] = [];
+	for (let i = 0; i < points.count; i++) {
+		if (Math.abs(points.getZ(i) + 3.8) < 1e-5)
+			rim.push(Math.hypot(points.getX(i), points.getY(i)));
+	}
+	expect(rim.length).toBeGreaterThan(100);
+	const outer = ciliaryWallRadius(-3.8);
+	expect(Math.min(...rim)).toBeCloseTo(outer - 0.15, 4);
+	expect(Math.max(...rim)).toBeCloseTo(outer, 4);
+	disposeThree(eye.group);
+});

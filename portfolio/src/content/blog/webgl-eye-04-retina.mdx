@@ -19,6 +19,7 @@ import RetinaLayers from '../../components/eye/retina/RetinaLayers';
 import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
 import RetinaSampling from '../../components/eye/retina/RetinaSampling';
 import RetinaReceptiveField from '../../components/eye/retina/RetinaReceptiveField';
+import RetinaCoats from '../../components/eye/retina/RetinaCoats';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
 We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the <PublishedPost id="webgl-eye-03-lens" fallback="lens"><a href="/blog/webgl-eye-03-lens/">lens</a></PublishedPost> a way to change focus. Light can now travel through our model, but we still need something to receive it.
@@ -182,6 +183,33 @@ This helps separate two ideas. The sampling experiment asked which images give i
 
 The pupil reflex from Part II provides another example of parallel output: melanopsin-expressing **ipRGCs** respond intrinsically to light as well as receiving rod/cone input. The retina therefore sends more than one kind of message onwards through the optic nerve.
 
+## Give the cup its supporting coats
+
+Returning from the cells to the eye's shape, the retina is not a free-standing sheet. Outside the RPE lies the vascular, pigmented **choroid**, followed by the collagen-rich **sclera**. The choroid supplies the outer retina and continues anteriorly into the ciliary body. Here we will draw it as one band, without resolving Bruch's membrane, the choriocapillaris or the larger-vessel layers (Nickla & Wallman, 2010).
+
+Start with the existing cup, give it an outer surface, and join the two surfaces around their edges. To add the choroid, reuse the outer retinal boundary as its inner face; the sclera then starts where the choroid ends. Away from the pit, the chosen posterior widths are 0.30, 0.40 and 0.70 mm. These are drawing parameters, not typical thicknesses for the whole eye. At the fovea, the inner retinal surface changes while the boundary representing the RPE stays fixed.
+
+```ts
+// Shared boundaries, in mm: chosen construction dimensions.
+const rpeRadius = CUP_RADIUS + RETINAL_WALL;
+const choroidInner = rpeRadius;
+const choroidOuter = choroidInner + CHOROID_WALL;
+const scleraInner = choroidOuter;
+const scleraOuter = scleraInner + SCLERAL_WALL;
+// For each sampled unit direction from the dome:
+const innerPoint = direction.clone().multiplyScalar(choroidInner).add(centre);
+const outerPoint = direction.clone().multiplyScalar(choroidOuter).add(centre);
+```
+
+The inner-face normals point into the vitreous, while the outer-face normals point away from the tissue. Close the cut faces too, so each coat has visible thickness in section. All three retain an opening nasal to the fovea for the nerve: leave that canal open when building the walls, rather than drawing a cylinder through intact coats. Its size is enlarged for legibility.
+
+<InteractiveViewer>
+  <div slot="preview"><RetinaCoats client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.coats} /></div>
+</InteractiveViewer>
+
+The sequence reveals the final assembly's actual meshes; it does not simulate eye development. A magnified diagram makes the wall widths readable without pulling the tissues apart or thickening the 3D model. Anteriorly, the coats stop following simple concentric radii: we taper them, join the choroid to the posterior ciliary-body attachment, and bring the sclera to the limbus.
+
 ## Put the receiving surface behind the optics
 
 With the receiving tissue in place, we can position the cup behind the cornea, iris and lens from the earlier articles. Aligning their coordinate systems gives the following dimensions for the assembled, relaxed model, in millimetres:
@@ -197,7 +225,7 @@ These are **chosen assembly dimensions**, not measurements of one eye. We retain
 
 The endpoints matter. Here AXL runs from the corneal apex at $z=5.6\ \text{mm}$ to the RPE boundary at $z=-18.70\ \text{mm}$, following the common optical-biometry convention (Ostrin et al., 2023). Internal ACD excludes the cornea. Keeping these definitions explicit lets us compare dimensions without confusing the inner retinal surface, the RPE and the outside of the eye.
 
-We then enclose the cup in the vascular **choroid** and the collagen-rich **sclera**, which meets the cornea at the limbus (Kolb; Watson & Young, 2004). Each coat is a wall with inner and outer surfaces joined at its edges. Their boundaries meet without gaps, and a shared opening nasal to the fovea carries the optic nerve through them. We store complete and sectioned versions of these meshes so changing the view does not rebuild the geometry.
+We reuse the coats from the construction above, storing complete and sectioned meshes so changing views does not rebuild them. The sclera reaches the limbus, where it meets the cornea (Watson & Young, 2004). The ciliary-body join and wall widths are schematic, rather than fitted to one measured eye.
 
 The landmarks follow the construction above: a darker macula, a shallow foveal pit and vessel arcades around its centre. We use a roughly $5.5\ \text{mm}$ macular diameter, a common clinical description whose boundaries depend on definition (Webvision, *The Architecture of the Human Fovea*), and a **model pit depth of $0.10\ \text{mm}$**. Unlike the enlarged layer diagram, the pit remains subtle at whole-eye scale. The disc opening and nerve exit sit beside it, not at its centre.
 
@@ -208,7 +236,9 @@ The landmarks follow the construction above: a darker macula, a shallow foveal p
 
 Choose **Retina** for numbered landmarks, **Cutaway** to inspect the coats and anterior segment, or **Whole eye** for the nerve exit. Accommodation and near miosis animate together using the shared Part III construction. Turning on **Reduced-eye focus** adds a separate 60 D approximation, with a violet ring at its equivalent principal plane and gold lines tracing straight rays through the vitreous. These do not calculate refraction through the rendered surfaces. The magnified inset follows the rays through focus to a reference plane 0.05 mm anterior to the RPE boundary, illustrating the photoreceptor side rather than a measured focal layer. Signed displacement and defocus reveal the small lag without exaggerating the eye geometry.
 
-Wall thicknesses, colours, disc offset and the short nerve segment remain drawing parameters, with schematic anterior joins where the scleral rim meets the earlier corneal mesh. We leave out capillaries, detailed lamina cribrosa, individual axons and meningeal layers. The layer diagram and receptor mosaic remain separate magnified views rather than millimetre-sized cells added to this eye.
+The anatomical check confirms the coat ordering, nasal nerve exit and geometric continuity between neighbouring surfaces. **It does not validate the widths as human histology**: the RPE is a boundary, the choroid is one grouped band, and the anterior profiles are approximations. The anatomical reference guides tissue relationships; the table describes our construction rather than one measured eye.
+
+The nerve remains a short segment without detailed lamina cribrosa or individual axons. The layer diagram and receptor mosaic are separate magnified views, not millimetre-sized cells placed inside this eye.
 
 We now have the main anatomical pieces in one scene, though predicting a retinal image would still require us to couple and validate their surfaces, refractive indices and distances. Predicting vision would go further, modelling how the retina and brain use that image as well.
 
@@ -240,3 +270,5 @@ Continue with [Part 5: Models and populations](/blog/webgl-eye-05-models): compa
 
 13. **Kuffler, S. W. (1953).** [*Discharge patterns and functional organization of mammalian retina*](https://doi.org/10.1152/jn.1953.16.1.37). Journal of Neurophysiology, 16, 37–68.
 14. **Euler, T., Haverkamp, S., Schubert, T., & Baden, T. (2014).** [*Retinal bipolar cells: elementary building blocks of vision*](https://doi.org/10.1038/nrn3783). Nature Reviews Neuroscience, 15, 507–519.
+
+15. **Nickla, D. L., & Wallman, J. (2010).** [*The multifunctional choroid*](https://pmc.ncbi.nlm.nih.gov/articles/PMC2913695/). Progress in Retinal and Eye Research, 29, 144–168.

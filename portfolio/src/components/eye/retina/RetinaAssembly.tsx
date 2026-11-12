@@ -236,7 +236,7 @@ export default function RetinaAssembly({
 					});
 				},
 				state: {
-					model: "Anatomical assembly, no coupled ray tracing",
+					model: "Schematic anatomical assembly, no coupled ray tracing",
 					section: p.section,
 					anterior: p.anterior,
 					choroid: p.choroid,
@@ -284,7 +284,9 @@ export default function RetinaAssembly({
 						: "The retina meets the rest of the eye"}
 				</strong>
 				<span className="lens-muted">
-					{es ? "Composición anatómica" : "Anatomical assembly"}
+					{es
+						? "Composición anatómica esquemática"
+						: "Schematic anatomical assembly"}
 				</span>
 			</div>
 			<div

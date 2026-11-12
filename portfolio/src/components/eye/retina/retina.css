@@ -270,3 +270,9 @@
 .retina-field-output p { margin: 0.5rem 0; }
 @media (max-width: 500px) { .retina-field-panels { grid-template-columns: 1fr; } }
 @media (max-width: 500px) { .retina-field-panels > .retina-figure { max-width: 260px; margin-inline: auto; } }
+
+.retina-coat-section { padding: 0 16px 12px; font-size: 12px; color: var(--muted-foreground); }
+.retina-coat-section p { margin: 0.5rem 0; }
+.retina-coat-strip { display: flex; height: 28px; border: 1px solid var(--border); }
+.retina-coat-strip span { display: block; }
+.retina-coat-section .retina-bands { padding-inline: 0; }

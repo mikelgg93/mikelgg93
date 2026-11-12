@@ -19,6 +19,7 @@ import RetinaLayers from '../../components/eye/retina/RetinaLayers';
 import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
 import RetinaSampling from '../../components/eye/retina/RetinaSampling';
 import RetinaReceptiveField from '../../components/eye/retina/RetinaReceptiveField';
+import RetinaCoats from '../../components/eye/retina/RetinaCoats';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
 En las partes anteriores dimos forma a la [córnea](/es/blog/webgl-eye-01-cornea), abrimos la [pupila](/es/blog/webgl-eye-02-pupil) y permitimos que el <PublishedPost id="webgl-eye-03-lens-es" fallback="cristalino"><a href="/es/blog/webgl-eye-03-lens/">cristalino</a></PublishedPost> cambiara el enfoque. La luz ya puede recorrer nuestro modelo, pero todavía falta una estructura que la reciba.
@@ -182,6 +183,33 @@ Así distinguimos dos ideas: el experimento de muestreo preguntaba qué imágene
 
 El reflejo pupilar de la Parte II ofrece otro ejemplo de salida paralela: las **ipRGCs** con melanopsina responden directamente a la luz y también reciben información de conos y bastones. Por el nervio óptico viajan, por tanto, mensajes de varios tipos.
 
+## Dar a la cúpula sus cubiertas de soporte
+
+Volvamos de las células a la forma del ojo. La retina no queda suspendida como una lámina libre: por fuera del EPR está la **coroides**, vascularizada y pigmentada, y más afuera la **esclerótica**, rica en colágeno. La coroides nutre la retina externa y continúa anteriormente hacia el cuerpo ciliar; aquí la dibujaremos como una sola banda, sin separar la membrana de Bruch, la coriocapilar ni los vasos de mayor calibre (Nickla y Wallman, 2010).
+
+Partimos de la cúpula existente, le damos una superficie externa y unimos ambas en sus bordes. Para añadir la coroides reutilizamos ese límite externo como su cara interna; la esclerótica empieza, a su vez, donde termina la coroides. En la región posterior, fuera de la fosita, los espesores elegidos son 0,30, 0,40 y 0,70 mm. Son parámetros de dibujo: no espesores típicos aplicables a todo el ojo. En la fóvea cambia la cara interna de la retina, mientras el límite que representa el EPR permanece fijo.
+
+```ts
+// Shared boundaries, in mm: chosen construction dimensions.
+const rpeRadius = CUP_RADIUS + RETINAL_WALL;
+const choroidInner = rpeRadius;
+const choroidOuter = choroidInner + CHOROID_WALL;
+const scleraInner = choroidOuter;
+const scleraOuter = scleraInner + SCLERAL_WALL;
+// For each sampled unit direction from the dome:
+const innerPoint = direction.clone().multiplyScalar(choroidInner).add(centre);
+const outerPoint = direction.clone().multiplyScalar(choroidOuter).add(centre);
+```
+
+Las normales de la cara interna apuntan hacia el vítreo y las de la externa, hacia fuera del tejido. Cerramos también las caras que deja la sección para que las cubiertas tengan espesor visible. Todas conservan una abertura nasal respecto a la fóvea, por la que pasa el nervio: dejamos el canal abierto al construir las paredes, sin dibujar un cilindro atravesando capas intactas. Su tamaño está ampliado para facilitar la lectura.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><RetinaCoats lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.coats} lang="es" /></div>
+</InteractiveViewer>
+
+La secuencia usa las mismas mallas que el conjunto final y va revelando sus piezas, no simula el desarrollo del ojo. El esquema ampliado permite leer sus espesores sin separarlas ni engrosarlas en el modelo 3D. Hacia delante, las cubiertas dejan de seguir simples radios concéntricos: las adelgazamos y hacemos coincidir la coroides con la unión posterior del cuerpo ciliar y la esclerótica con el limbo.
+
 ## Colocar la superficie receptora detrás de la óptica
 
 Con la superficie receptora y su organización en mente, podemos colocarla detrás de la córnea, el iris y el cristalino de los artículos anteriores. Para que encajen, todas las piezas deben compartir coordenadas; estas son las dimensiones del conjunto con el cristalino relajado, en milímetros:
@@ -197,7 +225,7 @@ Son **dimensiones elegidas para el montaje**, no medidas de un ojo concreto. Con
 
 Importa precisar dónde empieza y termina cada medida. Aquí la AXL va del ápice corneal, en $z=5,6\ \text{mm}$, al EPR, en $z=-18,70\ \text{mm}$, siguiendo la convención habitual de la biometría óptica (Ostrin et al., 2023). La ACD interna excluye la córnea. Así podemos comparar dimensiones sin confundir la superficie interna de la retina, el EPR y el exterior del ojo.
 
-Rodeamos la cúpula con la **coroides**, vascularizada, y la **esclerótica**, rica en colágeno y unida a la córnea en el limbo (Kolb; Watson y Young, 2004). Cada cubierta es una pared con superficies interna y externa conectadas por sus bordes. Sus límites se encuentran sin dejar huecos, y una abertura común, nasal respecto a la fóvea, permite el paso del nervio óptico. Guardamos las mallas completas y seccionadas para cambiar de vista sin reconstruirlas.
+Reutilizamos las cubiertas de la secuencia anterior, con mallas completas y seccionadas ya calculadas para cambiar de vista sin reconstruirlas. La esclerótica llega al limbo, donde se encuentra con la córnea (Watson y Young, 2004). La unión con el cuerpo ciliar y los espesores son esquemáticos; no se han ajustado a un mismo ojo medido.
 
 Las referencias siguen la construcción anterior: mácula oscura, depresión foveal poco profunda y arcadas vasculares alrededor de su centro. Usamos un diámetro macular de unos $5,5\ \text{mm}$, una descripción clínica habitual cuyos límites dependen de la definición (Webvision, *The Architecture of the Human Fovea*), y una **profundidad foveal de $0,10\ \text{mm}$ como parámetro del modelo**. A diferencia del diagrama ampliado de capas, la depresión debe verse sutil a escala del ojo completo. La papila y la salida del nervio quedan a su lado, no en su centro.
 
@@ -210,7 +238,9 @@ Puedes recorrer el conjunto con **Retina**, que muestra las referencias numerada
 
 Al activar **Enfoque de ojo reducido** añadimos una aproximación óptica independiente de 60 D: el aro violeta sitúa su plano principal equivalente y las líneas doradas muestran rayos rectos en el vítreo, sin calcular refracción por las superficies dibujadas. El recuadro ampliado los sigue a través del foco hasta una referencia receptora situada 0,05 mm delante del EPR, un plano ilustrativo del lado de los fotorreceptores y no una capa focal medida. Los valores con signo del desplazamiento y del desenfoque permiten apreciar el pequeño retraso sin exagerar la geometría del ojo.
 
-Los espesores, colores, el desplazamiento de la papila y el tramo de nervio siguen siendo parámetros de dibujo. El borde escleral se une a la malla corneal mediante uniones anteriores esquemáticas, y omitimos los capilares, el detalle de la lámina cribosa, los axones individuales y las capas meníngeas. Las células de las vistas ampliadas tampoco se añaden a este ojo con tamaño milimétrico: el esquema de capas y el mosaico siguen siendo modelos separados.
+La comprobación anatómica confirma el orden de las cubiertas, la salida nasal del nervio y la continuidad geométrica entre superficies vecinas. **No valida los espesores como histología humana**: el EPR se representa como un límite, la coroides se agrupa en una banda y los perfiles anteriores son aproximaciones. La anatomía de referencia orienta las relaciones entre tejidos; los valores de la tabla describen nuestra construcción, no un ojo individual medido.
+
+El nervio sigue siendo un tramo corto sin detalle de la lámina cribosa ni axones individuales. El diagrama de capas y el mosaico son vistas ampliadas independientes, no células de tamaño milimétrico colocadas dentro del ojo.
 
 Ya hemos reunido las principales piezas anatómicas, aunque todavía no sus cálculos en una simulación óptica o neural completa. Predecir una imagen retiniana exigiría acoplar y validar superficies, índices de refracción y distancias; para predecir la visión, además, habría que modelar cómo procesan esa imagen la retina y el cerebro.
 
@@ -242,3 +272,5 @@ Continúa con la [Parte 5: Modelos y poblaciones](/es/blog/webgl-eye-05-models):
 
 13. **Kuffler, S. W. (1953).** [*Discharge patterns and functional organization of mammalian retina*](https://doi.org/10.1152/jn.1953.16.1.37). Journal of Neurophysiology, 16, 37–68.
 14. **Euler, T., Haverkamp, S., Schubert, T., & Baden, T. (2014).** [*Retinal bipolar cells: elementary building blocks of vision*](https://doi.org/10.1038/nrn3783). Nature Reviews Neuroscience, 15, 507–519.
+
+15. **Nickla, D. L., & Wallman, J. (2010).** [*The multifunctional choroid*](https://pmc.ncbi.nlm.nih.gov/articles/PMC2913695/). Progress in Retinal and Eye Research, 29, 144–168.
