@@ -208,6 +208,10 @@ The inner-face normals point into the vitreous, while the outer-face normals poi
   <div slot="code"><SourceFiles files={retinaSources.coats} /></div>
 </InteractiveViewer>
 
+Choose **Choroidal vascular detail** to inspect a patch from the retinal side. The choriocapillaris lies beside the RPE and Bruch's membrane, with smaller and larger vessels deeper in the choroid, schematically corresponding to Sattler's and Haller's regions (Nickla & Wallman, 2010). We generate vessel routes on a curved surface and repeat a reticular mesh to identify the capillary sheet. This is not a measured vascular reconstruction or a model of venous drainage.
+
+**Illustrative tessellated fundus** exposes these deeper vessels beneath a coloured covering. Tessellation describes visibility of the choroidal pattern through the overlying tissues; it is not the obligatory appearance of every retina. Here transparency is a drawing device, without inferring pigmentation, tissue thickness or disease (Yan et al., 2015).
+
 The sequence reveals the final assembly's actual meshes; it does not simulate eye development. A magnified diagram makes the wall widths readable without pulling the tissues apart or thickening the 3D model. Anteriorly, the coats stop following simple concentric radii: we taper them, join the choroid to the posterior ciliary-body attachment, and bring the sclera to the limbus.
 
 ## Put the receiving surface behind the optics
@@ -244,9 +248,9 @@ We now have the main anatomical pieces in one scene, though predicting a retinal
 
 For now, the construction gives light a surface to reach and cells to sample it, showing why adding more polygons does not necessarily add more visual information.
 
-<PublishedPost id="webgl-eye-05-models">
+<PublishedPost id="webgl-eye-05-motility">
 
-Continue with [Part 5: Models and populations](/blog/webgl-eye-05-models): compare this assembly with Navarro and Atchison, then vary its dimensions.
+Continue with [Part 5: Extraocular muscles and motility](/blog/webgl-eye-05-motility): give the assembled eye a way to turn towards a target.
 
 </PublishedPost>
 
@@ -272,3 +276,5 @@ Continue with [Part 5: Models and populations](/blog/webgl-eye-05-models): compa
 14. **Euler, T., Haverkamp, S., Schubert, T., & Baden, T. (2014).** [*Retinal bipolar cells: elementary building blocks of vision*](https://doi.org/10.1038/nrn3783). Nature Reviews Neuroscience, 15, 507–519.
 
 15. **Nickla, D. L., & Wallman, J. (2010).** [*The multifunctional choroid*](https://pmc.ncbi.nlm.nih.gov/articles/PMC2913695/). Progress in Retinal and Eye Research, 29, 144–168.
+
+16. **Yan, Y. N., et al. (2015).** [*Fundus Tessellation: Prevalence and Associated Factors: The Beijing Eye Study 2011*](https://doi.org/10.1016/j.ophtha.2015.05.031). Ophthalmology, 122, 1873–1880.

@@ -5,7 +5,8 @@ test("article previews include published posts and only their own bilingual draf
 	const ids = [
 		"webgl-eye-03-lens",
 		"webgl-eye-04-retina",
-		"webgl-eye-05-models",
+		"webgl-eye-05-motility",
+		"webgl-eye-06-models",
 	];
 	for (const branch of ids) {
 		expect(visibleInBuild("webgl-eye-02-pupil", true, true, branch)).toBe(true);

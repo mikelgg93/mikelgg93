@@ -1,5 +1,6 @@
 import { lensSources } from "../lens/lensSources";
 import { simulationSources } from "../simulationSources";
+import choroid from "./choroidPatch.ts?raw";
 import profile from "./globeProfile.ts?raw";
 import posterior from "./posteriorEye.ts?raw";
 import assembly from "./RetinaAssembly.tsx?raw";
@@ -77,6 +78,7 @@ export const retinaSources = {
 	],
 	coats: [
 		file("RetinaCoats.tsx", coats),
+		file("choroidPatch.ts", choroid),
 		file("posteriorEye.ts", posterior),
 		file("globeProfile.ts", profile),
 		file("retinaAnatomy.ts", anatomy),

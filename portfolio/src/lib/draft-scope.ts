@@ -2,7 +2,8 @@
 const articleBranches: Record<string, string> = {
 	"webgl-eye-03-lens": "webgl-eye-03-lens",
 	"webgl-eye-04-retina": "webgl-eye-04-retina",
-	"webgl-eye-05-models": "webgl-eye-05-models",
+	"webgl-eye-05-motility": "webgl-eye-05-motility",
+	"webgl-eye-06-models": "webgl-eye-06-models",
 };
 export function visibleInBuild(
 	id: string,

@@ -1,5 +1,5 @@
 ---
-title: "Modelando el ojo V: Un ojo no es una población"
+title: "Modelando el ojo VI: Un ojo no es una población"
 published: false
 description: "Comparamos nuestro ojo WebGL con Navarro y Atchison, y construimos ojos sintéticos con distribuciones normales y covarianzas publicadas."
 author: "Miguel García"
@@ -8,6 +8,8 @@ lang: "es"
 image: "/images/blog/eye-models-banner.webp"
 ---
 
+import PublishedPost from "@/components/blog/PublishedPost.astro";
+
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
 import { modelSources } from '../../components/eye/models/modelSources';
@@ -15,11 +17,13 @@ import ModelComparison from '../../components/eye/models/ModelComparison';
 import NormalVariation from '../../components/eye/models/NormalVariation';
 import PopulationVariation from '../../components/eye/models/PopulationVariation';
 
-Tenemos una [córnea](/es/blog/webgl-eye-01-cornea), una [pupila](/es/blog/webgl-eye-02-pupil), un [cristalino](/es/blog/webgl-eye-03-lens) y una [retina](/es/blog/webgl-eye-04-retina). Las piezas encajan. El modelo gira muy bien. Ahora llega la pregunta incómoda: **¿qué ojo hemos construido?**
+Tenemos una [córnea](/es/blog/webgl-eye-01-cornea), una [pupila](/es/blog/webgl-eye-02-pupil), un [cristalino](/es/blog/webgl-eye-03-lens) y una <PublishedPost id="webgl-eye-04-retina-es" fallback="retina"><a href="/es/blog/webgl-eye-04-retina/">retina</a></PublishedPost>. Las piezas encajan. El modelo gira muy bien. Ahora llega la pregunta incómoda: **¿qué ojo hemos construido?**
 
 Es un ojo didáctico. Su geometría permite ver estructuras y pasos de construcción. Algunas dimensiones proceden de valores esquemáticos habituales; otras son decisiones de dibujo. Eso resulta útil, pero no convierte el conjunto en un modelo óptico de una persona concreta, ni en la media de todas las personas.
 
 Esta vez lo pondremos junto a dos ojos esquemáticos publicados y después pasaremos de un conjunto de medidas a muchos. Primero una distribución normal. Después las relaciones entre medidas. Por último, una pequeña población sintética que podremos explorar en WebGL.
+
+La <PublishedPost id="webgl-eye-05-motility-es" fallback="Parte V"><a href="/es/blog/webgl-eye-05-motility/">Parte V</a></PublishedPost> añade la orientación del ojo. Aquí volvemos a las dimensiones anatómicas y a las prescripciones ópticas: las poblaciones sintéticas que generamos no incluyen variaciones de los circuitos retinianos ni de las fuerzas musculares.
 
 ## Darle un trabajo al modelo
 
