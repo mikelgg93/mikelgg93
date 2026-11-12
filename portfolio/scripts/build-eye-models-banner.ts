@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { writeFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import {
@@ -49,7 +50,6 @@ for (const [k, , acd, lt] of samples) {
 }
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#071e1e"/><path d="M64 225H1125M160 548H1025" stroke="#46635e" stroke-dasharray="4 8"/><text x="64" y="78" fill="#e9e9dc" font-family="serif" font-size="37" font-style="italic">One eye is not a population</text><text x="66" y="112" fill="#8da9a2" font-family="sans-serif" font-size="15" letter-spacing="4">WEBGL EYE · V</text>${parts.join("")}<text x="1025" y="578" text-anchor="end" fill="#8da9a2" font-family="sans-serif" font-size="15">GEOMETRY → PRESCRIPTIONS → DISTRIBUTIONS</text></svg>`;
 writeFileSync("public/images/blog/eye-models-banner.svg", svg);
-writeFileSync(
-	"public/images/blog/eye-models-banner.png",
-	new Resvg(svg).render().asPng(),
-);
+await sharp(new Resvg(svg).render().asPng())
+	.webp({ lossless: true, effort: 6 })
+	.toFile("public/images/blog/eye-models-banner.webp");

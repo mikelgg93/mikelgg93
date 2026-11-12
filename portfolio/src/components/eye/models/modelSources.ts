@@ -1,4 +1,5 @@
 import { lensSources } from "../lens/lensSources";
+import { retinaSources } from "../retina/retinaSources";
 import { simulationSources } from "../simulationSources";
 import models from "./eyeModels.ts?raw";
 import comparison from "./ModelComparison.tsx?raw";
@@ -27,7 +28,18 @@ const shared = lensSources.assembly.filter((f) =>
 		"eye/threeResize.ts",
 	].includes(f.path),
 );
+const teaching = [
+	...lensSources.assembly.filter(
+		(f) => f.path === "eye/lens/lensConstruction.ts",
+	),
+	...retinaSources.assembly.filter((f) =>
+		["eye/retina/retinaAnatomy.ts", "eye/retina/retinaModel.ts"].includes(
+			f.path,
+		),
+	),
+];
 const maths = [
+	...teaching,
 	...simulationSources,
 	file("eyeModels.ts", models),
 	file("populationModel.ts", statistics),

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { EQUATOR_RADIUS, lensSurfaceZ } from "../lens/lensConstruction";
 import { biconicSag, type EyePrescription } from "./eyeModels";
 
 const RADIAL = 32,
@@ -37,8 +38,10 @@ export function patchPoint(
 		depth =
 			eye.cct +
 			eye.acd +
-			(front ? 0 : eye.lt) +
-			biconicSag(x, y, eye.lens[front ? 0 : 1]);
+			(eye.lensProfile === "rounded"
+				? (eye.lt / 2) *
+					(lensSurfaceZ(0) - lensSurfaceZ(r / EQUATOR_RADIUS, front))
+				: (front ? 0 : eye.lt) + biconicSag(x, y, eye.lens[front ? 0 : 1]));
 	}
 	return [x, y, -depth]; // Three.js anterior faces +z; published optical axis goes posterior.
 }
