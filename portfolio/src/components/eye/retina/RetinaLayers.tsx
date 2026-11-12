@@ -87,6 +87,7 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 				</text>
 				{retinalLayers.map((layer, i) => (
 					<g key={layer.en}>
+						<title>{`${i + 1}. ${es ? layer.es : layer.en}`}</title>
 						<path
 							d={bandPath(i)}
 							fill={layer.color}

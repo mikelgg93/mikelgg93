@@ -104,8 +104,18 @@ export default function RetinaSampling({
 								: "Same frequency, same samples"}
 				</text>
 				{strips(model.alternative, 230)}
+				<g stroke="#e5b773" strokeWidth="1.5">
+					{model.samples.map((sample, i) => (
+						<path
+							key={i}
+							d={[40, 95, 227, 282]
+								.map((y) => `M${20 + 560 * sample.x} ${y}v6`)
+								.join(" ")}
+						/>
+					))}
+				</g>
 			</svg>
-			<div className="retina-readouts">
+			<div className="retina-readouts" aria-live="polite" aria-atomic="true">
 				<span>
 					{es ? "Límite de Nyquist" : "Nyquist boundary"}: {model.nyquist}{" "}
 					{es ? "ciclos/panel" : "cycles/panel"}
@@ -115,6 +125,11 @@ export default function RetinaSampling({
 					{Math.abs(model.alias).toFixed(1)}
 				</span>
 			</div>
+			<p className="retina-reading">
+				{es
+					? "Las marcas doradas señalan las mismas posiciones de muestreo en ambos patrones."
+					: "Gold ticks mark the same sampling positions in both patterns."}
+			</p>
 			<div className="lens-controls">
 				<ParameterControl
 					hideReset

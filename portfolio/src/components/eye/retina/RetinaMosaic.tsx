@@ -10,11 +10,22 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 		mount = useRef<HTMLDivElement>(null),
 		labels = useRef<(HTMLSpanElement | null)[]>([]),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
+	const transition = useRef<{
+		from: THREE.Vector3;
+		to: THREE.Vector3;
+		elapsed: number;
+	} | null>(null);
 	const [shape, setShape] = useState(false),
 		[error, setError] = useState(false);
 	useEffect(() => {
 		const view = viewRef.current;
-		if (view) view.setPose(shape ? [21, 12, -35] : [0, 0, -40], [0, 0, 0.6]);
+		if (!view) return;
+		transition.current = {
+			from: view.camera.position.clone(),
+			to: shape ? new THREE.Vector3(21, 12, -35) : new THREE.Vector3(0, 0, -40),
+			elapsed: 0,
+		};
+		view.invalidate();
 	}, [shape]);
 	useEffect(() => {
 		if (!mount.current) return;
@@ -87,26 +98,45 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 			backing.position.z = 1.6;
 			group.add(backing);
 		}
-		view.onReset(() => setShape(false));
-		view.start(() => ({
-			afterRender() {
-				[5.2, -5.2].forEach((x, i) => {
-					const label = labels.current[i];
-					if (!label) return;
-					const p = new THREE.Vector3(x, 6, 0).project(view.camera);
-					label.hidden =
-						Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || Math.abs(p.z) > 1;
-					label.style.left = `${(p.x + 1) * 50}%`;
-					label.style.top = `${(1 - p.y) * 50}%`;
-				});
-			},
-			state: {
-				model:
-					"Paired equal-area schematic receptor patches; no measured density calibration",
-				patches: counts,
-			},
-		}));
+		view.onInteraction(() => {
+			transition.current = null;
+		});
+		view.onReset(() => {
+			transition.current = null;
+			setShape(false);
+		});
+		const position = new THREE.Vector3();
+		view.start((dt, reducedMotion) => {
+			const motion = transition.current;
+			if (motion) {
+				motion.elapsed += dt;
+				const t = reducedMotion ? 1 : Math.min(1, motion.elapsed / 0.7);
+				position.lerpVectors(motion.from, motion.to, t * t * (3 - 2 * t));
+				view.setPose(position.toArray(), [0, 0, 0.6]);
+				if (t === 1) transition.current = null;
+			}
+			return {
+				animating: transition.current !== null,
+				afterRender() {
+					[5.2, -5.2].forEach((x, i) => {
+						const label = labels.current[i];
+						if (!label) return;
+						const p = new THREE.Vector3(x, 6, 0).project(view.camera);
+						label.hidden =
+							Math.abs(p.x) > 1 || Math.abs(p.y) > 1 || Math.abs(p.z) > 1;
+						label.style.left = `${(p.x + 1) * 50}%`;
+						label.style.top = `${(1 - p.y) * 50}%`;
+					});
+				},
+				state: {
+					model:
+						"Paired equal-area schematic receptor patches; no measured density calibration",
+					patches: counts,
+				},
+			};
+		});
 		return () => {
+			transition.current = null;
 			viewRef.current = null;
 			view.dispose();
 		};
