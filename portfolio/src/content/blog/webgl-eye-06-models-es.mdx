@@ -17,13 +17,11 @@ import ModelComparison from '../../components/eye/models/ModelComparison';
 import NormalVariation from '../../components/eye/models/NormalVariation';
 import PopulationVariation from '../../components/eye/models/PopulationVariation';
 
-Tenemos una [córnea](/es/blog/webgl-eye-01-cornea), una [pupila](/es/blog/webgl-eye-02-pupil), un [cristalino](/es/blog/webgl-eye-03-lens) y una <PublishedPost id="webgl-eye-04-retina-es" fallback="retina"><a href="/es/blog/webgl-eye-04-retina/">retina</a></PublishedPost>. Las piezas encajan. El modelo gira muy bien. Ahora llega la pregunta incómoda: **¿qué ojo hemos construido?**
+Tenemos una [córnea](/es/blog/webgl-eye-01-cornea), una [pupila](/es/blog/webgl-eye-02-pupil), un [cristalino](/es/blog/webgl-eye-03-lens) y una <PublishedPost id="webgl-eye-04-retina-es" fallback="retina"><a href="/es/blog/webgl-eye-04-retina/">retina</a></PublishedPost>. Las piezas encajan, y la <PublishedPost id="webgl-eye-05-motility-es" fallback="Parte V"><a href="/es/blog/webgl-eye-05-motility/">Parte V</a></PublishedPost> nos permite cambiar la orientación del ojo. Pero aún queda una pregunta incómoda: **¿qué ojo hemos construido?**
 
 Es un ojo didáctico. Su geometría permite ver estructuras y pasos de construcción. Algunas dimensiones proceden de valores esquemáticos habituales; otras son decisiones de dibujo. Eso resulta útil, pero no convierte el conjunto en un modelo óptico de una persona concreta, ni en la media de todas las personas.
 
-Esta vez lo pondremos junto a dos ojos esquemáticos publicados y después pasaremos de un conjunto de medidas a muchos. Primero una distribución normal. Después las relaciones entre medidas. Por último, una pequeña población sintética que podremos explorar en WebGL.
-
-La <PublishedPost id="webgl-eye-05-motility-es" fallback="Parte V"><a href="/es/blog/webgl-eye-05-motility/">Parte V</a></PublishedPost> añade la orientación del ojo. Aquí volvemos a las dimensiones anatómicas y a las prescripciones ópticas: las poblaciones sintéticas que generamos no incluyen variaciones de los circuitos retinianos ni de las fuerzas musculares.
+Esta vez lo pondremos junto a dos ojos esquemáticos publicados y después pasaremos de un conjunto de medidas a muchos: empezaremos con una distribución normal, añadiremos las relaciones entre medidas y construiremos una pequeña población sintética para explorar en WebGL. Volvemos, por tanto, a las dimensiones anatómicas y las prescripciones ópticas; estas poblaciones no incluyen variaciones de los circuitos retinianos ni de las fuerzas musculares.
 
 ## Darle un trabajo al modelo
 
