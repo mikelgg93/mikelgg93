@@ -18,6 +18,7 @@ import RetinaCup from '../../components/eye/retina/RetinaCup';
 import RetinaLayers from '../../components/eye/retina/RetinaLayers';
 import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
 import RetinaSampling from '../../components/eye/retina/RetinaSampling';
+import RetinaReceptiveField from '../../components/eye/retina/RetinaReceptiveField';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
 We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the <PublishedPost id="webgl-eye-03-lens" fallback="lens"><a href="/blog/webgl-eye-03-lens/">lens</a></PublishedPost> a way to change focus. Light can now travel through our model, but we still need something to receive it.
@@ -108,13 +109,13 @@ The section below maps the main compartments into seven readable bands, with cel
   <div slot="code"><SourceFiles files={retinaSources.layers} /></div>
 </InteractiveViewer>
 
-Within the bands, icons locate rods and cones, bipolar and ganglion cells, lateral horizontal and amacrine connections, and supporting Müller cells. Their schematic shapes and wiring help orient us without reconstructing a neural circuit (Kolb, *Simple Anatomy of the Retina*), while arrows distinguish incoming light from the overall signal route towards ganglion cells.
+Within the bands, icons locate rods and cones, bipolar and ganglion cells, lateral horizontal and amacrine connections, and supporting Müller cells. The highlighted route follows selected cones into one bipolar–ganglion pathway, with neighbouring inputs converging in the flat view. Horizontal and amacrine connections span it laterally. This is one chosen arrangement, not a repeating unit for the whole retina; convergence and connectivity vary by location and cell type (Kolb, *Simple Anatomy of the Retina*). Arrows distinguish incoming light from the overall direction of signalling.
 
 ## A pit with a purpose: The fovea
 
 Turning on **Show fovea** reveals how this organisation changes at the centre: the inner layers thin while the outer bands remain. In a typical fovea, inner retinal tissue is displaced sideways and tightly packed central cones become narrow and elongated. The centre is free of retinal vessels, but its outer retina receives blood from the choroid, so “avascular” does not mean without a blood supply. Together, these features form a specialised region rather than a hole through the retina (Provis et al., 2013).
 
-Our profile makes this arrangement visible by exaggerating vertical dimensions, with one highlighted cone route suggesting lateral displacement. It does not reconstruct individual Henle fibres or measured layer thicknesses, and pit depth alone does not determine acuity: central cone specialisation can occur even without a conventional pit.
+Our profile makes this arrangement visible by exaggerating vertical dimensions, with a highlighted central cone axon extending laterally to a displaced bipolar–ganglion pathway. Unlike the convergent example in the flat view, it selects just one central cone input. It does not reconstruct individual Henle fibres or measured layer thicknesses, and pit depth alone does not determine acuity: central cone specialisation can occur even without a conventional pit.
 
 We can inspect this depth structure in a living eye with **OCT**, which uses [low-coherence interferometry](https://pubmed.ncbi.nlm.nih.gov/1957169/) to resolve backscattered light with depth. A B-scan often reveals the foveal contour clearly, although its bright and dark bands depend on tissue scattering and the imaging system rather than resembling painted sheets. Interpreting those bands anatomically requires care, as Spaide and Curcio (2011) explored when relating outer-retinal OCT bands to photoreceptor structures.
 
@@ -141,7 +142,7 @@ cells.instanceMatrix.needsUpdate = true;
   <div slot="code"><SourceFiles files={retinaSources.mosaic} /></div>
 </InteractiveViewer>
 
-Viewed from above, the two equal-area patches show a denser, cone-only **Foveal centre** beside an **Away from centre** patch mixing cones and rods. **Show cell shapes** tilts both to reveal the narrower, longer central cones. We magnify these local patches separately from the whole-eye shell and use illustrative spacing rather than a measured density map.
+Viewed from above, the two equal-area patches show a denser, cone-only **Foveal centre** beside an **Illustrative mixed patch** mixing cones and rods. **Show cell shapes** tilts both to reveal the narrower, longer central cones. We magnify these local patches separately from the whole-eye shell and use illustrative spacing rather than a measured density map. The mixed patch stands for no particular eccentricity; composition and spacing change across the retina.
 
 The cell types also differ in function: rods support very sensitive vision in dim conditions, while cones support daylight vision and colour discrimination. S-, M- and L-cones have broad, overlapping spectral sensitivities rather than behaving like red, green and blue screen pixels in repeating triplets (Stockman & Sharpe, 2000). Our gold colour identifies *cones as a group*, without assigning classes or simulating colour vision.
 
@@ -164,11 +165,22 @@ This brings us back to [Part II](/blog/webgl-eye-02-pupil/): the pupil and ocula
 
 Sampling is only the beginning of the retinal response. When a rod or cone absorbs a photon, it initiates a biochemical cascade that **hyperpolarises** the cell and reduces glutamate release, starting a neural message rather than producing a tiny electrical photograph.
 
-Bipolar cells carry signals towards ganglion cells while horizontal and amacrine cells contribute lateral interactions and other processing. Along the way, ON and OFF pathways respond differently to light increments and decrements, before ganglion-cell axons carry action potentials onwards through the optic nerve. This circuitry has multiple cell types and parallel routes rather than a single cone-to-wire connection (Kolb, *How the Retina Works*).
+Bipolar cells carry signals towards ganglion cells while horizontal and amacrine cells contribute lateral interactions and other processing. The ON/OFF split already begins at the photoreceptor–bipolar synapse: the light-driven reduction in glutamate can depolarise an ON bipolar cell while hyperpolarising an OFF bipolar cell. These parallel routes continue through the inner retina, before ganglion-cell axons carry action potentials onwards through the optic nerve (Euler et al., 2014). This circuitry has multiple cell types and parallel routes rather than a single cone-to-wire connection (Kolb, *How the Retina Works*).
 
-This also connects to the pupil reflex from Part 2: melanopsin-expressing **ipRGCs** are ganglion cells that respond intrinsically to light as well as receiving rod/cone input. The retina therefore contributes to the reflex through more than one kind of photoreceptor.
+We can make one consequence visible with a **centre–surround receptive field**: the effect of light depends on where it falls relative to the cell's field. In a classical ON-centre arrangement, a bright central spot tends to increase the response, while light in the surrounding region opposes it. An OFF-centre arrangement has the opposite polarity. Kuffler's recordings established this spatial antagonism in cat retinal ganglion cells (1953); it is a useful starting point, rather than a description of every ganglion-cell type.
 
-Our meshes locate some of these structures without implementing their phototransduction, receptive fields or spike trains. That would require another level of modelling, beyond what an animated arrow can explain.
+<InteractiveViewer>
+  <div slot="preview"><RetinaReceptiveField client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.receptive} /></div>
+</InteractiveViewer>
+
+Leave the position at zero and compare the bright spot with the annulus: the ON and OFF bars change sign. Now move the spot sideways. The same spot can drive a different response because it illuminates different parts of the field. A dark spot reverses the contrast, while uniform light cancels in this deliberately balanced model.
+
+The calculation subtracts a broad Gaussian-weighted average of image contrast from a narrow one. We normalise each set of weights to sum to one, so a uniform input gives zero difference. The two bars are idealised opposite-polarity **changes in drive**, not measured firing rates: negative means less drive relative to the background. Real ON and OFF pathways differ in more than their sign, and real surrounds need not exactly balance their centres. This spatial filter contains no adaptation or temporal response.
+
+This helps separate two ideas. The sampling experiment asked which images give identical receptor samples; a receptive field describes how inputs from a region are combined. Retinal circuits create multiple parallel channels from those inputs, including different spatial and temporal responses. Bipolar cells already help build that diversity, rather than simply forwarding a copy of the photoreceptor signal (Euler et al., 2014). Our filter demonstrates an input–output relationship without assigning the surround to one particular synapse or reconstructing the circuitry that generates it.
+
+The pupil reflex from Part II provides another example of parallel output: melanopsin-expressing **ipRGCs** respond intrinsically to light as well as receiving rod/cone input. The retina therefore sends more than one kind of message onwards through the optic nerve.
 
 ## Put the receiving surface behind the optics
 
@@ -225,3 +237,6 @@ Continue with [Part 5: Models and populations](/blog/webgl-eye-05-models): compa
 11. **Webvision.** [*The Architecture of the Human Fovea*](https://www.ncbi.nlm.nih.gov/books/NBK554706/). NCBI Bookshelf. Macular and foveal terminology.
 
 12. **Clinical Methods (1990).** [*The Funduscopic Examination*](https://www.ncbi.nlm.nih.gov/books/NBK221/). Fundus colour, macular appearance and optic-disc landmarks.
+
+13. **Kuffler, S. W. (1953).** [*Discharge patterns and functional organization of mammalian retina*](https://doi.org/10.1152/jn.1953.16.1.37). Journal of Neurophysiology, 16, 37–68.
+14. **Euler, T., Haverkamp, S., Schubert, T., & Baden, T. (2014).** [*Retinal bipolar cells: elementary building blocks of vision*](https://doi.org/10.1038/nrn3783). Nature Reviews Neuroscience, 15, 507–519.

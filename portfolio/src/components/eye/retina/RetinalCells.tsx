@@ -2,6 +2,10 @@ import { layerBounds } from "./retinaModel";
 
 /** Cell icons follow their compartments; connections are deliberately schematic. */
 export default function RetinalCells({ pit }: { pit: boolean }) {
+	const targetX = 432;
+	const bands = layerBounds(0.6, pit, false);
+	const at = (n: number) => (bands[n]!.top + bands[n]!.bottom) / 2 + 40;
+	const selected = pit ? [0] : [-0.4, 0, 0.4];
 	return (
 		<g stroke="#173c3a" strokeWidth="1.5">
 			{Array.from({ length: 13 }, (_, i) => {
@@ -25,20 +29,6 @@ export default function RetinalCells({ pit }: { pit: boolean }) {
 							ry="7"
 							fill="#eee0b5"
 						/>
-						{inner && (
-							<>
-								<path d={`M${px} ${mid(4)}V${mid(3)}`} fill="none" />
-								<path d={`M${px - 3} ${mid(3)}h6`} strokeWidth="3" />
-							</>
-						)}
-						{pit && i === 6 && (
-							<path
-								d={`M${px} ${mid(4)}Q340 ${mid(4)} 388 ${(layerBounds(0.4, true, false)[3]!.top + layerBounds(0.4, true, false)[3]!.bottom) / 2 + 40}`}
-								stroke="#fff1be"
-								strokeWidth="2"
-								fill="none"
-							/>
-						)}
 						{cone ? (
 							<path
 								d={`M${px - width} ${mid(5) - length / 2}l${width} ${length} ${width}-${length}Z`}
@@ -53,40 +43,6 @@ export default function RetinalCells({ pit }: { pit: boolean }) {
 								rx="2"
 								fill="#d8e7dc"
 							/>
-						)}
-						{inner && cone && (
-							<>
-								<path
-									d={`M${px} ${mid(3)}V${mid(1)}m-7 0h14M${px - 7} ${mid(3)}h14`}
-									fill="none"
-								/>
-								<ellipse cx={px} cy={mid(2)} rx="4" ry="6" fill="#d5efe3" />
-								<path
-									d={`M${px} ${mid(1)}l-8 4m8-4 8 4m-8-4V${mid(0)}h18`}
-									fill="none"
-								/>
-								<circle cx={px} cy={mid(0)} r="5" fill="#f5ceb9" />
-								{i % 6 === 0 && (
-									<>
-										<ellipse
-											cx={px + 10}
-											cy={mid(2) + 8}
-											rx="6"
-											ry="3"
-											fill="#c6c9ee"
-										/>
-										<path
-											d={`M${px + 10} ${mid(2) + 8}V${mid(3)}m-19 0h37`}
-											fill="none"
-										/>
-										<circle cx={px + 12} cy={mid(2) - 8} r="4" fill="#c6c9ee" />
-										<path
-											d={`M${px + 12} ${mid(2) - 8}V${mid(1)}m-8 0h22`}
-											fill="none"
-										/>
-									</>
-								)}
-							</>
 						)}
 						{(i % 4 === 0 || (pit && i === 6)) && (
 							<g>
@@ -111,6 +67,33 @@ export default function RetinalCells({ pit }: { pit: boolean }) {
 					</g>
 				);
 			})}
+			<g stroke="#fff1be" strokeWidth="2" fill="none">
+				{selected.map((x) => {
+					const source = layerBounds(x, pit, false)[4]!;
+					const px = 80 + (x + 1) * 220;
+					return (
+						<path
+							key={x}
+							d={`M${px} ${(source.top + source.bottom) / 2 + 40}Q${px} ${at(3)} ${targetX} ${at(3)}`}
+						/>
+					);
+				})}
+				<path
+					d={`M${targetX - 5} ${at(3)}h10M${targetX} ${at(3)}V${at(1)}m-8 0h16M${targetX} ${at(1)}Q${targetX + 22} ${at(1)} ${targetX + 22} ${at(0)}h42`}
+				/>
+				<ellipse cx={targetX} cy={at(2)} rx="4" ry="6" fill="#d5efe3" />
+				<circle cx={targetX + 22} cy={at(0)} r="6" fill="#f5ceb9" />
+				<path d={`M${targetX + 56} ${at(0) - 4}l8 4-8 4`} />
+			</g>
+			<g stroke="#c6c9ee" fill="#c6c9ee">
+				<ellipse cx="380" cy={at(2) + 7} rx="7" ry="3" />
+				<path
+					d={`M380 ${at(2) + 7}V${at(3) + 5}H460M350 ${at(3) + 5}h30`}
+					fill="none"
+				/>
+				<circle cx="492" cy={at(2) - 5} r="4" />
+				<path d={`M492 ${at(2) - 5}V${at(1) + 5}H416`} fill="none" />
+			</g>
 		</g>
 	);
 }

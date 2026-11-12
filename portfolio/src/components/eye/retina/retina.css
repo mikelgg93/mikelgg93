@@ -263,3 +263,10 @@
     color: var(--foreground);
     border-color: var(--foreground);
 }
+
+.retina-field-panels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; padding: 16px; align-items: center; }
+.retina-field-output { min-width: 0; font-size: 13px; }
+.retina-field-output svg { display: block; width: 100%; }
+.retina-field-output p { margin: 0.5rem 0; }
+@media (max-width: 500px) { .retina-field-panels { grid-template-columns: 1fr; } }
+@media (max-width: 500px) { .retina-field-panels > .retina-figure { max-width: 260px; margin-inline: auto; } }

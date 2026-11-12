@@ -18,6 +18,7 @@ import RetinaCup from '../../components/eye/retina/RetinaCup';
 import RetinaLayers from '../../components/eye/retina/RetinaLayers';
 import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
 import RetinaSampling from '../../components/eye/retina/RetinaSampling';
+import RetinaReceptiveField from '../../components/eye/retina/RetinaReceptiveField';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
 En las partes anteriores dimos forma a la [córnea](/es/blog/webgl-eye-01-cornea), abrimos la [pupila](/es/blog/webgl-eye-02-pupil) y permitimos que el <PublishedPost id="webgl-eye-03-lens-es" fallback="cristalino"><a href="/es/blog/webgl-eye-03-lens/">cristalino</a></PublishedPost> cambiara el enfoque. La luz ya puede recorrer nuestro modelo, pero todavía falta una estructura que la reciba.
@@ -108,13 +109,13 @@ Para recorrer esta organización, la sección siguiente reúne el tejido en siet
   <div slot="code"><SourceFiles files={retinaSources.layers} lang="es" /></div>
 </InteractiveViewer>
 
-Dentro de las bandas aparecen conos y bastones, células bipolares y ganglionares, conexiones laterales horizontales y amacrinas, y células de Müller de soporte. Sus formas y conexiones permiten seguir las flechas de la luz entrante y del recorrido general de la señal hacia las ganglionares, aunque no reconstruyen un circuito real (Kolb, *Simple Anatomy of the Retina*).
+Dentro de las bandas situamos conos y bastones, bipolares, ganglionares, conexiones horizontales y amacrinas, y glía de Müller. La ruta resaltada sigue conos seleccionados hasta una vía bipolar–ganglionar: en la vista plana convergen varias entradas, mientras las conexiones laterales se extienden a su alrededor. Es una organización elegida, no una unidad que se repita por toda la retina; la convergencia y las conexiones varían con la región y el tipo celular (Kolb, *Simple Anatomy of the Retina*). Las flechas distinguen la dirección de la luz de la dirección general de la señal.
 
 ## Una depresión con propósito: La fóvea
 
 Al activar **Mostrar fóvea**, las capas internas se adelgazan hacia el centro mientras permanecen las externas. Esto representa cómo, en una fóvea típica, el tejido interno se desplaza lateralmente y los conos centrales, densamente empaquetados, se estrechan y alargan. La región central carece de vasos retinianos, pero su retina externa recibe aporte de la coroides: «avascular» no significa sin suministro de sangre. La depresión, la especialización de los conos y la distribución vascular forman una organización conjunta, no un agujero en la retina (Provis et al., 2013).
 
-Exageramos las dimensiones verticales para mostrar esa organización y resaltamos una ruta de cono que sugiere el desplazamiento lateral, sin reconstruir fibras de Henle individuales ni espesores medidos. Tampoco conviene interpretar la profundidad de la fosita como una medida de agudeza visual, porque los conos centrales pueden especializarse incluso sin una depresión convencional.
+Exageramos las dimensiones verticales para mostrar esa organización y seguimos el axón de un cono central hasta una vía bipolar–ganglionar desplazada lateralmente. Aquí seleccionamos una sola entrada central, en lugar del ejemplo convergente de la vista plana, sin reconstruir fibras de Henle individuales ni espesores medidos. Tampoco conviene interpretar la profundidad de la fosita como una medida de agudeza visual, porque los conos centrales pueden especializarse incluso sin una depresión convencional.
 
 Podemos observar ese contorno en un ojo vivo mediante **OCT**, que usa [interferometría de baja coherencia](https://pubmed.ncbi.nlm.nih.gov/1957169/) para resolver en profundidad la luz retrodispersada. La fóvea suele reconocerse en un corte B-scan, aunque sus bandas claras y oscuras no son fotografías de láminas coloreadas: dependen tanto de la dispersión del tejido como del sistema de imagen. Interpretarlas exige relacionarlas con la anatomía, como hicieron Spaide y Curcio (2011) al estudiar las bandas externas y las estructuras de los fotorreceptores.
 
@@ -141,7 +142,7 @@ cells.instanceMatrix.needsUpdate = true;
   <div slot="code"><SourceFiles files={retinaSources.mosaic} lang="es" /></div>
 </InteractiveViewer>
 
-Los dos parches tienen la misma área para facilitar la comparación: el **Centro foveal** muestra una disposición más densa de conos, mientras **Fuera del centro** mezcla conos y bastones. Al activar **Ver formas celulares**, ambos se inclinan para mostrar los conos centrales más estrechos y largos. Son ampliaciones locales separadas de la malla del ojo, con separaciones ilustrativas en lugar de un mapa de densidad medido.
+Los dos parches tienen la misma área para facilitar la comparación: el **Centro foveal** muestra una disposición más densa de conos, mientras **Parche mixto ilustrativo** mezcla conos y bastones. Al activar **Ver formas celulares**, ambos se inclinan para mostrar los conos centrales más estrechos y largos. Son ampliaciones locales separadas de la malla del ojo, con separaciones ilustrativas en lugar de un mapa de densidad medido. El parche mixto no corresponde a una excentricidad concreta: composición y separación varían por la retina.
 
 Esa distribución reúne funciones distintas: los bastones permiten una visión muy sensible con poca luz, mientras los conos sostienen la visión diurna y la discriminación cromática. Sus clases S, M y L tienen sensibilidades espectrales amplias y solapadas, por lo que no equivalen a píxeles rojos, verdes y azules en tripletes repetidos (Stockman y Sharpe, 2000). Aquí el dorado identifica a *los conos como grupo*, sin asignar clases ni simular visión cromática.
 
@@ -164,11 +165,22 @@ Esto nos devuelve a la [Parte II](/es/blog/webgl-eye-02-pupil/): la pupila y la 
 
 Incluso antes de que la información abandone esos receptores, ya ha empezado a transformarse. La absorción de un fotón inicia una cascada bioquímica cuya respuesta en conos y bastones **hiperpolariza** la célula y reduce la liberación de glutamato, dando comienzo al mensaje neural.
 
-Las células bipolares llevan la señal hacia las ganglionares, mientras las horizontales y amacrinas participan en interacciones laterales y otros procesos. Las vías ON y OFF responden de manera distinta a incrementos y decrementos de luz, y los axones ganglionares forman el nervio óptico que transporta potenciales de acción. El resultado es una circuitería con varios tipos celulares y vías paralelas, no una conexión única entre cada cono y un cable (Kolb, *How the Retina Works*).
+Las células bipolares llevan señales hacia las ganglionares, mientras las horizontales y amacrinas participan en interacciones laterales y otros procesos. La separación ON/OFF empieza ya en la sinapsis entre fotorreceptor y bipolar: la reducción de glutamato causada por la luz puede despolarizar una bipolar ON e hiperpolarizar una OFF. Estas vías paralelas continúan por la retina interna antes de que los axones ganglionares lleven potenciales de acción por el nervio óptico (Euler et al., 2014). Podemos explorar una consecuencia con un **campo receptivo de centro y periferia**: el efecto de la luz depende de dónde incide dentro del campo.
 
-Entre esas células ganglionares están las **ipRGC** con melanopsina que vimos en la Parte 2. Además de responder intrínsecamente a la luz, reciben señales de conos y bastones, de modo que la contribución retiniana al reflejo pupilar no depende de un único tipo de fotorreceptor.
+En una organización clásica de centro ON, un punto claro central tiende a aumentar la respuesta, mientras la iluminación periférica se opone a ella. Un campo de centro OFF tiene la polaridad contraria. Los registros de Kuffler en células ganglionares de gato establecieron este antagonismo espacial (1953); es un punto de partida útil, aunque no describe todos los tipos de células ganglionares.
 
-Las mallas ayudan a situar estas estructuras, pero modelar su funcionamiento requeriría añadir fototransducción, campos receptivos y trenes de potenciales de acción. Por ahora, las flechas orientan el recorrido sin implementar esos procesos.
+<InteractiveViewer lang="es">
+  <div slot="preview"><RetinaReceptiveField lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.receptive} lang="es" /></div>
+</InteractiveViewer>
+
+Deja la posición en cero y compara el punto claro con el anillo: las barras ON y OFF cambian de signo. Después desplaza el punto lateralmente. El mismo estímulo puede provocar otra respuesta al iluminar distintas partes del campo. Un punto oscuro invierte el contraste, mientras la luz uniforme se cancela en este modelo deliberadamente equilibrado.
+
+El cálculo resta un promedio amplio del contraste de la imagen, ponderado por una gaussiana, de otro más estrecho. Normalizamos cada conjunto de pesos para que sume uno, de modo que una entrada uniforme dé una diferencia nula. Las barras muestran **cambios de señal relativa** de polaridad opuesta, no frecuencias de disparo medidas: un valor negativo indica menos señal respecto al fondo. Las vías ON y OFF reales difieren en más cosas que el signo, y la periferia no tiene por qué compensar exactamente el centro. Este filtro espacial no incluye adaptación ni respuesta temporal.
+
+Así distinguimos dos ideas: el experimento de muestreo preguntaba qué imágenes producen las mismas muestras receptoras; un campo receptivo describe cómo se combinan las entradas de una región. A partir de ellas, los circuitos retinianos generan varias vías paralelas con distintas respuestas espaciales y temporales. Las bipolares ya contribuyen a esa diversidad, en lugar de transmitir una copia de la señal receptora (Euler et al., 2014). Nuestro filtro muestra una relación entre entrada y salida sin atribuir la periferia a una sinapsis concreta ni reconstruir el circuito que la genera.
+
+El reflejo pupilar de la Parte II ofrece otro ejemplo de salida paralela: las **ipRGCs** con melanopsina responden directamente a la luz y también reciben información de conos y bastones. Por el nervio óptico viajan, por tanto, mensajes de varios tipos.
 
 ## Colocar la superficie receptora detrás de la óptica
 
@@ -227,3 +239,6 @@ Continúa con la [Parte 5: Modelos y poblaciones](/es/blog/webgl-eye-05-models):
 11. **Webvision.** [*The Architecture of the Human Fovea*](https://www.ncbi.nlm.nih.gov/books/NBK554706/). NCBI Bookshelf. Terminología macular y foveal.
 
 12. **Clinical Methods (1990).** [*The Funduscopic Examination*](https://www.ncbi.nlm.nih.gov/books/NBK221/). Color del fondo de ojo, aspecto macular y referencias de la papila.
+
+13. **Kuffler, S. W. (1953).** [*Discharge patterns and functional organization of mammalian retina*](https://doi.org/10.1152/jn.1953.16.1.37). Journal of Neurophysiology, 16, 37–68.
+14. **Euler, T., Haverkamp, S., Schubert, T., & Baden, T. (2014).** [*Retinal bipolar cells: elementary building blocks of vision*](https://doi.org/10.1038/nrn3783). Nature Reviews Neuroscience, 15, 507–519.

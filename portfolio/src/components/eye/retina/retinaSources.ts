@@ -8,8 +8,10 @@ import layers from "./RetinaLayers.tsx?raw";
 import cells from "./RetinalCells.tsx?raw";
 import focusInset from "./RetinalFocusInset.tsx?raw";
 import mosaic from "./RetinaMosaic.tsx?raw";
+import receptive from "./RetinaReceptiveField.tsx?raw";
 import sampling from "./RetinaSampling.tsx?raw";
 import surface from "./RetinaSurface.tsx?raw";
+import fieldModel from "./receptiveField.ts?raw";
 import css from "./retina.css?raw";
 import anatomy from "./retinaAnatomy.ts?raw";
 import geometry from "./retinaGeometry.ts?raw";
@@ -66,6 +68,12 @@ export const retinaSources = {
 	],
 	mosaic: [file("RetinaMosaic.tsx", mosaic), ...shared, ...common3D],
 	sampling: [file("RetinaSampling.tsx", sampling), ...shared, ...styles],
+	receptive: [
+		file("RetinaReceptiveField.tsx", receptive),
+		file("receptiveField.ts", fieldModel),
+		...shared,
+		...styles,
+	],
 	assembly: [
 		file("RetinaAssembly.tsx", assembly),
 		file("retinalFocus.ts", focus),

@@ -180,8 +180,8 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 			</ul>
 			<p className="lens-note">
 				{es
-					? "Conos y bastones → bipolares → ganglionares. Horizontales y amacrinas conectan lateralmente; la glía de Müller sostiene el tejido, también en la fóvea. Su especialización central no se detalla aquí."
-					: "Rods and cones → bipolar → ganglion cells. Horizontal and amacrine cells connect laterally; Müller glia support the tissue, including the fovea. Their specialised central organisation is not detailed here."}
+					? "Ruta resaltada: conos seleccionados → bipolar → ganglionar. En la vista plana convergen varias entradas; en la fóvea seguimos un cono central hasta células desplazadas. No representa todos los circuitos."
+					: "Highlighted route: selected cones → bipolar → ganglion cell. The flat view pools inputs; the foveal view follows one central cone to displaced cells. This does not represent every circuit."}
 			</p>
 
 			<details className="retina-layer-key">
@@ -200,8 +200,8 @@ export default function RetinaLayers({ lang = "en" }: { lang?: "en" | "es" }) {
 			</details>
 			<p className="lens-note">
 				{es
-					? "Las prolongaciones de Müller terminan en el límite externo; los segmentos receptores continúan más allá. La ruta del cono central es esquemática; se omiten la vía de los bastones y el detalle de las fibras de Henle."
-					: "Müller processes end at the external limiting boundary; receptor segments extend beyond it. The highlighted central cone route is schematic; the rod pathway and detailed Henle fibres are omitted."}
+					? "El límite externo reúne uniones entre células de Müller y fotorreceptores; los segmentos receptores continúan más allá. La ruta del cono central es esquemática; se omiten la vía de los bastones y el detalle de las fibras de Henle."
+					: "The external limiting boundary contains junctions between Müller cells and photoreceptors; receptor segments extend beyond it. The highlighted central cone route is schematic; the rod pathway and detailed Henle fibres are omitted."}
 			</p>
 		</div>
 	);

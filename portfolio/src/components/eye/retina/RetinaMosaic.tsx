@@ -173,7 +173,7 @@ export default function RetinaMosaic({ lang = "en" }: { lang?: "en" | "es" }) {
 				<div className="retina-patch-labels">
 					{[
 						es ? "Centro foveal" : "Foveal centre",
-						es ? "Fuera del centro" : "Away from centre",
+						es ? "Parche mixto ilustrativo" : "Illustrative mixed patch",
 					].map((label, i) => (
 						<span
 							key={label}
