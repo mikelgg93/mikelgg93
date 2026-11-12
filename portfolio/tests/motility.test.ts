@@ -5,6 +5,9 @@ import {
 	createExtraocularMuscles,
 	createMotilityEye,
 	insertion,
+	MUSCLE_SECTORS,
+	MUSCLE_SEGMENTS,
+	TROCHLEA,
 } from "../src/components/eye/motility/motilityGeometry";
 import {
 	animatedGaze,
@@ -64,11 +67,14 @@ test("six distinct muscles retain finite buffers and their insertions follow the
 	const ringCentre = (mesh: THREE.Mesh, ring: number) => {
 		const positions = mesh.geometry.getAttribute("position"),
 			result = new THREE.Vector3();
-		for (let j = 0; j < 12; j++)
+		for (let j = 0; j < MUSCLE_SECTORS; j++)
 			result.add(
-				new THREE.Vector3().fromBufferAttribute(positions, ring * 13 + j),
+				new THREE.Vector3().fromBufferAttribute(
+					positions,
+					ring * (MUSCLE_SECTORS + 1) + j,
+				),
 			);
-		return result.divideScalar(12);
+		return result.divideScalar(MUSCLE_SECTORS);
 	};
 	const origins = bodies.map((mesh) => ringCentre(mesh, 0));
 	expect(bodies.length).toBe(6);
@@ -90,14 +96,12 @@ test("six distinct muscles retain finite buffers and their insertions follow the
 			);
 			if (muscles[index]!.id === "SO")
 				expect(
-					ringCentre(mesh, 16).distanceTo(new THREE.Vector3(14, 14, 3)),
+					ringCentre(mesh, MUSCLE_SEGMENTS / 2).distanceTo(TROCHLEA),
 				).toBeLessThan(2e-6);
 			const p = mesh.geometry.getAttribute("position"),
 				average = new THREE.Vector3();
 			for (const number of p.array) expect(Number.isFinite(number)).toBe(true);
-			for (let j = 0; j < 12; j++)
-				average.add(new THREE.Vector3().fromBufferAttribute(p, 32 * 13 + j));
-			average.divideScalar(12);
+			average.fromBufferAttribute(p, p.count - 1);
 			const expected = insertion(muscles[index]!.id)
 				.sub(centre)
 				.applyQuaternion(q)

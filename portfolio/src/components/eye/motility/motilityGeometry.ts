@@ -16,7 +16,8 @@ export function createMotilityEye() {
 	const posterior = createPosteriorEye();
 	// The orbital nerve segment would need its own deforming path; it is not
 	// part of the rigid globe in this motility lesson.
-	posterior.update(false, { choroid: true, sclera: true, nerve: false });
+	// Do not illuminate retinal vessels through the pupil in this exterior view.
+	posterior.update(false, { choroid: true, sclera: true, nerve: false }, false);
 	group.add(posterior.group);
 	// External-view lighting approximation: the enclosed fundus is unilluminated.
 	// This changes neither the shared retinal geometry nor its vertex colours.
@@ -54,41 +55,64 @@ export function createMotilityEye() {
 	group.position.z = -CUP_CENTRE_Z;
 	return group;
 }
-const sectors = 12,
-	segments = 32;
-function ribbonGeometry() {
-	const geo = new THREE.BufferGeometry();
-	geo.setAttribute(
-		"position",
-		new THREE.BufferAttribute(
-			new Float32Array((segments + 1) * (sectors + 1) * 3),
-			3,
-		),
-	);
-	geo.setAttribute(
-		"color",
-		new THREE.BufferAttribute(
-			new Float32Array((segments + 1) * (sectors + 1) * 3),
-			3,
-		),
-	);
-	const indices: number[] = [];
-	for (let i = 0; i < segments; i++)
-		for (let j = 0; j < sectors; j++) {
-			const a = i * (sectors + 1) + j,
-				b = a + sectors + 1;
-			indices.push(a, b, a + 1, b, b + 1, a + 1);
-		}
-	geo.setIndex(indices);
-	return geo;
-}
-// Fixed orbital guides and insertion landmarks are drawing choices, not MRI fits.
+export const MUSCLE_SEGMENTS = 48;
+export const MUSCLE_SECTORS = 32;
+const rows = MUSCLE_SEGMENTS + 1,
+	columns = MUSCLE_SECTORS + 1;
+const capStart = rows * columns;
+export const TROCHLEA = new THREE.Vector3(10.8, 10.2, 3.8);
+const inferiorOrigin = new THREE.Vector3(10.5, -10.5, 3.6);
 const recti: Partial<Record<MuscleId, { x: number; y: number; z: number }>> = {
 	MR: { x: 1, y: 0, z: -0.8 },
 	LR: { x: -1, y: 0, z: -2.2 },
 	SR: { x: 0, y: 1, z: -2.8 },
 	IR: { x: 0, y: -1, z: -1.8 },
 };
+// Appearance dimensions in mm. These distinct profiles are not patient measurements.
+const profiles: Record<
+	MuscleId,
+	{ width: number; thickness: number; tendon: number; fan: number }
+> = {
+	MR: { width: 3.8, thickness: 1.45, tendon: 0.85, fan: 4.2 },
+	LR: { width: 4.1, thickness: 1.35, tendon: 0.74, fan: 4.5 },
+	SR: { width: 3.8, thickness: 1.25, tendon: 0.78, fan: 4.1 },
+	IR: { width: 3.9, thickness: 1.4, tendon: 0.8, fan: 4.3 },
+	SO: { width: 2.1, thickness: 1.0, tendon: 0.34, fan: 3.8 },
+	IO: { width: 2.8, thickness: 1.05, tendon: 0.88, fan: 2.9 },
+};
+const smooth = (x: number) => {
+	const t = THREE.MathUtils.clamp(x, 0, 1);
+	return t * t * (3 - 2 * t);
+};
+export function muscleProfile(id: MuscleId, t: number) {
+	const p = profiles[id],
+		f = smooth((t - p.tendon) / Math.max(0.01, 1 - p.tendon));
+	const belly =
+		Math.sin(Math.PI * THREE.MathUtils.clamp(t / (p.tendon + 0.12), 0, 1)) **
+		0.7;
+	let width = 0.65 + (p.width - 0.65) * belly;
+	let thickness = 0.3 + (p.thickness - 0.3) * belly;
+	if (id === "SO") {
+		const taper = smooth((t - p.tendon + 0.1) / 0.1);
+		width = THREE.MathUtils.lerp(width, 0.7, taper);
+		thickness = THREE.MathUtils.lerp(thickness, 0.11, taper);
+		if (t >= 0.5) width = 0.7 + (p.fan - 0.7) * smooth((t - 0.5) / 0.5);
+	} else if (t >= p.tendon) {
+		const startBelly =
+			Math.sin((Math.PI * p.tendon) / (p.tendon + 0.12)) ** 0.7;
+		width = THREE.MathUtils.lerp(
+			0.65 + (p.width - 0.65) * startBelly,
+			p.fan,
+			f,
+		);
+		thickness = THREE.MathUtils.lerp(
+			0.3 + (p.thickness - 0.3) * startBelly,
+			0.1,
+			f,
+		);
+	}
+	return { width, thickness, tendon: smooth((t - p.tendon + 0.025) / 0.075) };
+}
 export function insertion(id: MuscleId) {
 	const s = recti[id];
 	if (s) {
@@ -99,126 +123,257 @@ export function insertion(id: MuscleId) {
 		r = Math.sqrt(12.2 ** 2 - (z - CUP_CENTRE_Z) ** 2) / Math.sqrt(2);
 	return new THREE.Vector3(-r, id === "SO" ? r : -r, z);
 }
+function geometry() {
+	const g = new THREE.BufferGeometry();
+	g.setAttribute(
+		"position",
+		new THREE.BufferAttribute(new Float32Array((capStart + 2) * 3), 3),
+	);
+	g.setAttribute(
+		"color",
+		new THREE.BufferAttribute(new Float32Array((capStart + 2) * 3), 3),
+	);
+	const uv = new Float32Array((capStart + 2) * 2);
+	for (let i = 0; i < rows; i++)
+		for (let j = 0; j < columns; j++) {
+			const k = (i * columns + j) * 2;
+			uv[k] = j / MUSCLE_SECTORS;
+			uv[k + 1] = i / MUSCLE_SEGMENTS;
+		}
+	uv[capStart * 2] = 0.5;
+	uv[capStart * 2 + 1] = 0;
+	uv[(capStart + 1) * 2] = 0.5;
+	uv[(capStart + 1) * 2 + 1] = 1;
+	g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+	const index: number[] = [];
+	for (let i = 0; i < MUSCLE_SEGMENTS; i++)
+		for (let j = 0; j < MUSCLE_SECTORS; j++) {
+			const a = i * columns + j,
+				b = a + columns;
+			index.push(a, a + 1, b, b, a + 1, b + 1);
+		}
+	for (let j = 0; j < MUSCLE_SECTORS; j++) {
+		index.push(capStart, j + 1, j);
+		const a = MUSCLE_SEGMENTS * columns + j;
+		index.push(capStart + 1, a, a + 1);
+	}
+	g.setIndex(index);
+	return g;
+}
+function tissueMaterial() {
+	const m = new THREE.MeshStandardMaterial({
+		vertexColors: true,
+		roughness: 0.72,
+		metalness: 0,
+		envMapIntensity: 0.35,
+	});
+	m.onBeforeCompile = (shader) => {
+		shader.vertexShader =
+			`varying vec2 muscleUv;\n${shader.vertexShader}`.replace(
+				"#include <begin_vertex>",
+				"muscleUv=uv;\n#include <begin_vertex>",
+			);
+		shader.fragmentShader =
+			`varying vec2 muscleUv;\n${shader.fragmentShader}`.replace(
+				"#include <color_fragment>",
+				`#include <color_fragment>
+		float fibre=sin(muscleUv.x*377.0+0.4*sin(muscleUv.y*13.0));
+		diffuseColor.rgb*=0.975+0.025*fibre;`,
+			);
+	};
+	m.customProgramCacheKey = () => "extraocular-tissue-v2";
+	return m;
+}
 export function createExtraocularMuscles() {
 	const group = new THREE.Group();
-	const ring = new THREE.Mesh(
-		new THREE.TorusGeometry(1.8, 0.2, 8, 36),
-		new THREE.MeshStandardMaterial({ color: 0xc9bea9, roughness: 0.9 }),
-	);
-	ring.position.set(0, 0, -36);
-	group.add(ring);
-	const floor = new THREE.Mesh(
-		new THREE.BoxGeometry(3, 0.3, 3),
+	const originRing = new THREE.Mesh(
+		new THREE.TorusGeometry(1.8, 0.25, 10, 36),
 		new THREE.MeshStandardMaterial({ color: 0xc9bea9, roughness: 0.95 }),
 	);
-	floor.position.set(14, -14.4, 2);
+	originRing.position.set(0, 0, -36);
+	group.add(originRing);
+	const floor = new THREE.Mesh(
+		new THREE.CircleGeometry(1.5, 24),
+		new THREE.MeshStandardMaterial({
+			color: 0xc9bea9,
+			roughness: 0.95,
+			side: THREE.DoubleSide,
+		}),
+	);
+	floor.rotation.x = -Math.PI / 2;
+	floor.position.copy(inferiorOrigin).y -= 0.35;
 	group.add(floor);
 	const trochlea = new THREE.Mesh(
-		new THREE.TorusGeometry(0.8, 0.18, 8, 24),
-		new THREE.MeshStandardMaterial({ color: 0xddd4bf, roughness: 0.8 }),
+		new THREE.TorusGeometry(0.85, 0.22, 10, 28, Math.PI * 1.6),
+		new THREE.MeshStandardMaterial({ color: 0xd9cbb6, roughness: 0.8 }),
 	);
-	trochlea.position.set(14, 14, 3);
-	trochlea.rotation.x = Math.PI / 4;
+	trochlea.position.copy(TROCHLEA);
+	trochlea.rotation.set(Math.PI / 4, 0, -Math.PI / 4);
 	group.add(trochlea);
 	const parts = muscles.map((m) => {
-		const mesh = new THREE.Mesh(
-			ribbonGeometry(),
-			new THREE.MeshStandardMaterial({
-				vertexColors: true,
-				roughness: 0.8,
-				side: THREE.DoubleSide,
-			}),
-		);
+		const mesh = new THREE.Mesh(geometry(), tissueMaterial());
+		mesh.name = `muscle-${m.id}`;
 		mesh.frustumCulled = false;
 		group.add(mesh);
 		return { id: m.id, mesh };
 	});
-	const point = new THREE.Vector3(),
+	const inverse = new THREE.Quaternion(),
 		local = new THREE.Vector3(),
-		inverse = new THREE.Quaternion();
-	const belly = new THREE.Color("#b56862"),
-		tendon = new THREE.Color("#e1d4b8"),
-		selected = new THREE.Color("#d48f77");
-	function update(q: THREE.Quaternion, highlight: MuscleId | "all") {
+		out = new THREE.Vector3(),
+		widthAxis = new THREE.Vector3(),
+		tangent = new THREE.Vector3(),
+		previousWidth = new THREE.Vector3(),
+		vertex = new THREE.Vector3();
+	const points = Array.from({ length: rows }, () => new THREE.Vector3());
+	const belly = new THREE.Color("#984c47"),
+		tendonColour = new THREE.Color("#d8cdb7"),
+		highlightColour = new THREE.Color("#b86a59"),
+		colour = new THREE.Color();
+	function wallRadius(z: number) {
+		return z < CUP_CENTRE_Z
+			? Math.sqrt(Math.max(0, 12.2 ** 2 - (z - CUP_CENTRE_Z) ** 2))
+			: scleralWallRadius(z, true);
+	}
+	function clear(point: THREE.Vector3, q: THREE.Quaternion, margin: number) {
+		local.copy(point).sub(centre).applyQuaternion(inverse).add(centre);
+		if (local.z > -19.8 && local.z < 2) {
+			const r = Math.hypot(local.x, local.y),
+				wall = wallRadius(local.z);
+			if (r > 1e-6 && r < wall + margin) {
+				local.x *= (wall + margin) / r;
+				local.y *= (wall + margin) / r;
+				point.copy(local).sub(centre).applyQuaternion(q).add(centre);
+			}
+		}
+	}
+	function update(q: THREE.Quaternion, selected: MuscleId | "all") {
 		inverse.copy(q).invert();
 		for (const part of parts) {
 			const id = part.id,
-				s = recti[id];
-			const end = insertion(id).sub(centre).applyQuaternion(q).add(centre);
+				s = recti[id],
+				end = insertion(id).sub(centre).applyQuaternion(q).add(centre);
 			const controls = s
 				? [
 						new THREE.Vector3(s.x * 1.5, s.y * 1.5, -36),
-						new THREE.Vector3(s.x * 9, s.y * 9, -24),
-						new THREE.Vector3(s.x * 13.4, s.y * 13.4, CUP_CENTRE_Z),
+						new THREE.Vector3(s.x * 8.2, s.y * 8.2, -25),
+						new THREE.Vector3(s.x * 14, s.y * 14, CUP_CENTRE_Z),
 						end,
 					]
-				: id === "SO"
-					? [
-							new THREE.Vector3(3, 4, -36),
-							new THREE.Vector3(11, 15, -15),
-							trochlea.position.clone(),
-							new THREE.Vector3(0, 15, -5),
+				: [
+						inferiorOrigin.clone(),
+						new THREE.Vector3(2, -14, -3.5),
+						new THREE.Vector3(-7.8, -11.5, -9),
+						end,
+					];
+			const route = new THREE.CatmullRomCurve3(controls);
+			const before =
+				id === "SO"
+					? new THREE.CatmullRomCurve3([
+							new THREE.Vector3(2.2, 3.2, -36),
+							new THREE.Vector3(4, 8, -15),
+							new THREE.Vector3(8.5, 11, -3),
+							TROCHLEA.clone(),
+						])
+					: null;
+			const after =
+				id === "SO"
+					? new THREE.CatmullRomCurve3([
+							TROCHLEA.clone(),
+							new THREE.Vector3(3.5, 12.9, -3.5),
+							new THREE.Vector3(-3.5, 12.5, -8),
 							end,
-						]
-					: [
-							new THREE.Vector3(14, -14, 2),
-							new THREE.Vector3(3, -15, -4),
-							new THREE.Vector3(-8, -14, -9),
-							end,
-						];
-			const curve = new THREE.CatmullRomCurve3(controls),
-				frames = curve.computeFrenetFrames(segments, false);
-			const positions = part.mesh.geometry.getAttribute("position"),
-				colours = part.mesh.geometry.getAttribute("color");
-			for (let i = 0; i <= segments; i++) {
-				const t = i / segments;
-				curve.getPoint(t, point);
-				// A geometric clearance aid, not a muscle/globe contact-force solver.
-				if (i < segments) {
-					local.copy(point).sub(centre).applyQuaternion(inverse).add(centre);
-					const z = local.z,
-						r = Math.hypot(local.x, local.y);
-					if (z > -19.8 && z < 2) {
-						const wall =
-							z < CUP_CENTRE_Z
-								? Math.sqrt(Math.max(0, 12.2 ** 2 - (z - CUP_CENTRE_Z) ** 2))
-								: scleralWallRadius(z, true);
-						if (r > 1e-6 && r < wall + 0.5) {
-							local.x *= (wall + 0.5) / r;
-							local.y *= (wall + 0.5) / r;
-							point.copy(local).sub(centre).applyQuaternion(q).add(centre);
+						])
+					: null;
+			for (let i = 0; i < rows; i++) {
+				const t = i / MUSCLE_SEGMENTS;
+				if (before && after) {
+					(t <= 0.5 ? before : after).getPoint(
+						t <= 0.5 ? t * 2 : (t - 0.5) * 2,
+						points[i]!,
+					);
+				} else route.getPoint(t, points[i]!);
+				if (i > 0 && i < MUSCLE_SEGMENTS)
+					clear(points[i]!, q, muscleProfile(id, t).thickness + 0.08);
+			}
+			const p = part.mesh.geometry.getAttribute("position"),
+				c = part.mesh.geometry.getAttribute("color");
+			for (let i = 0; i < rows; i++) {
+				const t = i / MUSCLE_SEGMENTS,
+					shape = muscleProfile(id, t),
+					point = points[i]!;
+				tangent
+					.copy(points[Math.min(i + 1, MUSCLE_SEGMENTS)]!)
+					.sub(points[Math.max(i - 1, 0)]!)
+					.normalize();
+				out.copy(point).sub(centre).addScaledVector(tangent, -out.dot(tangent));
+				if (out.lengthSq() < 1e-8) {
+					out
+						.set(s?.x ?? 1, s?.y ?? 0, 0)
+						.addScaledVector(tangent, -out.dot(tangent));
+				}
+				out.normalize();
+				widthAxis.crossVectors(out, tangent).normalize();
+				if (i > 0 && widthAxis.dot(previousWidth) < 0) {
+					widthAxis.negate();
+					out.negate();
+				}
+				previousWidth.copy(widthAxis);
+				colour
+					.copy(selected === id ? highlightColour : belly)
+					.lerp(tendonColour, shape.tendon);
+				const outward = out.dot(vertex.copy(point).sub(centre)) >= 0 ? 1 : -1;
+				for (let j = 0; j < columns; j++) {
+					const a = (j / MUSCLE_SECTORS) * Math.PI * 2;
+					vertex
+						.copy(point)
+						.addScaledVector(widthAxis, Math.cos(a) * shape.width)
+						.addScaledVector(out, Math.sin(a) * shape.thickness);
+					// Conform the broad insertion to the scleral curvature, rather than
+					// leaving a flat strap hovering above the globe. This is geometric.
+					if (t > 0.9) {
+						local.copy(vertex).sub(centre).applyQuaternion(inverse).add(centre);
+						if (local.z > -19.8 && local.z < 2) {
+							const r = Math.hypot(local.x, local.y),
+								wall = wallRadius(local.z);
+							if (r > 1e-6) {
+								const target = wall + outward * Math.sin(a) * shape.thickness;
+								local.x *= target / r;
+								local.y *= target / r;
+								vertex.copy(local).sub(centre).applyQuaternion(q).add(centre);
+							}
 						}
 					}
-				}
-				const isTendon = id === "SO" ? t > 0.5 : t > 0.85;
-				const width = isTendon
-					? id === "SO"
-						? 0.32
-						: 0.6
-					: 0.48 + 0.7 * Math.sin(Math.PI * t);
-				const colour = isTendon ? tendon : highlight === id ? selected : belly;
-				for (let j = 0; j <= sectors; j++) {
-					const a = (j / sectors) * Math.PI * 2,
-						grain = 1 + 0.035 * Math.cos(a * 9 + t * 3);
-					local
-						.copy(point)
-						.addScaledVector(frames.normals[i]!, Math.cos(a) * width * grain)
-						.addScaledVector(
-							frames.binormals[i]!,
-							Math.sin(a) * (isTendon ? 0.08 : 0.3) * grain,
-						);
-					const k = i * (sectors + 1) + j;
-					positions.setXYZ(k, local.x, local.y, local.z);
-					colours.setXYZ(k, colour.r, colour.g, colour.b);
+					const k = i * columns + j;
+					p.setXYZ(k, vertex.x, vertex.y, vertex.z);
+					c.setXYZ(k, colour.r, colour.g, colour.b);
 				}
 			}
-			positions.needsUpdate = true;
-			colours.needsUpdate = true;
+			p.setXYZ(capStart, points[0]!.x, points[0]!.y, points[0]!.z);
+			p.setXYZ(capStart + 1, end.x, end.y, end.z);
+			c.setXYZ(capStart, belly.r, belly.g, belly.b);
+			c.setXYZ(capStart + 1, tendonColour.r, tendonColour.g, tendonColour.b);
+			p.needsUpdate = true;
+			c.needsUpdate = true;
 			part.mesh.geometry.computeVertexNormals();
-			(part.mesh.material as THREE.MeshStandardMaterial).transparent =
-				highlight !== "all" && highlight !== id;
-			(part.mesh.material as THREE.MeshStandardMaterial).opacity =
-				highlight !== "all" && highlight !== id ? 0.16 : 1;
+			const normals = part.mesh.geometry.getAttribute("normal");
+			for (let i = 0; i < rows; i++) {
+				const a = i * columns,
+					b = a + MUSCLE_SECTORS;
+				local.fromBufferAttribute(normals, a);
+				vertex.fromBufferAttribute(normals, b);
+				local.add(vertex).normalize();
+				normals.setXYZ(a, local.x, local.y, local.z);
+				normals.setXYZ(b, local.x, local.y, local.z);
+			}
+			normals.needsUpdate = true;
+			const faded = selected !== "all" && selected !== id,
+				material = part.mesh.material;
+			if (material.transparent !== faded) {
+				material.transparent = faded;
+				material.needsUpdate = true;
+			}
+			material.depthWrite = !faded;
+			material.opacity = faded ? 0.12 : 1;
 		}
 	}
 	update(new THREE.Quaternion(), "all");

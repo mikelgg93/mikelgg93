@@ -61,7 +61,7 @@ const route = new THREE.CatmullRomCurve3([
 ]);
 ```
 
-Around the curve, we draw an elliptical cross-section, wider through the belly and flatter through the tendon. A small longitudinal variation breaks up the perfectly smooth surface without adding an external texture. The dimensions and fibre-like ridges are appearance parameters, not reconstructed muscle fascicles. In this exterior view, the relaxed lens and ciliary apparatus remain in the construction but are omitted from the draw pass; Part III provides their interior views.
+Around the curve, we draw elliptical sections with a different profile for each muscle. The recti have fuller, flattened bellies that continue into broad scleral tendons. The superior oblique narrows before the trochlea and spreads into a thin tendon after reflection; the inferior oblique retains a shorter fleshy arc beneath the globe. Subtle longitudinal striation suggests fibre direction without adding an external texture. The dimensions and striations are appearance parameters, not reconstructed muscle fascicles. In this exterior view, the relaxed lens and ciliary apparatus remain in the construction but are omitted from the draw pass; Part III provides their interior views.
 
 The insertion belongs to the rotating globe. Its new world position follows the eye's quaternion, while the orbital guides remain fixed:
 
@@ -72,7 +72,7 @@ const worldInsertion = localInsertion.clone()
   .add(globeCentre);
 ```
 
-We update vertex positions in the same buffers as the eye turns. A geometric clearance step moves curve samples out of the scleral shell if needed; this keeps the drawing legible without solving contact pressure or tissue deformation.
+We update vertex positions in the same buffers as the eye turns. A geometric clearance step moves curve samples out of the scleral shell if needed; this keeps the drawing legible without solving contact pressure or tissue deformation. At the insertion, the tendon fan follows scleral curvature rather than hovering above it as a flat strap.
 
 ## The orbit also guides the muscles
 

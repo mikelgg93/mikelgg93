@@ -50,9 +50,9 @@ export default function ExtraocularDemo({
 			if (o instanceof THREE.Light) o.intensity *= 0.65;
 		});
 		view.camera.position.set(
-			motion ? 20 : 45,
+			motion ? 20 : 42,
 			motion ? 15 : 26,
-			motion ? 65 : 50,
+			motion ? 65 : -18,
 		);
 		view.controls.target.set(0, 0, -12);
 		const pivot = new THREE.Group();

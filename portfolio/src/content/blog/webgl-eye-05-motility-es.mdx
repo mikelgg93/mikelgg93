@@ -61,7 +61,7 @@ const route = new THREE.CatmullRomCurve3([
 ]);
 ```
 
-Alrededor de esa curva dibujamos una sección elíptica, más ancha en el vientre y aplanada en el tendón. Una pequeña variación longitudinal rompe la superficie perfectamente lisa sin añadir una textura externa. Las dimensiones y las crestas que sugieren fibras son parámetros visuales, no fascículos musculares reconstruidos. En esta vista exterior, el cristalino relajado y el aparato ciliar permanecen en la construcción, aunque no se dibujan; sus vistas internas están en la Parte III.
+Alrededor de esa curva dibujamos secciones elípticas con perfiles distintos para cada músculo. Los rectos tienen vientres más voluminosos y aplanados que se continúan en tendones anchos sobre la esclerótica. El oblicuo superior se estrecha antes de la tróclea y despliega un tendón fino después de reflejarse; el inferior conserva un arco carnoso más corto bajo el globo. Una estriación longitudinal suave sugiere la dirección de las fibras sin añadir una textura externa. Las dimensiones y la estriación son parámetros visuales, no fascículos musculares reconstruidos. En esta vista exterior, el cristalino relajado y el aparato ciliar permanecen en la construcción, aunque no se dibujan; sus vistas internas están en la Parte III.
 
 La inserción pertenece al globo móvil. Calculamos su posición siguiendo el cuaternión del ojo, mientras las guías orbitarias permanecen fijas:
 
@@ -72,7 +72,7 @@ const worldInsertion = localInsertion.clone()
   .add(globeCentre);
 ```
 
-Al girar, actualizamos las posiciones de los vértices en los mismos buffers. Una corrección geométrica desplaza hacia fuera las muestras de curva que caigan dentro de la cubierta escleral; permite leer el dibujo sin resolver presiones de contacto ni deformación tisular.
+Al girar, actualizamos las posiciones de los vértices en los mismos buffers. Una corrección geométrica desplaza hacia fuera las muestras de curva que caigan dentro de la cubierta escleral; permite leer el dibujo sin resolver presiones de contacto ni deformación tisular. En la inserción, el abanico tendinoso sigue la curvatura escleral en lugar de quedar como una cinta plana separada de la superficie.
 
 ## La órbita también guía los músculos
 
