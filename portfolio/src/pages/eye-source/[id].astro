@@ -2,6 +2,7 @@
 import { Code } from 'astro:components';
 import { lensSources } from '../../components/eye/lens/lensSources';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
+import { motilitySources } from '../../components/eye/motility/motilitySources';
 import { modelSources } from '../../components/eye/models/modelSources';
 import { sourceId } from '../../components/ui/sourcePath';
 import { corneaSources, pupilSources } from '../../components/eye/earlySources';
@@ -14,6 +15,7 @@ export async function getStaticPaths() {
     ['webgl-eye-02-pupil', pupilSources],
     ['webgl-eye-03-lens', lensSources],
     ['webgl-eye-04-retina', retinaSources],
+    ['webgl-eye-05-motility', {motility: motilitySources}],
     ['webgl-eye-06-models', modelSources],
   ] as const;
   const files = new Map(sources.filter(([id]) => visibleIds.has(id))

@@ -1,0 +1,145 @@
+---
+title: "Modelando el ojo V: Músculos y motilidad"
+published: false
+description: "Situamos los músculos extraoculares alrededor del ojo en WebGL, seguimos sus inserciones y orientamos el globo hacia un objetivo."
+author: "Miguel García"
+tags: ["webgl", "threejs", "ciencia de la visión", "anatomía", "movimientos oculares"]
+lang: "es"
+image: "/images/blog/motility-banner.webp"
+---
+
+import PublishedPost from '@/components/blog/PublishedPost.astro';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import ExtraocularDemo from '../../components/eye/motility/ExtraocularDemo';
+import { motilitySources } from '../../components/eye/motility/motilitySources';
+
+Nuestro ojo ya deja entrar luz, cambia de enfoque y ofrece una superficie que recibe la imagen. Sin embargo, sigue mirando en una sola dirección. Para pasar del horizonte a una palabra en la página, el globo entero debe girar dentro de la órbita.
+
+De eso se encargan los **músculos extraoculares**. En la [Parte III](/es/blog/webgl-eye-03-lens/), el músculo ciliar cambiaba la forma del cristalino; aquí, músculos estriados situados fuera del ojo cambian su orientación. Recuperaremos la córnea, el iris, el cristalino relajado y las cubiertas de la <PublishedPost id="webgl-eye-04-retina-es" fallback="Parte IV"><a href="/es/blog/webgl-eye-04-retina/">Parte IV</a></PublishedPost>, situaremos un centro de giro y construiremos las rutas que lo rodean.
+
+## Primero, decidir qué gira
+
+Si girásemos cada pieza por separado, pronto desarmaríamos el ojo. En su lugar, colocamos el conjunto dentro de un grupo cuyo pivote coincide con el centro elegido del globo, $z=-7,6\ \text{mm}$. Córnea, retina, iris y cristalino comparten así una transformación rígida. Este pivote es una decisión de construcción, no una medida del centro fisiológico de rotación.
+
+```ts
+const pivot = new THREE.Group();
+pivot.position.z = CUP_CENTRE_Z;
+eye.position.z = -CUP_CENTRE_Z;
+pivot.add(eye);
+```
+
+La segunda traslación expresa la geometría existente respecto al pivote. Ya podemos girar el ojo sin cambiar su espesor corneal central ni desplazar el cristalino respecto a la esclerótica. Los puntos de unión a la órbita, en cambio, deben quedar fuera de este grupo móvil. Omitimos aquí el tramo externo del nervio óptico: necesitaría su propia ruta deformable en lugar de girar rígidamente con el globo.
+
+En este **ojo derecho esquemático**, x positiva apunta hacia nasal, y positiva hacia arriba y z positiva hacia delante. El eje z anterior también es la dirección inicial de mirada del modelo; no ajustamos el desplazamiento del eje visual de una persona.
+
+## Cuatro rectos y dos oblicuos
+
+Seis músculos giran el globo: los **rectos medial, lateral, superior e inferior**, y los **oblicuos superior e inferior**. El elevador del párpado superior también es un músculo extraocular, pero levanta el párpado, por lo que queda fuera de este modelo de giro del globo (StatPearls, *Eye Extraocular Muscles*).
+
+Los rectos avanzan desde la órbita posterior hasta sus inserciones en la esclerótica anterior, por delante del ecuador. Dibujamos sus orígenes posteriores alrededor de un anillo tendinoso común. Sus inserciones quedan escalonadas alrededor del limbo, con el recto medial más próximo y el superior más alejado, en lugar de formar un único anillo. Las posiciones del dibujo aproximan esta disposición; no son distancias quirúrgicas medidas. Sus nombres indican por qué lado se aproximan al ojo, no seis ejes de rotación independientes.
+
+Los oblicuos necesitan otras rutas. El superior avanza hacia una **tróclea** superomedial, donde su tendón cambia de dirección antes de alcanzar la parte superior del globo por detrás del ecuador. El inferior nace delante, en la zona medial del suelo orbitario, y pasa bajo el globo hacia su inserción posterolateral. Dar a los seis un mismo origen posterior borraría esta diferencia.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><ExtraocularDemo lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={motilitySources} lang="es" /></div>
+</InteractiveViewer>
+
+Elige un músculo para resaltar su ruta y gira la vista para seguirlo hacia atrás. La selección cambia su visibilidad; no lo contrae de forma aislada. Las zonas claras representan tendones y la tróclea y una pequeña referencia del suelo orbitario quedan fijas. Omitimos el detalle de los huesos de la órbita.
+
+## Dar a la ruta un vientre y una inserción
+
+Un cilindro recto sería cómodo, pero atravesaría el globo y daría a todos los músculos la misma forma. Muestreamos, en cambio, una curva que pasa por el origen, unas guías intermedias y la inserción escleral:
+
+```ts
+const route = new THREE.CatmullRomCurve3([
+  orbitalOrigin,
+  posteriorGuide,
+  orbitalGuide,
+  insertionOnGlobe,
+]);
+```
+
+Alrededor de esa curva dibujamos una sección elíptica, más ancha en el vientre y aplanada en el tendón. Una pequeña variación longitudinal rompe la superficie perfectamente lisa sin añadir una textura externa. Las dimensiones y las crestas que sugieren fibras son parámetros visuales, no fascículos musculares reconstruidos. En esta vista exterior, el cristalino relajado y el aparato ciliar permanecen en la construcción, aunque no se dibujan; sus vistas internas están en la Parte III.
+
+La inserción pertenece al globo móvil. Calculamos su posición siguiendo el cuaternión del ojo, mientras las guías orbitarias permanecen fijas:
+
+```ts
+const worldInsertion = localInsertion.clone()
+  .sub(globeCentre)
+  .applyQuaternion(eyeRotation)
+  .add(globeCentre);
+```
+
+Al girar, actualizamos las posiciones de los vértices en los mismos buffers. Una corrección geométrica desplaza hacia fuera las muestras de curva que caigan dentro de la cubierta escleral; permite leer el dibujo sin resolver presiones de contacto ni deformación tisular.
+
+## La órbita también guía los músculos
+
+Los rectos no siguen simplemente la línea más corta entre el vértice orbitario y sus inserciones móviles. La imagen y la histología muestran **poleas de tejido conectivo** que guían sus rutas y condicionan la dirección de tracción (Demer et al., 1995).
+
+Por eso añadimos guías intermedias. Representan esa restricción de trayectoria, pero sus posiciones se eligen para el dibujo y quedan fijas. Las poleas reales tienen estructura, deformabilidad y un comportamiento que depende de la posición. Nuestras guías no reproducen esa anatomía en detalle ni demuestran la mecánica de una hipótesis concreta sobre las poleas.
+
+Esto importa al interpretar los vientres móviles: el cambio de ruta es una consecuencia geométrica de la postura prescrita, no una predicción de fuerza o activación. Las simulaciones mecánicas requieren propiedades de los tejidos, fuerzas activas y pasivas e interacciones entre estructuras. Wei et al. (2022) muestran la magnitud de ese problema de modelización.
+
+## Una dirección necesita una orientación
+
+El objetivo indica hacia dónde apuntar, pero no fija por sí solo el giro alrededor de esa dirección. Ese tercer componente es la **torsión**. La intorsión lleva el polo superior hacia nasal; la extorsión, hacia temporal.
+
+Para esta ilustración con la cabeza fija elegimos la rotación más corta que lleva el eje z primario hasta la dirección del objetivo:
+
+```ts
+const direction = new THREE.Vector3(
+  Math.sin(h) * Math.cos(v),
+  Math.sin(v),
+  Math.cos(h) * Math.cos(v),
+);
+const rotation = new THREE.Quaternion().setFromUnitVectors(
+  new THREE.Vector3(0, 0, 1), direction,
+);
+```
+
+Aquí `h` y `v` están en radianes. Estas posturas tienen vectores de rotación en el plano x–y primario, de modo que proporcionan una **regla de orientación compatible con Listing** para la posición primaria elegida. Esto describe la orientación desde la posición primaria; no significa que el eje instantáneo de cualquier movimiento permanezca en ese plano. En las rotaciones tridimensionales esa distinción importa, igual que el orden de las rotaciones (Tweed y Vilis, 1987).
+
+La secuencia siguiente usa objetivos a 15° en horizontal y vertical, elegidos para que el movimiento se lea bien. Avanza despacio para inspeccionar la construcción, sin reproducir el tiempo de una sacada. Si tienes activado movimiento reducido, puedes elegir una posición discreta.
+
+<InteractiveViewer lang="es">
+  <div slot="preview"><ExtraocularDemo lang="es" motion client:visible /></div>
+  <div slot="code"><SourceFiles files={motilitySources} lang="es" /></div>
+</InteractiveViewer>
+
+El indicador describe la dirección prescrita del objetivo. El ojo la sigue como un cuerpo rígido y los músculos ajustan sus rutas a las inserciones móviles. En este capítulo no cambian la pupila ni la acomodación: conservamos el segmento anterior relajado para concentrarnos en la orientación del globo.
+
+## La acción depende de la posición del ojo
+
+Cerca de la posición primaria, el resumen habitual es:
+
+| Músculo | Acciones | Nervio motor |
+| --- | --- | --- |
+| Recto medial | Aducción | III |
+| Recto lateral | Abducción | VI |
+| Recto superior | Elevación, intorsión, aducción | III |
+| Recto inferior | Depresión, extorsión, aducción | III |
+| Oblicuo superior | Intorsión, depresión, abducción | IV |
+| Oblicuo inferior | Extorsión, elevación, abducción | III |
+
+Son acciones anatómicas, no órdenes calculadas por el programa. En rectos verticales y oblicuos, la proporción entre acción vertical y torsional depende de dónde esté orientado el ojo. Por eso la exploración clínica emplea distintas direcciones: la abducción enfatiza la acción vertical de los rectos, y la aducción la de los oblicuos (StatPearls).
+
+Estas vías motoras también se distinguen del recorrido por el ganglio ciliar que controla la pupila en la [Parte II](/es/blog/webgl-eye-02-pupil/). El III par sirve a varios destinos, pero no todos comparten la misma vía a partir de él.
+
+## De un ojo a la mirada coordinada
+
+Trabajar con un solo ojo permite inspeccionar inserciones y rotaciones antes de sumar otras condiciones. Coordinar ambos exigiría añadir la geometría binocular del objetivo y la vergencia; mover la cabeza introduciría respuestas vestibulares y cambios de torsión. Son comportamientos que quedan fuera de esta escena con cabeza fija.
+
+Hemos añadido una separación reutilizable: el globo tiene una orientación, sus inserciones viajan con él y la órbita condiciona las rutas musculares. Para que las fuerzas determinasen esa orientación haría falta otra capa de modelización y validación experimental.
+
+<PublishedPost id="webgl-eye-06-models-es">
+Continúa con la [Parte VI: Modelos y poblaciones](/es/blog/webgl-eye-06-models/): preguntamos qué ojo describen nuestras dimensiones y las comparamos con Navarro y Atchison.
+</PublishedPost>
+
+## Referencias
+
+1. **StatPearls.** [*Anatomy, Head and Neck, Eye Extraocular Muscles*](https://www.ncbi.nlm.nih.gov/books/NBK519565/). NCBI Bookshelf.
+2. **Demer, J. L., et al. (1995).** [*Evidence for fibromuscular pulleys of the recti extraocular muscles*](https://pubmed.ncbi.nlm.nih.gov/7730022/). Investigative Ophthalmology & Visual Science, 36, 1125–1136.
+3. **Tweed, D., & Vilis, T. (1987).** [*Implications of rotational kinematics for the oculomotor system in three dimensions*](https://doi.org/10.1152/jn.1987.58.4.832). Journal of Neurophysiology, 58, 832–849.
+4. **Wei, Q., et al. (2022).** [*Biomechanical modeling of actively controlled rectus extraocular muscle pulleys*](https://pmc.ncbi.nlm.nih.gov/articles/PMC8987043/). Scientific Reports, 12, 5806.

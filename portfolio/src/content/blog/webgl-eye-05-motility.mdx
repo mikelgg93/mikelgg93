@@ -1,0 +1,145 @@
+---
+title: "Modelling the eye V: Muscles and motility"
+published: false
+description: "Place the extraocular muscles around our WebGL eye, follow their attachments, and rotate the globe towards a target."
+author: "Miguel García"
+tags: ["webgl", "threejs", "vision science", "anatomy", "eye movements"]
+lang: "en"
+image: "/images/blog/motility-banner.webp"
+---
+
+import PublishedPost from '@/components/blog/PublishedPost.astro';
+import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import SourceFiles from '../../components/ui/SourceFiles.astro';
+import ExtraocularDemo from '../../components/eye/motility/ExtraocularDemo';
+import { motilitySources } from '../../components/eye/motility/motilitySources';
+
+Our eye can admit light, change focus and give the image a receiving surface. But the model still stays pointed in one direction. To look from the horizon to a word on the page, the whole globe must turn inside the orbit.
+
+That brings us to the **extraocular muscles**. In [Part III](/blog/webgl-eye-03-lens/), the ciliary muscle changed the lens's shape; here, striated muscles outside the eye change its orientation. We will reuse the cornea, iris, relaxed lens and the coats from <PublishedPost id="webgl-eye-04-retina" fallback="Part IV"><a href="/blog/webgl-eye-04-retina/">Part IV</a></PublishedPost>, place their centre of rotation, and then build the surrounding paths.
+
+## First, decide what rotates
+
+Rotating each part separately would quickly pull the construction apart. Instead, put the whole eye inside a group, with its pivot at our chosen globe centre, $z=-7.6\ \text{mm}$. The cornea, retina, iris and lens then share one rigid transformation. This pivot is a construction choice, not a measurement of the eye's physiological centre of rotation.
+
+```ts
+const pivot = new THREE.Group();
+pivot.position.z = CUP_CENTRE_Z;
+eye.position.z = -CUP_CENTRE_Z;
+pivot.add(eye);
+```
+
+The second translation expresses the existing geometry relative to that pivot. We can now turn the eye without changing its central corneal thickness or moving the lens independently of the sclera. The orbital attachment points, however, must stay outside this rotating group. We omit the external optic-nerve segment here: it would need its own deforming path rather than rotating rigidly with the globe.
+
+For this schematic **right eye**, positive x points nasally, towards the nose, positive y is superior and positive z is anterior. Anterior z is also the model's starting gaze axis; we do not fit a person's visual-axis offset.
+
+## Four recti and two obliques
+
+Six muscles rotate the globe: **medial, lateral, superior and inferior rectus**, plus **superior and inferior oblique**. The levator palpebrae superioris is another extraocular muscle, but it raises the eyelid, so it is outside this globe-rotation model (StatPearls, *Eye Extraocular Muscles*).
+
+The recti run forwards from the posterior orbit and attach to the anterior sclera, before the equator. We sketch their posterior origins around a common tendinous ring. Their insertions are staggered around the limbus, with the medial rectus closest and the superior rectus furthest away, rather than forming one level ring. The drawing approximates this arrangement; its coordinates are not measured surgical distances. Their names identify which side of the globe they approach, not six independent rotation axes.
+
+The obliques need different paths. The superior oblique travels towards a superomedial **trochlea**, where its tendon changes direction before reaching the superior globe behind the equator. The inferior oblique starts anteriorly on the medial orbital floor and passes beneath the globe towards its posterolateral attachment. Giving all six muscles the same posterior origin would miss this distinction.
+
+<InteractiveViewer>
+  <div slot="preview"><ExtraocularDemo client:visible /></div>
+  <div slot="code"><SourceFiles files={motilitySources} /></div>
+</InteractiveViewer>
+
+Choose a muscle to highlight its route, then orbit the view to follow it backwards. Selection changes its visibility, rather than contracting that muscle in isolation. The pale portions indicate tendons; the trochlea and a small floor landmark remain fixed. We omit the surrounding orbital-bone anatomy.
+
+## Give each route a belly and an insertion
+
+A straight cylinder is convenient, but it would pass through the globe and give every muscle an identical shape. We instead sample a curve through an origin, intermediate guides and an insertion on the sclera:
+
+```ts
+const route = new THREE.CatmullRomCurve3([
+  orbitalOrigin,
+  posteriorGuide,
+  orbitalGuide,
+  insertionOnGlobe,
+]);
+```
+
+Around the curve, we draw an elliptical cross-section, wider through the belly and flatter through the tendon. A small longitudinal variation breaks up the perfectly smooth surface without adding an external texture. The dimensions and fibre-like ridges are appearance parameters, not reconstructed muscle fascicles. In this exterior view, the relaxed lens and ciliary apparatus remain in the construction but are omitted from the draw pass; Part III provides their interior views.
+
+The insertion belongs to the rotating globe. Its new world position follows the eye's quaternion, while the orbital guides remain fixed:
+
+```ts
+const worldInsertion = localInsertion.clone()
+  .sub(globeCentre)
+  .applyQuaternion(eyeRotation)
+  .add(globeCentre);
+```
+
+We update vertex positions in the same buffers as the eye turns. A geometric clearance step moves curve samples out of the scleral shell if needed; this keeps the drawing legible without solving contact pressure or tissue deformation.
+
+## The orbit also guides the muscles
+
+The recti do not simply take the shortest line from the orbital apex to their moving insertions. Imaging and histology show connective-tissue **pulleys** that guide their paths and affect pulling direction (Demer et al., 1995).
+
+That is why the model includes intermediate orbital guides. They stand in for this routing constraint, but their locations are chosen for the drawing and remain fixed. Real pulleys have structure, compliance and position-dependent behaviour. Our guides neither reproduce that anatomy in detail nor demonstrate the mechanics of a particular pulley hypothesis.
+
+This difference matters when interpreting the moving muscle bellies: a changing route is a geometrical consequence of our prescribed pose, not a prediction of muscle force or activation. Mechanical simulations need additional constitutive properties, active and passive forces, and tissue interactions; Wei et al. (2022) show the much larger modelling problem involved.
+
+## A direction needs an orientation
+
+A target tells the eye where to point, but it does not by itself specify rotation about that direction. That third component is **torsion**. Intorsion turns the upper pole nasally; extorsion turns it temporally.
+
+For our head-fixed illustration, we use the shortest rotation taking the primary z-axis towards the target direction:
+
+```ts
+const direction = new THREE.Vector3(
+  Math.sin(h) * Math.cos(v),
+  Math.sin(v),
+  Math.cos(h) * Math.cos(v),
+);
+const rotation = new THREE.Quaternion().setFromUnitVectors(
+  new THREE.Vector3(0, 0, 1), direction,
+);
+```
+
+Here `h` and `v` are in radians. These poses have rotation vectors in the primary x–y plane, giving a **Listing-compatible orientation rule** for this chosen primary position. This concerns the eye's orientation from primary position, not a rule that every instantaneous movement axis stays in that plane. Three-dimensional rotations require that distinction; their order matters (Tweed & Vilis, 1987).
+
+The sequence below uses targets at 15° horizontally and vertically, chosen for visibility. It moves slowly so we can inspect the construction; its timing is not a saccade model. With reduced motion enabled, select a discrete gaze position instead.
+
+<InteractiveViewer>
+  <div slot="preview"><ExtraocularDemo motion client:visible /></div>
+  <div slot="code"><SourceFiles files={motilitySources} /></div>
+</InteractiveViewer>
+
+The target indicator describes the prescribed direction. The eye follows it rigidly, while the muscles update their routes to the moving attachments. Neither the pupil nor accommodation changes in this chapter: the anterior segment stays relaxed so we can concentrate on globe orientation.
+
+## Muscle actions depend on eye position
+
+Near primary position, the usual action summary is:
+
+| Muscle | Actions | Motor nerve |
+| --- | --- | --- |
+| Medial rectus | Adduction | III |
+| Lateral rectus | Abduction | VI |
+| Superior rectus | Elevation, intorsion, adduction | III |
+| Inferior rectus | Depression, extorsion, adduction | III |
+| Superior oblique | Intorsion, depression, abduction | IV |
+| Inferior oblique | Extorsion, elevation, abduction | III |
+
+These are anatomical actions, not commands calculated by the demo. For the vertical recti and obliques, the balance of vertical and torsional action depends on the eye's position. This helps explain why clinical examination uses different gaze directions to assess them: abduction emphasises vertical rectus action, while adduction emphasises the vertical actions of the obliques (StatPearls).
+
+The motor pathways here also differ from the ciliary-ganglion route to the pupil discussed in [Part II](/blog/webgl-eye-02-pupil/). Cranial nerve III serves several targets, but they do not all share the same downstream pathway.
+
+## From one eye to coordinated gaze
+
+A single-eye construction lets us inspect attachments and rotations without adding another set of assumptions. Coordinating both eyes would require binocular target geometry and vergence; moving the head would introduce vestibular responses and changes in torsion. Those behaviours are beyond this head-fixed scene.
+
+What we have added is a reusable separation: the globe has an orientation, its insertions travel with it, and the surrounding orbit constrains the muscle paths. To make forces determine that orientation, we would need a different layer of modelling and experimental validation.
+
+<PublishedPost id="webgl-eye-06-models">
+Continue with [Part VI: Models and populations](/blog/webgl-eye-06-models/), where we ask which eye our chosen dimensions describe and compare them with Navarro and Atchison.
+</PublishedPost>
+
+## References
+
+1. **StatPearls.** [*Anatomy, Head and Neck, Eye Extraocular Muscles*](https://www.ncbi.nlm.nih.gov/books/NBK519565/). NCBI Bookshelf.
+2. **Demer, J. L., et al. (1995).** [*Evidence for fibromuscular pulleys of the recti extraocular muscles*](https://pubmed.ncbi.nlm.nih.gov/7730022/). Investigative Ophthalmology & Visual Science, 36, 1125–1136.
+3. **Tweed, D., & Vilis, T. (1987).** [*Implications of rotational kinematics for the oculomotor system in three dimensions*](https://doi.org/10.1152/jn.1987.58.4.832). Journal of Neurophysiology, 58, 832–849.
+4. **Wei, Q., et al. (2022).** [*Biomechanical modeling of actively controlled rectus extraocular muscle pulleys*](https://pmc.ncbi.nlm.nih.gov/articles/PMC8987043/). Scientific Reports, 12, 5806.
