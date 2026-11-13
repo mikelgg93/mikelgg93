@@ -271,7 +271,7 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 						type="range"
 						min="0"
 						max="24"
-						step="4"
+						step="0.1"
 						defaultValue="0"
 						aria-label={es ? "Etapa de construcción" : "Construction stage"}
 						onChange={(e) => {
