@@ -48,6 +48,8 @@ The obliques need different paths. The superior oblique travels towards a supero
 
 Choose a muscle to highlight its route, then orbit the view to follow it backwards. Selection changes its visibility, rather than contracting that muscle in isolation. The pale portions indicate tendons; the trochlea and a small floor landmark remain fixed. We omit the surrounding orbital-bone anatomy.
 
+The geometry and simulation code we build here are our own. [Filip, Stanev and Moustakas’s UPAT model](https://arxiv.org/abs/1807.07332) supplies reference coordinates and parameters, and OpenSim lets us evaluate its muscle curves. We do not reuse its meshes or simulation source code.
+
 ## Give each route a belly and an insertion
 
 A straight cylinder would pass through the globe. The mechanical path joins origin to pulley, then follows a tangent and an arc over a frictionless spherical envelope wherever it needs to wrap around the eye. Length and pulling direction come from that same path:
