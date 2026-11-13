@@ -134,6 +134,13 @@ export default function ExtraocularDemo({
 						0.8,
 						0.4,
 					);
+					for (const part of [arrow.line, arrow.cone]) {
+						part.material.depthTest = false;
+						part.material.depthWrite = false;
+						part.material.transparent = true;
+						part.material.opacity = 0.9;
+						part.renderOrder = 20;
+					}
 					view.scene.add(arrow);
 					return { id: m.id, arrow };
 				});
@@ -327,8 +334,8 @@ export default function ExtraocularDemo({
 					{muscle
 						? `${es ? muscle.es : muscle.en} · ${es ? muscle.actionEs : muscle.action} · CN ${muscle.nerve}`
 						: es
-							? "Empieza por el par horizontal y compara después los rectos verticales y los oblicuos. Las flechas doradas muestran la dirección de tracción y la tensión relativa en equilibrio primario."
-							: "Start with the horizontal pair, then compare the vertical recti and obliques. Gold arrows show pulling direction and relative tension at primary-position equilibrium."}
+							? "Empieza por el par horizontal y compara después los rectos verticales y los oblicuos. Las flechas doradas superpuestas muestran la dirección de tracción y la tensión relativa en equilibrio primario."
+							: "Start with the horizontal pair, then compare the vertical recti and obliques. Overlaid gold arrows show pulling direction and relative tension at primary-position equilibrium."}
 				</p>
 			)}
 			<div className="lens-controls">
