@@ -5,6 +5,7 @@ import {
 	ORA_Z,
 	OUTER_LIMBUS_Z,
 } from "./globeProfile";
+import { createOcularSurface, scleralMaterial } from "./ocularSurface";
 import {
 	CANAL_ANGLE,
 	CHOROID_WALL,
@@ -217,13 +218,16 @@ export function createPosteriorEye({
 		{ group: THREE.Group; whole: THREE.Mesh; cut: THREE.Mesh }
 	>();
 	function part(key: string, surface: Surface, color: string, rows = 64) {
-		const material = new THREE.MeshStandardMaterial({
-			color,
-			side: THREE.FrontSide,
-			roughness: key === "sclera" ? 0.94 : 0.9,
-			metalness: 0,
-			envMapIntensity: 0.3,
-		});
+		const material =
+			key === "sclera"
+				? scleralMaterial()
+				: new THREE.MeshStandardMaterial({
+						color,
+						side: THREE.FrontSide,
+						roughness: key === "sclera" ? 0.94 : 0.9,
+						metalness: 0,
+						envMapIntensity: 0.3,
+					});
 		const whole = new THREE.Mesh(
 			wallGeometry(
 				surface,
@@ -353,6 +357,8 @@ export function createPosteriorEye({
 	}
 	part("optic-nerve", nerveSurface(false), "#e4bc79", 48);
 	part("nerve-sheath", nerveSurface(true), "#c9bea6", 48);
+	const surface = lesson ? null : createOcularSurface();
+	if (surface) group.add(surface);
 	const vessels = createRetinalVessels();
 	group.add(vessels);
 	const cutPlane = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
@@ -365,13 +371,15 @@ export function createPosteriorEye({
 			landmarks = true,
 		) {
 			vessels.visible = landmarks;
+			if (surface) surface.visible = visible.sclera;
 			if (section !== previousSection) {
-				vessels.traverse((object) => {
-					if (object instanceof THREE.Mesh) {
-						object.material.clippingPlanes = section ? cutPlane : [];
-						object.material.needsUpdate = true;
-					}
-				});
+				for (const overlay of [vessels, surface])
+					overlay?.traverse((object) => {
+						if (object instanceof THREE.Mesh) {
+							object.material.clippingPlanes = section ? cutPlane : [];
+							object.material.needsUpdate = true;
+						}
+					});
 				previousSection = section;
 			}
 			for (const [key, item] of parts) {

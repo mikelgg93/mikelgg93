@@ -88,7 +88,8 @@ test("closed and sectioned anatomy reuse finite geometry and dispose hidden view
 			expect(eye.group.getObjectByName(name)!.visible).toBe(false);
 		eye.update(section);
 		for (const node of eye.group.children.filter(
-			(node) => node.name !== "retinal-vessels",
+			(node) =>
+				!["retinal-vessels", "superficial-ocular-vessels"].includes(node.name),
 		)) {
 			expect(node.visible).toBe(true);
 			expect(node.children[0]!.visible).toBe(!section);

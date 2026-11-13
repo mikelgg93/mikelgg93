@@ -276,3 +276,9 @@
 .retina-coat-strip { display: flex; height: 28px; border: 1px solid var(--border); }
 .retina-coat-strip span { display: block; }
 .retina-coat-section .retina-bands { padding-inline: 0; }
+.retina-experience > .lens-demo {border:0;border-radius:0;}
+.retina-experience > .lens-demo > .lens-heading {display:none;}
+.retina-experience > .lens-heading {gap:12px;flex-wrap:wrap;}
+.retina-experience .lens-heading label {display:flex;gap:8px;align-items:center;font-size:12px;min-width:0;}
+.retina-experience select {max-width:100%;background:var(--background);color:var(--foreground);border:0;border-bottom:1px solid var(--border);padding:6px;}
+@media(max-width:500px){.retina-experience > .lens-heading {align-items:flex-start;flex-direction:column;}.retina-experience .lens-heading label {width:100%;}.retina-experience .lens-heading select {flex:1;min-width:0;}}

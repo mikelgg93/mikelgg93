@@ -13,13 +13,9 @@ import PublishedPost from "@/components/blog/PublishedPost.astro";
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import RetinaTissue from '../../components/eye/retina/RetinaTissue';
+import RetinaSignals from '../../components/eye/retina/RetinaSignals';
 import RetinaSurface from '../../components/eye/retina/RetinaSurface';
-import RetinaCup from '../../components/eye/retina/RetinaCup';
-import RetinaLayers from '../../components/eye/retina/RetinaLayers';
-import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
-import RetinaSampling from '../../components/eye/retina/RetinaSampling';
-import RetinaReceptiveField from '../../components/eye/retina/RetinaReceptiveField';
-import RetinaCoats from '../../components/eye/retina/RetinaCoats';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
 We have shaped the [cornea](/blog/webgl-eye-01-cornea), opened the [pupil](/blog/webgl-eye-02-pupil), and given the <PublishedPost id="webgl-eye-03-lens" fallback="lens"><a href="/blog/webgl-eye-03-lens/">lens</a></PublishedPost> a way to change focus. Light can now travel through our model, but we still need something to receive it.
@@ -42,14 +38,10 @@ const y = r * Math.sin(angle);
 const z = centreZ - radius * Math.cos(theta);
 ```
 
-Here, `u` runs from 0 at the posterior pole to 1 at the rim, while `angle` runs from 0 to 2π around the axis. Coordinates are in millimetres, with positive z towards the cornea and the cup stopping just short of a hemisphere. The dome is already formed, so you can turn off **Mesh guide** to inspect its surface.
+Here, `u` runs from 0 at the posterior pole to 1 at the rim, while `angle` runs from 0 to 2π around the axis. Coordinates are in millimetres, with positive z towards the cornea and the cup stopping just short of a hemisphere. The construction below starts with the dome already formed. Its first stage reveals the mesh before adding material and anatomy.
 
-<InteractiveViewer>
-  <div slot="preview"><RetinaCup client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.cup} /></div>
-</InteractiveViewer>
 
-Closing the pole with one shared vertex avoids collapsed triangles at the centre, while joining the last sector back to the first prevents a lighting seam around the cup.
+The formula describes the spherical approximation. Our working mesh also reserves a nasal opening for the disc and closes into a wall with thickness; this is the construction we will reuse when completing the eye.
 
 The warm tint helps us see the surface without predicting fundus colour. We now have position and curvature, but the shell still needs the landmarks and cells that make it a retina.
 
@@ -90,7 +82,37 @@ const vessel = new THREE.Mesh(
 );
 ```
 
-As the tubes taper below a pixel in width, a thin screen-space stroke keeps their routes legible; its width is a drawing aid rather than a measured calibre. The nerve follows the nasal opening and bends outside the sclera. Once the sequence finishes, it holds the result and the magnified profile remains available, including with reduced motion. Use **Replay** to watch the construction again.
+As the tubes taper below a pixel in width, a thin screen-space stroke keeps their routes legible; its width is a drawing aid rather than a measured calibre. The nerve follows the nasal opening and bends outside the sclera. The magnified profile appears during the pit stage. The sequence then adds the outer coats and holds the completed wall. Use the scrubber to revisit a stage, including with reduced motion, or **Replay** to watch it again.
+
+
+
+## Give the cup its supporting coats
+
+The retina is not a free-standing sheet. Outside the RPE lies the vascular, pigmented **choroid**, followed by the collagen-rich **sclera**. The choroid supplies the outer retina and continues anteriorly into the ciliary body. Here we will draw it as one band, without resolving Bruch's membrane, the choriocapillaris or the larger-vessel layers (Nickla & Wallman, 2010).
+
+Start with the existing cup, give it an outer surface, and join the two surfaces around their edges. To add the choroid, reuse the outer retinal boundary as its inner face; the sclera then starts where the choroid ends. Away from the pit, the chosen posterior widths are 0.30, 0.40 and 0.70 mm. These are drawing parameters, not typical thicknesses for the whole eye. At the fovea, the inner retinal surface changes while the boundary representing the RPE stays fixed.
+
+```ts
+// Shared boundaries, in mm: chosen construction dimensions.
+const rpeRadius = CUP_RADIUS + RETINAL_WALL;
+const choroidInner = rpeRadius;
+const choroidOuter = choroidInner + CHOROID_WALL;
+const scleraInner = choroidOuter;
+const scleraOuter = scleraInner + SCLERAL_WALL;
+// For each sampled unit direction from the dome:
+const innerPoint = direction.clone().multiplyScalar(choroidInner).add(centre);
+const outerPoint = direction.clone().multiplyScalar(choroidOuter).add(centre);
+```
+
+The inner-face normals point into the vitreous, while the outer-face normals point away from the tissue. Close the cut faces too, so each coat has visible thickness in section. All three retain an opening nasal to the fovea for the nerve: leave that canal open when building the walls, rather than drawing a cylinder through intact coats. Its size is enlarged for legibility.
+
+
+Later, in **Inside the wall**, choose **Choroidal vessels** to inspect a magnified patch from the retinal side. The choriocapillaris lies beside the RPE and Bruch's membrane, with smaller and larger vessels deeper in the choroid, schematically corresponding to Sattler's and Haller's regions (Nickla & Wallman, 2010). We generate vessel routes on a curved surface and repeat a reticular mesh to identify the capillary sheet. This is not a measured vascular reconstruction or a model of venous drainage.
+
+**Visible choroidal pattern** exposes these deeper vessels beneath a coloured covering. Tessellation describes visibility of the choroidal pattern through the overlying tissues; it is not the obligatory appearance of every retina. Here transparency is a drawing device, without inferring pigmentation, tissue thickness or disease (Yan et al., 2015).
+
+The sequence reveals the final assembly’s actual meshes. Use the construction scrubber to revisit a stage; the animation builds a drawing rather than simulating eye development. Anteriorly, the coats stop following simple concentric radii: we taper them, join the choroid to the posterior ciliary-body attachment, and bring the sclera to the limbus.
+
 
 <InteractiveViewer>
   <div slot="preview"><RetinaSurface client:visible /></div>
@@ -106,15 +128,15 @@ The RPE supports these photoreceptors by absorbing stray light, participating in
 The section below maps the main compartments into seven readable bands, with cell bodies in the **nuclear layers** and many synaptic connections in the **plexiform layers**. This groups the nerve-fibre and ganglion-cell layers together and represents the external limiting boundary schematically, rather than reproducing the complete conventional layer count.
 
 <InteractiveViewer>
-  <div slot="preview"><RetinaLayers client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.layers} /></div>
+  <div slot="preview"><RetinaTissue client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.tissue} /></div>
 </InteractiveViewer>
 
 Within the bands, icons locate rods and cones, bipolar and ganglion cells, lateral horizontal and amacrine connections, and supporting Müller cells. The highlighted route follows selected cones into one bipolar–ganglion pathway, with neighbouring inputs converging in the flat view. Horizontal and amacrine connections span it laterally. This is one chosen arrangement, not a repeating unit for the whole retina; convergence and connectivity vary by location and cell type (Kolb, *Simple Anatomy of the Retina*). Arrows distinguish incoming light from the overall direction of signalling.
 
 ## A pit with a purpose: The fovea
 
-Turning on **Show fovea** reveals how this organisation changes at the centre: the inner layers thin while the outer bands remain. In a typical fovea, inner retinal tissue is displaced sideways and tightly packed central cones become narrow and elongated. The centre is free of retinal vessels, but its outer retina receives blood from the choroid, so “avascular” does not mean without a blood supply. Together, these features form a specialised region rather than a hole through the retina (Provis et al., 2013).
+In **Section and fovea**, turning on **Show fovea** reveals how this organisation changes at the centre: the inner layers thin while the outer bands remain. In a typical fovea, inner retinal tissue is displaced sideways and tightly packed central cones become narrow and elongated. The centre is free of retinal vessels, but its outer retina receives blood from the choroid, so “avascular” does not mean without a blood supply. Together, these features form a specialised region rather than a hole through the retina (Provis et al., 2013).
 
 Our profile makes this arrangement visible by exaggerating vertical dimensions, with a highlighted central cone axon extending laterally to a displaced bipolar–ganglion pathway. Unlike the convergent example in the flat view, it selects just one central cone input. It does not reconstruct individual Henle fibres or measured layer thicknesses, and pit depth alone does not determine acuity: central cone specialisation can occur even without a conventional pit.
 
@@ -138,12 +160,8 @@ cells.setMatrixAt(index, transform.matrix);
 cells.instanceMatrix.needsUpdate = true;
 ```
 
-<InteractiveViewer>
-  <div slot="preview"><RetinaMosaic client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.mosaic} /></div>
-</InteractiveViewer>
 
-Viewed from above, the two equal-area patches show a denser, cone-only **Foveal centre** beside an **Illustrative mixed patch** mixing cones and rods. **Show cell shapes** tilts both to reveal the narrower, longer central cones. We magnify these local patches separately from the whole-eye shell and use illustrative spacing rather than a measured density map. The mixed patch stands for no particular eccentricity; composition and spacing change across the retina.
+Choose **Rods and cones** in the same viewer. Viewed from above, the two equal-area patches show a denser, cone-only **Foveal centre** beside an **Illustrative mixed patch** mixing cones and rods. **Show cell shapes** tilts both to reveal the narrower, longer central cones. We magnify these local patches separately from the whole-eye shell and use illustrative spacing rather than a measured density map. The mixed patch stands for no particular eccentricity; composition and spacing change across the retina.
 
 The cell types also differ in function: rods support very sensitive vision in dim conditions, while cones support daylight vision and colour discrimination. S-, M- and L-cones have broad, overlapping spectral sensitivities rather than behaving like red, green and blue screen pixels in repeating triplets (Stockman & Sharpe, 2000). Our gold colour identifies *cones as a group*, without assigning classes or simulating colour vision.
 
@@ -154,8 +172,8 @@ Now imagine projecting fine stripes onto a row of these receptors. As the stripe
 We can isolate this effect by setting the anatomy aside and using equally spaced **point samples in one dimension**. Here frequency means cycles across the panel, not per degree of visual angle, and $N$ samples give a Nyquist boundary of $N/2$ cycles per interval. At the boundary, phase can make the signal disappear from the samples, so unique reconstruction requires appropriate band-limiting below it.
 
 <InteractiveViewer>
-  <div slot="preview"><RetinaSampling client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.sampling} /></div>
+  <div slot="preview"><RetinaSignals client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.signals} /></div>
 </InteractiveViewer>
 
 Start with 16 samples and increase the stripes beyond 8 cycles to reveal a lower-frequency pattern in the bottom row that agrees at every sample position. Adding samples moves the boundary, while **Shift ¼ cycle** changes where the stripes fall relative to the receptors. At certain settings, every sample lands on the same grey.
@@ -170,12 +188,8 @@ Bipolar cells carry signals towards ganglion cells while horizontal and amacrine
 
 We can make one consequence visible with a **centre–surround receptive field**: the effect of light depends on where it falls relative to the cell's field. In a classical ON-centre arrangement, a bright central spot tends to increase the response, while light in the surrounding region opposes it. An OFF-centre arrangement has the opposite polarity. Kuffler's recordings established this spatial antagonism in cat retinal ganglion cells (1953); it is a useful starting point, rather than a description of every ganglion-cell type.
 
-<InteractiveViewer>
-  <div slot="preview"><RetinaReceptiveField client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.receptive} /></div>
-</InteractiveViewer>
 
-Leave the position at zero and compare the bright spot with the annulus: the ON and OFF bars change sign. Now move the spot sideways. The same spot can drive a different response because it illuminates different parts of the field. A dark spot reverses the contrast, while uniform light cancels in this deliberately balanced model.
+Select **Combine the inputs** in **From light to signals**. Leave the position at zero and compare the bright spot with the annulus: the ON and OFF bars change sign. Now move the spot sideways. The same spot can drive a different response because it illuminates different parts of the field. A dark spot reverses the contrast, while uniform light cancels in this deliberately balanced model.
 
 The calculation subtracts a broad Gaussian-weighted average of image contrast from a narrow one. We normalise each set of weights to sum to one, so a uniform input gives zero difference. The two bars are idealised opposite-polarity **changes in drive**, not measured firing rates: negative means less drive relative to the background. Real ON and OFF pathways differ in more than their sign, and real surrounds need not exactly balance their centres. This spatial filter contains no adaptation or temporal response.
 
@@ -183,36 +197,6 @@ This helps separate two ideas. The sampling experiment asked which images give i
 
 The pupil reflex from Part II provides another example of parallel output: melanopsin-expressing **ipRGCs** respond intrinsically to light as well as receiving rod/cone input. The retina therefore sends more than one kind of message onwards through the optic nerve.
 
-## Give the cup its supporting coats
-
-Returning from the cells to the eye's shape, the retina is not a free-standing sheet. Outside the RPE lies the vascular, pigmented **choroid**, followed by the collagen-rich **sclera**. The choroid supplies the outer retina and continues anteriorly into the ciliary body. Here we will draw it as one band, without resolving Bruch's membrane, the choriocapillaris or the larger-vessel layers (Nickla & Wallman, 2010).
-
-Start with the existing cup, give it an outer surface, and join the two surfaces around their edges. To add the choroid, reuse the outer retinal boundary as its inner face; the sclera then starts where the choroid ends. Away from the pit, the chosen posterior widths are 0.30, 0.40 and 0.70 mm. These are drawing parameters, not typical thicknesses for the whole eye. At the fovea, the inner retinal surface changes while the boundary representing the RPE stays fixed.
-
-```ts
-// Shared boundaries, in mm: chosen construction dimensions.
-const rpeRadius = CUP_RADIUS + RETINAL_WALL;
-const choroidInner = rpeRadius;
-const choroidOuter = choroidInner + CHOROID_WALL;
-const scleraInner = choroidOuter;
-const scleraOuter = scleraInner + SCLERAL_WALL;
-// For each sampled unit direction from the dome:
-const innerPoint = direction.clone().multiplyScalar(choroidInner).add(centre);
-const outerPoint = direction.clone().multiplyScalar(choroidOuter).add(centre);
-```
-
-The inner-face normals point into the vitreous, while the outer-face normals point away from the tissue. Close the cut faces too, so each coat has visible thickness in section. All three retain an opening nasal to the fovea for the nerve: leave that canal open when building the walls, rather than drawing a cylinder through intact coats. Its size is enlarged for legibility.
-
-<InteractiveViewer>
-  <div slot="preview"><RetinaCoats client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.coats} /></div>
-</InteractiveViewer>
-
-Choose **Choroidal vascular detail** to inspect a patch from the retinal side. The choriocapillaris lies beside the RPE and Bruch's membrane, with smaller and larger vessels deeper in the choroid, schematically corresponding to Sattler's and Haller's regions (Nickla & Wallman, 2010). We generate vessel routes on a curved surface and repeat a reticular mesh to identify the capillary sheet. This is not a measured vascular reconstruction or a model of venous drainage.
-
-**Illustrative tessellated fundus** exposes these deeper vessels beneath a coloured covering. Tessellation describes visibility of the choroidal pattern through the overlying tissues; it is not the obligatory appearance of every retina. Here transparency is a drawing device, without inferring pigmentation, tissue thickness or disease (Yan et al., 2015).
-
-The sequence reveals the final assembly's actual meshes; it does not simulate eye development. A magnified diagram makes the wall widths readable without pulling the tissues apart or thickening the 3D model. Anteriorly, the coats stop following simple concentric radii: we taper them, join the choroid to the posterior ciliary-body attachment, and bring the sclera to the limbus.
 
 ## Put the receiving surface behind the optics
 
@@ -229,7 +213,7 @@ These are **chosen assembly dimensions**, not measurements of one eye. We retain
 
 The endpoints matter. Here AXL runs from the corneal apex at $z=5.6\ \text{mm}$ to the RPE boundary at $z=-18.70\ \text{mm}$, following the common optical-biometry convention (Ostrin et al., 2023). Internal ACD excludes the cornea. Keeping these definitions explicit lets us compare dimensions without confusing the inner retinal surface, the RPE and the outside of the eye.
 
-We reuse the coats from the construction above, storing complete and sectioned meshes so changing views does not rebuild them. The sclera reaches the limbus, where it meets the cornea (Watson & Young, 2004). The ciliary-body join and wall widths are schematic, rather than fitted to one measured eye.
+We reuse the coats from the first construction, storing complete and sectioned meshes so changing views does not rebuild them. The outer white has a restrained ivory tint and fine superficial vessels over the anterior surface. These suggest conjunctival and episcleral vasculature; they are separate from the retinal vessels inside and are clipped with the cutaway. Their routes and colour are illustrative (Watson & Young, 2004). The sclera reaches the limbus, where it meets the cornea (Watson & Young, 2004). The ciliary-body join and wall widths are schematic, rather than fitted to one measured eye.
 
 The landmarks follow the construction above: a darker macula, a shallow foveal pit and vessel arcades around its centre. We use a roughly $5.5\ \text{mm}$ macular diameter, a common clinical description whose boundaries depend on definition (Webvision, *The Architecture of the Human Fovea*), and a **model pit depth of $0.10\ \text{mm}$**. Unlike the enlarged layer diagram, the pit remains subtle at whole-eye scale. The disc opening and nerve exit sit beside it, not at its centre.
 

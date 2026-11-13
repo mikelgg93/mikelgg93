@@ -78,6 +78,13 @@ export default function RetinaAssembly({
 			return;
 		}
 		viewRef.current = view;
+		view.scene.traverse((o) => {
+			if (o instanceof THREE.HemisphereLight) {
+				o.color.set("#fff9ef");
+				o.groundColor.set("#554d46");
+				o.intensity = 1.6;
+			}
+		});
 		view.camera.position.set(34, 20, 18);
 		view.controls.target.set(0, 0, -8);
 		const posterior = createPosteriorEye();
@@ -331,39 +338,48 @@ export default function RetinaAssembly({
 						: "Drag, or focus the canvas and use arrow keys to rotate"}
 				</p>
 			</div>
-			<ul
-				className="retina-bands retina-coat-key"
-				aria-label={es ? "Clave de colores" : "Colour key"}
-			>
-				{eyeCoats.map((coat) => (
-					<li key={coat.key}>
-						<span className="retina-dot" style={{ background: coat.color }} />
-						{es ? coat.es : coat.en}
+			<details className="retina-model-details">
+				<summary>
+					{es
+						? "Anatomía y dimensiones del modelo"
+						: "Model anatomy and dimensions"}
+				</summary>{" "}
+				<ul
+					className="retina-bands retina-coat-key"
+					aria-label={es ? "Clave de colores" : "Colour key"}
+				>
+					{eyeCoats.map((coat) => (
+						<li key={coat.key}>
+							<span className="retina-dot" style={{ background: coat.color }} />
+							{es ? coat.es : coat.en}
+						</li>
+					))}
+					<li>
+						<span className="retina-dot" style={{ background: "#e4bc79" }} />
+						{es ? "Nervio óptico" : "Optic nerve"}
 					</li>
-				))}
-				<li>
-					<span className="retina-dot" style={{ background: "#e4bc79" }} />
-					{es ? "Nervio óptico" : "Optic nerve"}
-				</li>
-			</ul>
-			{!anterior && (
-				<p className="retina-reading">
-					{retinalLandmarks
-						.map((landmark, i) => `${i + 1}. ${es ? landmark.es : landmark.en}`)
-						.join(" · ")}
-				</p>
-			)}
-			<div
-				ref={dimensions}
-				className="retina-readouts"
-				role="group"
-				aria-label={es ? "Dimensiones del modelo" : "Model dimensions"}
-			>
-				<span>CCT {biometry.cct.toFixed(2)} mm</span>
-				<span>ACD {biometry.acd.toFixed(2)} mm</span>
-				<span>LT {biometry.lt.toFixed(2)} mm</span>
-				<span>AXL → RPE {biometry.axl.toFixed(2)} mm</span>
-			</div>
+				</ul>
+				{!anterior && (
+					<p className="retina-reading">
+						{retinalLandmarks
+							.map(
+								(landmark, i) => `${i + 1}. ${es ? landmark.es : landmark.en}`,
+							)
+							.join(" · ")}
+					</p>
+				)}
+				<div
+					ref={dimensions}
+					className="retina-readouts"
+					role="group"
+					aria-label={es ? "Dimensiones del modelo" : "Model dimensions"}
+				>
+					<span>CCT {biometry.cct.toFixed(2)} mm</span>
+					<span>ACD {biometry.acd.toFixed(2)} mm</span>
+					<span>LT {biometry.lt.toFixed(2)} mm</span>
+					<span>AXL → RPE {biometry.axl.toFixed(2)} mm</span>
+				</div>
+			</details>
 			<div className="lens-controls">
 				<div className="lens-buttons">
 					<label>
