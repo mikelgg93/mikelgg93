@@ -135,10 +135,14 @@ export default function ExtraocularDemo({
 						0.4,
 					);
 					for (const part of [arrow.line, arrow.cone]) {
-						part.material.depthTest = false;
-						part.material.depthWrite = false;
-						part.material.transparent = true;
-						part.material.opacity = 0.9;
+						for (const material of Array.isArray(part.material)
+							? part.material
+							: [part.material]) {
+							material.depthTest = false;
+							material.depthWrite = false;
+							material.transparent = true;
+							material.opacity = 0.9;
+						}
 						part.renderOrder = 20;
 					}
 					view.scene.add(arrow);
