@@ -78,3 +78,18 @@ export function gazePose(horizontal: number, vertical: number) {
 	);
 	return new THREE.Quaternion().setFromUnitVectors(forward, direction);
 }
+
+export type MuscleSelection =
+	| MuscleId
+	| "all"
+	| "horizontal"
+	| "vertical"
+	| "obliques";
+export function highlightedMuscles(
+	selection: MuscleSelection,
+): readonly MuscleId[] {
+	if (selection === "horizontal") return ["MR", "LR"];
+	if (selection === "vertical") return ["SR", "IR"];
+	if (selection === "obliques") return ["SO", "IO"];
+	return selection === "all" ? muscles.map((m) => m.id) : [selection];
+}

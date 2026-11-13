@@ -119,6 +119,7 @@ export function musclePath(id: MuscleId, q: THREE.Quaternion) {
 	return {
 		points,
 		length,
+		direction,
 		moment: end.clone().cross(direction).multiplyScalar(0.001),
 	};
 }

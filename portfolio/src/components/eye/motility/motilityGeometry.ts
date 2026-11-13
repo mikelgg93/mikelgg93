@@ -8,7 +8,12 @@ import { scleralWallRadius } from "../lens/anteriorSegmentProfile";
 import { createCiliaryApparatus } from "../lens/ciliaryApparatus";
 import { createPosteriorEye } from "../retina/posteriorEye";
 import { CUP_CENTRE_Z } from "../retina/retinaModel";
-import { type MuscleId, muscles } from "./motilityModel";
+import {
+	highlightedMuscles,
+	type MuscleId,
+	type MuscleSelection,
+	muscles,
+} from "./motilityModel";
 import { anatomy, musclePath } from "./orbitalMechanics";
 
 const centre = new THREE.Vector3(0, 0, CUP_CENTRE_Z);
@@ -240,8 +245,9 @@ export function createExtraocularMuscles() {
 			}
 		}
 	}
-	function update(q: THREE.Quaternion, selected: MuscleId | "all") {
+	function update(q: THREE.Quaternion, selected: MuscleSelection) {
 		inverse.copy(q).invert();
+		const highlighted = new Set(highlightedMuscles(selected));
 		for (const part of parts) {
 			const id = part.id,
 				end = insertion(id).sub(centre).applyQuaternion(q).add(centre);
@@ -283,7 +289,9 @@ export function createExtraocularMuscles() {
 				}
 				previousWidth.copy(widthAxis);
 				colour
-					.copy(selected === id ? highlightColour : belly)
+					.copy(
+						selected !== "all" && highlighted.has(id) ? highlightColour : belly,
+					)
 					.lerp(tendonColour, shape.tendon);
 				const outward = out.dot(vertex.copy(point).sub(centre)) >= 0 ? 1 : -1;
 				for (let j = 0; j < columns; j++) {
@@ -330,7 +338,7 @@ export function createExtraocularMuscles() {
 				normals.setXYZ(b, local.x, local.y, local.z);
 			}
 			normals.needsUpdate = true;
-			const faded = selected !== "all" && selected !== id,
+			const faded = !highlighted.has(id),
 				material = part.mesh.material;
 			if (material.transparent !== faded) {
 				material.transparent = faded;

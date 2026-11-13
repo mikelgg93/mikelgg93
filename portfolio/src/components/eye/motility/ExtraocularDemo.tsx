@@ -9,12 +9,22 @@ import {
 	createExtraocularMuscles,
 	createMotilityEye,
 } from "./motilityGeometry";
-import { gazePose, gazeTargets, type MuscleId, muscles } from "./motilityModel";
+import {
+	gazePose,
+	gazeTargets,
+	highlightedMuscles,
+	type MuscleId,
+	type MuscleSelection,
+	muscles,
+} from "./motilityModel";
 import {
 	advance,
+	anatomy,
 	type Condition,
 	equilibrium,
+	evaluate,
 	mechanicalState,
+	musclePath,
 	orientation,
 	recruitment,
 } from "./orbitalMechanics";
@@ -51,7 +61,9 @@ export default function ExtraocularDemo({
 		forces: Record<MuscleId, number>;
 	} | null>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
-	const [selected, setSelected] = useState<MuscleId | "all">("all"),
+	const [selected, setSelected] = useState<MuscleSelection>(
+			motion ? "all" : "horizontal",
+		),
 		[target, setTarget] = useState("0"),
 		[condition, setCondition] = useState<Condition>("baseline"),
 		[error, setError] = useState(false);
@@ -104,14 +116,39 @@ export default function ExtraocularDemo({
 				previous: new THREE.Quaternion(0, 0, 0, 0),
 			};
 		});
+		const reference = evaluate(
+			new THREE.Quaternion(),
+			recruitment(new THREE.Quaternion()).activation,
+		);
+		const arrows = motion
+			? []
+			: muscles.map((m) => {
+					const path = musclePath(m.id, new THREE.Quaternion());
+					const arrow = new THREE.ArrowHelper(
+						path.direction,
+						anatomy[m.id].insertion
+							.clone()
+							.add(new THREE.Vector3(0, 0, CUP_CENTRE_Z)),
+						reference.forces[m.id].total * 35,
+						0xe4bc79,
+						0.8,
+						0.4,
+					);
+					view.scene.add(arrow);
+					return { id: m.id, arrow };
+				});
 		let key = "",
 			report: object = {},
-			lastMuscle: MuscleId | "all" | null = null;
+			lastMuscle: MuscleSelection | null = null;
 		view.onReset(() => {
-			setSelected("all");
+			setSelected(motion ? "all" : "horizontal");
 			setTarget("0");
 			setCondition("baseline");
-			params.current = { selected: "all", target: "0", condition: "baseline" };
+			params.current = {
+				selected: motion ? "all" : "horizontal",
+				target: "0",
+				condition: "baseline",
+			};
 			key = "";
 		});
 		view.start((dt, reduced) => {
@@ -205,6 +242,8 @@ export default function ExtraocularDemo({
 					eye.previous.copy(eye.pivot.quaternion);
 				}
 			}
+			for (const item of arrows)
+				item.arrow.visible = highlightedMuscles(p.selected).includes(item.id);
 			lastMuscle = p.selected;
 			return {
 				animating,
@@ -236,8 +275,8 @@ export default function ExtraocularDemo({
 							? "Equilibrio entre los músculos"
 							: "Balance between muscles"
 						: es
-							? "Seis músculos alrededor del globo"
-							: "Six muscles around the globe"}
+							? "Cómo tiran los músculos"
+							: "How the muscles pull"}
 				</strong>
 				<span className="lens-muted">
 					{motion
@@ -288,8 +327,8 @@ export default function ExtraocularDemo({
 					{muscle
 						? `${es ? muscle.es : muscle.en} · ${es ? muscle.actionEs : muscle.action} · CN ${muscle.nerve}`
 						: es
-							? "Gira la vista: el vértice orbitario queda hacia el lado nasal; la tróclea y el origen del oblicuo inferior están delante."
-							: "Orbit the view: the orbital apex lies nasally; the trochlea and inferior-oblique origin lie anteriorly."}
+							? "Empieza por el par horizontal y compara después los rectos verticales y los oblicuos. Las flechas doradas muestran la dirección de tracción y la tensión relativa en equilibrio primario."
+							: "Start with the horizontal pair, then compare the vertical recti and obliques. Gold arrows show pulling direction and relative tension at primary-position equilibrium."}
 				</p>
 			)}
 			<div className="lens-controls">
@@ -333,8 +372,17 @@ export default function ExtraocularDemo({
 						{es ? "Músculo" : "Muscle"}
 						<select
 							value={selected}
-							onChange={(e) => setSelected(e.target.value as MuscleId | "all")}
+							onChange={(e) => setSelected(e.target.value as MuscleSelection)}
 						>
+							<option value="horizontal">
+								{es ? "Primero: par horizontal" : "First: horizontal pair"}
+							</option>
+							<option value="vertical">
+								{es ? "Después: rectos verticales" : "Then: vertical recti"}
+							</option>
+							<option value="obliques">
+								{es ? "Añadir torsión: oblicuos" : "Add torsion: obliques"}
+							</option>
 							<option value="all">{es ? "Todos" : "All"}</option>
 							{muscles.map((m) => (
 								<option key={m.id} value={m.id}>
@@ -350,8 +398,8 @@ export default function ExtraocularDemo({
 							? "Movimiento entre equilibrios impulsado por fuerzas. Debilidad: 25 % de fuerza activa. Restricción: resistencia pasiva ×4. Valores elegidos para explorar el modelo, no predicciones clínicas."
 							: "Force-driven motion between equilibria. Weakness: 25% active force. Restriction: passive resistance ×4. Chosen model perturbations, not clinical predictions."
 						: es
-							? "Coordenadas de referencia UPAT adaptadas a nuestro globo; poleas fijas y contornos musculares ilustrativos."
-							: "UPAT reference coordinates adapted to our globe; fixed pulleys and illustrative muscle contours."}
+							? "Los seis músculos siguen en el cálculo de fuerzas. Escala gráfica de las flechas: 35 mm por N. Coordenadas UPAT adaptadas al globo; poleas fijas y contornos musculares ilustrativos."
+							: "All six muscles remain in the force calculation. Arrow length: 35 mm per N as a drawing scale. UPAT reference coordinates adapted to our globe; fixed pulleys and illustrative muscle contours."}
 				</p>
 			</div>
 		</div>
