@@ -99,8 +99,10 @@ const unique = (
 export const tissueSources = unique([
 	file("RetinaTissue.tsx", tissue),
 	file("choroidPatch.ts", choroid),
- file("retinaAnatomy.ts", anatomy),
- ...lensSources.assembly.filter(f=>f.path==="eye/lens/lensConstruction.ts"),
+	file("retinaAnatomy.ts", anatomy),
+	...lensSources.assembly.filter(
+		(f) => f.path === "eye/lens/lensConstruction.ts",
+	),
 	...baseSources.layers,
 	...baseSources.mosaic,
 ]);
