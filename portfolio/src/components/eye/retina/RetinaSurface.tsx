@@ -12,11 +12,13 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 	const es = lang === "es",
 		mount = useRef<HTMLDivElement>(null),
 		caption = useRef<HTMLParagraphElement>(null),
-		profile = useRef<HTMLDivElement>(null);
+		profile = useRef<HTMLDivElement>(null),
+		timeline = useRef<HTMLInputElement>(null);
 	const [paused, setPaused] = useState(false),
 		[error, setError] = useState(false),
 		[finished, setFinished] = useState(false);
 	const replay = useRef<(() => void) | null>(null);
+	const seek = useRef<number | null>(null);
 	const params = useRef({ paused }),
 		viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	useEffect(() => {
@@ -33,9 +35,16 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 			return;
 		}
 		viewRef.current = view;
+		view.scene.traverse((o) => {
+			if (o instanceof THREE.HemisphereLight) {
+				o.color.set("#fff9ef");
+				o.groundColor.set("#554d46");
+				o.intensity = 1.6;
+			}
+		});
 		view.camera.position.set(8, 5, 38);
 		view.controls.target.set(0, 0, -12);
-		const eye = createPosteriorEye({ lesson: true });
+		const eye = createPosteriorEye();
 		view.scene.add(eye.group);
 		const mesh = eye.group.getObjectByName("retina")!.children[0] as THREE.Mesh<
 			THREE.BufferGeometry,
@@ -72,9 +81,13 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		};
 		view.onInteraction(manual);
 
-		let elapsed = 0;
+		let elapsed = 0,
+			ended = false,
+			previousMaterial: boolean | undefined;
 		const restart = () => {
 			elapsed = 0;
+			ended = false;
+			seek.current = null;
 			autoCamera = true;
 			view.setPose([8, 5, 38], [0, 0, -12]);
 			setPaused(false);
@@ -84,21 +97,34 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		replay.current = restart;
 		view.onReset(restart);
 		view.start((dt, reduced) => {
+			if (seek.current !== null) {
+				elapsed = seek.current;
+				seek.current = null;
+			}
 			if (!params.current.paused && !reduced)
-				elapsed = Math.min(16, elapsed + dt);
-			if (elapsed >= 16 && !params.current.paused) setFinished(true);
-			const t = reduced ? 16 : elapsed,
+				elapsed = Math.min(24, elapsed + dt);
+			if (elapsed >= 24 && !ended) {
+				ended = true;
+				setFinished(true);
+			}
+			const t = reduced && !params.current.paused ? 24 : elapsed,
 				pit = Math.min(1, Math.max(0, (t - 4) / 4));
 			eye.update(
-				false,
-				{ choroid: false, sclera: false, nerve: t >= 12 },
+				t >= 16,
+				{ choroid: t >= 16, sclera: t >= 20, nerve: t >= 12 },
 				t >= 9,
 			);
 			mesh.morphTargetInfluences![0] = pit;
 			mesh.material.wireframe = t < 2;
-			if (autoCamera && !reduced && t >= 12 && t <= 14) {
-				const f = THREE.MathUtils.smoothstep(t, 12, 14);
-				view.setPose([8 + 18 * f, 5 + 9 * f, 38 - 8 * f], [0, 0, -12]);
+			mesh.material.vertexColors = t >= 2;
+			mesh.material.color.set(t < 2 ? "#b9c6c2" : "#ffffff");
+			if (previousMaterial !== t >= 2) {
+				mesh.material.needsUpdate = true;
+				previousMaterial = t >= 2;
+			}
+			if (autoCamera && !reduced && t >= 14 && t <= 18) {
+				const f = THREE.MathUtils.smoothstep(t, 14, 18);
+				view.setPose([8 + 22 * f, 5 + 19 * f, 38 - 16 * f], [0, 0, -12]);
 			}
 			const vessels = eye.group.getObjectByName("retinal-vessels");
 			vessels?.traverse((o) => {
@@ -113,7 +139,7 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 					);
 			});
 			if (profile.current) {
-				profile.current.hidden = t < 4;
+				profile.current.hidden = t < 4 || t >= 16;
 				const path = profile.current.querySelector("[data-pit-profile]");
 				path?.setAttribute(
 					"d",
@@ -124,7 +150,21 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 				);
 			}
 
-			const stage = t < 2 ? 0 : t < 4 ? 1 : t < 9 ? 2 : t < 12 ? 3 : 4;
+			if (timeline.current) timeline.current.value = String(t);
+			const stage =
+				t < 2
+					? 0
+					: t < 4
+						? 1
+						: t < 9
+							? 2
+							: t < 12
+								? 3
+								: t < 16
+									? 4
+									: t < 20
+										? 5
+										: 6;
 			if (caption.current)
 				caption.current.textContent = (
 					es
@@ -134,6 +174,8 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 								"Relieve foveal",
 								"Vasos principales",
 								"Salida del nervio óptico",
+								"Coroides: la cubierta vascular",
+								"Esclerótica: cerramos la pared",
 							]
 						: [
 								"Mesh",
@@ -141,17 +183,19 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 								"Foveal relief",
 								"Major vessels",
 								"Optic nerve exit",
+								"Choroid: the vascular coat",
+								"Sclera: close the wall",
 							]
 				)[stage]!;
 			return {
 				state: {
-					model: "Surface construction; stylised pigmentation and vessels",
+					model: "Continuous wall construction using final assembly meshes",
 					stage,
 					pit,
 					autoCamera,
 					elapsed,
 				},
-				animating: !reduced && !params.current.paused && elapsed < 16,
+				animating: !reduced && !params.current.paused && elapsed < 24,
 			};
 		});
 		return () => {
@@ -164,7 +208,7 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 		<div className="lens-demo retina-demo">
 			<div className="lens-heading">
 				<strong>
-					{es ? "Dar forma a la superficie" : "Give the surface its landmarks"}
+					{es ? "De la malla a la pared ocular" : "From mesh to eye wall"}
 				</strong>
 			</div>
 			<div
@@ -220,6 +264,25 @@ export default function RetinaSurface({ lang = "en" }: { lang?: "en" | "es" }) {
 				</div>
 			</div>
 			<div className="lens-controls">
+				<label>
+					{es ? "Construcción" : "Construction"}
+					<input
+						ref={timeline}
+						type="range"
+						min="0"
+						max="24"
+						step="4"
+						defaultValue="0"
+						aria-label={es ? "Etapa de construcción" : "Construction stage"}
+						onChange={(e) => {
+							seek.current = Number(e.target.value);
+							params.current.paused = true;
+							setPaused(true);
+							setFinished(false);
+							viewRef.current?.invalidate();
+						}}
+					/>
+				</label>
 				<button
 					type="button"
 					className="lens-motion-pause"

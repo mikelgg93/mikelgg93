@@ -13,13 +13,9 @@ import PublishedPost from "@/components/blog/PublishedPost.astro";
 import SourceFiles from '../../components/ui/SourceFiles.astro';
 import { retinaSources } from '../../components/eye/retina/retinaSources';
 import InteractiveViewer from '../../components/ui/InteractiveViewer.astro';
+import RetinaTissue from '../../components/eye/retina/RetinaTissue';
+import RetinaSignals from '../../components/eye/retina/RetinaSignals';
 import RetinaSurface from '../../components/eye/retina/RetinaSurface';
-import RetinaCup from '../../components/eye/retina/RetinaCup';
-import RetinaLayers from '../../components/eye/retina/RetinaLayers';
-import RetinaMosaic from '../../components/eye/retina/RetinaMosaic';
-import RetinaSampling from '../../components/eye/retina/RetinaSampling';
-import RetinaReceptiveField from '../../components/eye/retina/RetinaReceptiveField';
-import RetinaCoats from '../../components/eye/retina/RetinaCoats';
 import RetinaAssembly from '../../components/eye/retina/RetinaAssembly';
 
 En las partes anteriores dimos forma a la [córnea](/es/blog/webgl-eye-01-cornea), abrimos la [pupila](/es/blog/webgl-eye-02-pupil) y permitimos que el <PublishedPost id="webgl-eye-03-lens-es" fallback="cristalino"><a href="/es/blog/webgl-eye-03-lens/">cristalino</a></PublishedPost> cambiara el enfoque. La luz ya puede recorrer nuestro modelo, pero todavía falta una estructura que la reciba.
@@ -42,14 +38,10 @@ const y = r * Math.sin(angle);
 const z = centreZ - radius * Math.cos(theta);
 ```
 
-En este código, `u` recorre desde 0 en el polo posterior hasta 1 en el borde, mientras `angle` gira de 0 a 2π alrededor del eje. Las coordenadas están en milímetros, con z positiva hacia la córnea, y detenemos el ángulo poco antes de completar un hemisferio. La demo ya muestra esa cúpula: la **Guía de malla** destaca algunos anillos y sectores sobre una malla más fina, con el radio en línea discontinua. Desactívala para ver la superficie sin esas referencias.
+En este código, `u` recorre desde 0 en el polo posterior hasta 1 en el borde, mientras `angle` gira de 0 a 2π alrededor del eje. Las coordenadas están en milímetros, con z positiva hacia la córnea, y detenemos el ángulo poco antes de completar un hemisferio. La construcción empieza con esa cúpula ya formada y revela su malla antes de añadir el material y la anatomía.
 
-<InteractiveViewer lang="es">
-  <div slot="preview"><RetinaCup lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.cup} lang="es" /></div>
-</InteractiveViewer>
 
-Para cerrar la copa sin triángulos degenerados ni una costura de iluminación, compartimos un único vértice en el polo y enlazamos el último sector con el primero.
+La fórmula describe la aproximación esférica. La malla de trabajo reserva además una abertura nasal para el disco y se cierra como una pared con espesor; es la misma construcción que reutilizaremos al completar el ojo.
 
 El tono cálido permite apreciar esta forma, aunque todavía no predice el color del fondo de ojo. Ya tenemos posición y curvatura; ahora necesitamos darle referencias anatómicas antes de añadir las células sensibles a la luz.
 
@@ -90,7 +82,37 @@ const vessel = new THREE.Mesh(
 );
 ```
 
-Los tubos se estrechan hacia sus extremos, donde un trazo fino en pantalla mantiene legible el recorrido si ocupa menos de un píxel. Esa anchura es una ayuda visual, no un calibre medido. Completamos la escena con el nervio, que ocupa la abertura nasal y se curva fuera de la esclerótica. La secuencia se reproduce una vez y conserva el resultado junto con el perfil ampliado, también con movimiento reducido; **Repetir** vuelve al principio.
+Los tubos se estrechan hacia sus extremos, donde un trazo fino en pantalla mantiene legible el recorrido si ocupa menos de un píxel. Esa anchura es una ayuda visual, no un calibre medido. Completamos la escena con el nervio, que ocupa la abertura nasal y se curva fuera de la esclerótica. El perfil ampliado aparece durante la formación de la fóvea. Después añadimos las cubiertas y conservamos la pared completa. La barra permite volver a cada etapa, también con movimiento reducido; **Repetir** vuelve al principio.
+
+
+
+## Dar a la cúpula sus cubiertas de soporte
+
+La retina no queda suspendida como una lámina libre: por fuera del EPR está la **coroides**, vascularizada y pigmentada, y más afuera la **esclerótica**, rica en colágeno. La coroides nutre la retina externa y continúa anteriormente hacia el cuerpo ciliar; aquí la dibujaremos como una sola banda, sin separar la membrana de Bruch, la coriocapilar ni los vasos de mayor calibre (Nickla y Wallman, 2010).
+
+Partimos de la cúpula existente, le damos una superficie externa y unimos ambas en sus bordes. Para añadir la coroides reutilizamos ese límite externo como su cara interna; la esclerótica empieza, a su vez, donde termina la coroides. En la región posterior, fuera de la fosita, los espesores elegidos son 0,30, 0,40 y 0,70 mm. Son parámetros de dibujo: no espesores típicos aplicables a todo el ojo. En la fóvea cambia la cara interna de la retina, mientras el límite que representa el EPR permanece fijo.
+
+```ts
+// Shared boundaries, in mm: chosen construction dimensions.
+const rpeRadius = CUP_RADIUS + RETINAL_WALL;
+const choroidInner = rpeRadius;
+const choroidOuter = choroidInner + CHOROID_WALL;
+const scleraInner = choroidOuter;
+const scleraOuter = scleraInner + SCLERAL_WALL;
+// For each sampled unit direction from the dome:
+const innerPoint = direction.clone().multiplyScalar(choroidInner).add(centre);
+const outerPoint = direction.clone().multiplyScalar(choroidOuter).add(centre);
+```
+
+Las normales de la cara interna apuntan hacia el vítreo y las de la externa, hacia fuera del tejido. Cerramos también las caras que deja la sección para que las cubiertas tengan espesor visible. Todas conservan una abertura nasal respecto a la fóvea, por la que pasa el nervio: dejamos el canal abierto al construir las paredes, sin dibujar un cilindro atravesando capas intactas. Su tamaño está ampliado para facilitar la lectura.
+
+
+Más adelante, en **Dentro de la pared**, elige **Vasos de la coroides** para ver un parche desde el lado retiniano. La lámina coriocapilar queda junto al EPR y la membrana de Bruch; detrás aparecen vasos menores y mayores, correspondientes de forma esquemática a las regiones de Sattler y Haller (Nickla y Wallman, 2010). Generamos sus rutas en una superficie curva y repetimos una malla reticular para orientar la lámina capilar. No reconstruimos una red vascular medida ni su drenaje venoso.
+
+La opción **Patrón coroideo visible** deja entrever esos vasos bajo una cubierta coloreada. El aspecto teselado describe la visibilidad del patrón coroideo a través de los tejidos que lo recubren; no es el aspecto obligatorio de toda retina. Aquí cambiamos la transparencia como recurso gráfico, sin deducir pigmentación, espesor tisular ni enfermedad (Yan et al., 2015).
+
+La secuencia usa las mismas mallas que el conjunto final y va revelando sus piezas, no simula el desarrollo del ojo. El esquema ampliado permite leer sus espesores sin separarlas ni engrosarlas en el modelo 3D. Hacia delante, las cubiertas dejan de seguir simples radios concéntricos: las adelgazamos y hacemos coincidir la coroides con la unión posterior del cuerpo ciliar y la esclerótica con el limbo.
+
 
 <InteractiveViewer lang="es">
   <div slot="preview"><RetinaSurface lang="es" client:visible /></div>
@@ -106,8 +128,8 @@ El EPR ayuda a mantener esos fotorreceptores absorbiendo luz parásita, particip
 Para recorrer esta organización, la sección siguiente reúne el tejido en siete bandas: las **capas nucleares** contienen cuerpos celulares y las **plexiformes**, muchas de sus conexiones sinápticas. Agrupamos las fibras nerviosas con las células ganglionares y representamos esquemáticamente la membrana limitante externa, por lo que el dibujo orienta entre compartimentos sin reproducir el recuento convencional completo de capas.
 
 <InteractiveViewer lang="es">
-  <div slot="preview"><RetinaLayers lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.layers} lang="es" /></div>
+  <div slot="preview"><RetinaTissue lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.tissue} lang="es" /></div>
 </InteractiveViewer>
 
 Dentro de las bandas situamos conos y bastones, bipolares, ganglionares, conexiones horizontales y amacrinas, y glía de Müller. La ruta resaltada sigue conos seleccionados hasta una vía bipolar–ganglionar: en la vista plana convergen varias entradas, mientras las conexiones laterales se extienden a su alrededor. Es una organización elegida, no una unidad que se repita por toda la retina; la convergencia y las conexiones varían con la región y el tipo celular (Kolb, *Simple Anatomy of the Retina*). Las flechas distinguen la dirección de la luz de la dirección general de la señal.
@@ -138,10 +160,6 @@ cells.setMatrixAt(index, transform.matrix);
 cells.instanceMatrix.needsUpdate = true;
 ```
 
-<InteractiveViewer lang="es">
-  <div slot="preview"><RetinaMosaic lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.mosaic} lang="es" /></div>
-</InteractiveViewer>
 
 Los dos parches tienen la misma área para facilitar la comparación: el **Centro foveal** muestra una disposición más densa de conos, mientras **Parche mixto ilustrativo** mezcla conos y bastones. Al activar **Ver formas celulares**, ambos se inclinan para mostrar los conos centrales más estrechos y largos. Son ampliaciones locales separadas de la malla del ojo, con separaciones ilustrativas en lugar de un mapa de densidad medido. El parche mixto no corresponde a una excentricidad concreta: composición y separación varían por la retina.
 
@@ -154,8 +172,8 @@ Una vez separados los receptores, surge otra pregunta: ¿qué detalle pueden rec
 Para explorarla dejamos un momento la anatomía y usamos **muestras puntuales igualmente espaciadas en una dimensión**. Expresamos la frecuencia en ciclos a lo ancho del panel, no por grado de ángulo visual, de modo que con $N$ muestras el límite de Nyquist es $N/2$ ciclos por intervalo. En ese límite, la fase puede hacer desaparecer la señal de las muestras; reconstruirla sin ambigüedad requiere limitar adecuadamente su banda por debajo de él.
 
 <InteractiveViewer lang="es">
-  <div slot="preview"><RetinaSampling lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.sampling} lang="es" /></div>
+  <div slot="preview"><RetinaSignals lang="es" client:visible /></div>
+  <div slot="code"><SourceFiles files={retinaSources.signals} lang="es" /></div>
 </InteractiveViewer>
 
 Prueba con 16 muestras y aumenta las franjas por encima de 8 ciclos: en la fila inferior aparece un patrón de menor frecuencia que coincide en las posiciones muestreadas. Al añadir muestras cambia el límite, mientras **Desplazar ¼ de ciclo** mueve las franjas respecto a los receptores. Con ciertos ajustes, todas las muestras llegan a caer sobre el mismo gris.
@@ -170,12 +188,8 @@ Las células bipolares llevan señales hacia las ganglionares, mientras las hori
 
 En una organización clásica de centro ON, un punto claro central tiende a aumentar la respuesta, mientras la iluminación periférica se opone a ella. Un campo de centro OFF tiene la polaridad contraria. Los registros de Kuffler en células ganglionares de gato establecieron este antagonismo espacial (1953); es un punto de partida útil, aunque no describe todos los tipos de células ganglionares.
 
-<InteractiveViewer lang="es">
-  <div slot="preview"><RetinaReceptiveField lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.receptive} lang="es" /></div>
-</InteractiveViewer>
 
-Deja la posición en cero y compara el punto claro con el anillo: las barras ON y OFF cambian de signo. Después desplaza el punto lateralmente. El mismo estímulo puede provocar otra respuesta al iluminar distintas partes del campo. Un punto oscuro invierte el contraste, mientras la luz uniforme se cancela en este modelo deliberadamente equilibrado.
+Selecciona **Combinar las entradas** en **De la luz a la señal**. Deja la posición en cero y compara el punto claro con el anillo: las barras ON y OFF cambian de signo. Después desplaza el punto lateralmente. El mismo estímulo puede provocar otra respuesta al iluminar distintas partes del campo. Un punto oscuro invierte el contraste, mientras la luz uniforme se cancela en este modelo deliberadamente equilibrado.
 
 El cálculo resta un promedio amplio del contraste de la imagen, ponderado por una gaussiana, de otro más estrecho. Normalizamos cada conjunto de pesos para que sume uno, de modo que una entrada uniforme dé una diferencia nula. Las barras muestran **cambios de señal relativa** de polaridad opuesta, no frecuencias de disparo medidas: un valor negativo indica menos señal respecto al fondo. Las vías ON y OFF reales difieren en más cosas que el signo, y la periferia no tiene por qué compensar exactamente el centro. Este filtro espacial no incluye adaptación ni respuesta temporal.
 
@@ -183,36 +197,6 @@ Así distinguimos dos ideas: el experimento de muestreo preguntaba qué imágene
 
 El reflejo pupilar de la Parte II ofrece otro ejemplo de salida paralela: las **ipRGCs** con melanopsina responden directamente a la luz y también reciben información de conos y bastones. Por el nervio óptico viajan, por tanto, mensajes de varios tipos.
 
-## Dar a la cúpula sus cubiertas de soporte
-
-Volvamos de las células a la forma del ojo. La retina no queda suspendida como una lámina libre: por fuera del EPR está la **coroides**, vascularizada y pigmentada, y más afuera la **esclerótica**, rica en colágeno. La coroides nutre la retina externa y continúa anteriormente hacia el cuerpo ciliar; aquí la dibujaremos como una sola banda, sin separar la membrana de Bruch, la coriocapilar ni los vasos de mayor calibre (Nickla y Wallman, 2010).
-
-Partimos de la cúpula existente, le damos una superficie externa y unimos ambas en sus bordes. Para añadir la coroides reutilizamos ese límite externo como su cara interna; la esclerótica empieza, a su vez, donde termina la coroides. En la región posterior, fuera de la fosita, los espesores elegidos son 0,30, 0,40 y 0,70 mm. Son parámetros de dibujo: no espesores típicos aplicables a todo el ojo. En la fóvea cambia la cara interna de la retina, mientras el límite que representa el EPR permanece fijo.
-
-```ts
-// Shared boundaries, in mm: chosen construction dimensions.
-const rpeRadius = CUP_RADIUS + RETINAL_WALL;
-const choroidInner = rpeRadius;
-const choroidOuter = choroidInner + CHOROID_WALL;
-const scleraInner = choroidOuter;
-const scleraOuter = scleraInner + SCLERAL_WALL;
-// For each sampled unit direction from the dome:
-const innerPoint = direction.clone().multiplyScalar(choroidInner).add(centre);
-const outerPoint = direction.clone().multiplyScalar(choroidOuter).add(centre);
-```
-
-Las normales de la cara interna apuntan hacia el vítreo y las de la externa, hacia fuera del tejido. Cerramos también las caras que deja la sección para que las cubiertas tengan espesor visible. Todas conservan una abertura nasal respecto a la fóvea, por la que pasa el nervio: dejamos el canal abierto al construir las paredes, sin dibujar un cilindro atravesando capas intactas. Su tamaño está ampliado para facilitar la lectura.
-
-<InteractiveViewer lang="es">
-  <div slot="preview"><RetinaCoats lang="es" client:visible /></div>
-  <div slot="code"><SourceFiles files={retinaSources.coats} lang="es" /></div>
-</InteractiveViewer>
-
-Elige **Detalle vascular de coroides** para ver un parche desde el lado retiniano. La lámina coriocapilar queda junto al EPR y la membrana de Bruch; detrás aparecen vasos menores y mayores, correspondientes de forma esquemática a las regiones de Sattler y Haller (Nickla y Wallman, 2010). Generamos sus rutas en una superficie curva y repetimos una malla reticular para orientar la lámina capilar. No reconstruimos una red vascular medida ni su drenaje venoso.
-
-La opción **Fondo teselado ilustrativo** deja entrever esos vasos bajo una cubierta coloreada. El aspecto teselado describe la visibilidad del patrón coroideo a través de los tejidos que lo recubren; no es el aspecto obligatorio de toda retina. Aquí cambiamos la transparencia como recurso gráfico, sin deducir pigmentación, espesor tisular ni enfermedad (Yan et al., 2015).
-
-La secuencia usa las mismas mallas que el conjunto final y va revelando sus piezas, no simula el desarrollo del ojo. El esquema ampliado permite leer sus espesores sin separarlas ni engrosarlas en el modelo 3D. Hacia delante, las cubiertas dejan de seguir simples radios concéntricos: las adelgazamos y hacemos coincidir la coroides con la unión posterior del cuerpo ciliar y la esclerótica con el limbo.
 
 ## Colocar la superficie receptora detrás de la óptica
 
@@ -279,4 +263,4 @@ Continúa con la [Parte 5: Músculos extraoculares y motilidad](/es/blog/webgl-e
 
 15. **Nickla, D. L., & Wallman, J. (2010).** [*The multifunctional choroid*](https://pmc.ncbi.nlm.nih.gov/articles/PMC2913695/). Progress in Retinal and Eye Research, 29, 144–168.
 
-16. **Yan, Y. N., et al. (2015).** [*Fundus Tessellation: Prevalence and Associated Factors: The Beijing Eye Study 2011*](https://doi.org/10.1016/j.ophtha.2015.05.031). Ophthalmology, 122, 1873–1880.
+16. **Yan, Y. N., et al. (2015).** [*Fundus Tessellation: Prevalence and Associated Factors: The Beijing Eye Study 2011*](https://doi.org/10.1016/j.ophtha.2015.05.031). Ophthalmology, 122, 1873–1880.La superficie externa tiene un tono marfil suave y vasos superficiales sobre la parte anterior del blanco del ojo. Representan de forma ilustrativa la vasculatura conjuntival y epiescleral, separada de los vasos retinianos interiores; se recortan con la sección (Watson y Young, 2004).

@@ -2,21 +2,22 @@ import { lensSources } from "../lens/lensSources";
 import { simulationSources } from "../simulationSources";
 import choroid from "./choroidPatch.ts?raw";
 import profile from "./globeProfile.ts?raw";
+import ocularSurface from "./ocularSurface.ts?raw";
 import posterior from "./posteriorEye.ts?raw";
 import assembly from "./RetinaAssembly.tsx?raw";
-import coats from "./RetinaCoats.tsx?raw";
-import cup from "./RetinaCup.tsx?raw";
 import layers from "./RetinaLayers.tsx?raw";
 import cells from "./RetinalCells.tsx?raw";
 import focusInset from "./RetinalFocusInset.tsx?raw";
 import mosaic from "./RetinaMosaic.tsx?raw";
 import receptive from "./RetinaReceptiveField.tsx?raw";
 import sampling from "./RetinaSampling.tsx?raw";
+import signals from "./RetinaSignals.tsx?raw";
 import surface from "./RetinaSurface.tsx?raw";
+import tissue from "./RetinaTissue.tsx?raw";
 import fieldModel from "./receptiveField.ts?raw";
 import css from "./retina.css?raw";
 import anatomy from "./retinaAnatomy.ts?raw";
-import geometry from "./retinaGeometry.ts?raw";
+
 import focus from "./retinalFocus.ts?raw";
 import model from "./retinaModel.ts?raw";
 
@@ -43,16 +44,11 @@ const common3D = lensSources.assembly.filter((f) =>
 	].includes(f.path),
 );
 const styles = common3D.filter((f) => f.lang === "css");
-export const retinaSources = {
-	cup: [
-		file("RetinaCup.tsx", cup),
-		file("retinaGeometry.ts", geometry),
-		...shared,
-		...common3D,
-	],
+const baseSources = {
 	surface: [
 		file("RetinaSurface.tsx", surface),
 		file("posteriorEye.ts", posterior),
+		file("ocularSurface.ts", ocularSurface),
 		file("globeProfile.ts", profile),
 		file("retinaAnatomy.ts", anatomy),
 		...shared,
@@ -76,27 +72,12 @@ export const retinaSources = {
 		...shared,
 		...styles,
 	],
-	coats: [
-		file("RetinaCoats.tsx", coats),
-		file("choroidPatch.ts", choroid),
-		file("posteriorEye.ts", posterior),
-		file("globeProfile.ts", profile),
-		file("retinaAnatomy.ts", anatomy),
-		...shared,
-		...common3D,
-		...lensSources.assembly.filter((f) =>
-			[
-				"eye/cornea/conic.ts",
-				"eye/lens/anteriorSegmentProfile.ts",
-				"eye/lens/lensConstruction.ts",
-			].includes(f.path),
-		),
-	],
 	assembly: [
 		file("RetinaAssembly.tsx", assembly),
 		file("retinalFocus.ts", focus),
 		file("RetinalFocusInset.tsx", focusInset),
 		file("posteriorEye.ts", posterior),
+		file("ocularSurface.ts", ocularSurface),
 		file("globeProfile.ts", profile),
 		file("retinaAnatomy.ts", anatomy),
 		...shared,
@@ -110,4 +91,25 @@ export const retinaSources = {
 				].includes(f.path),
 		),
 	],
+};
+
+const unique = (
+	files: { path: string; code: string; lang: "ts" | "tsx" | "css" }[],
+) => files.filter((f, i, a) => a.findIndex((g) => g.path === f.path) === i);
+export const tissueSources = unique([
+	file("RetinaTissue.tsx", tissue),
+	file("choroidPatch.ts", choroid),
+	...baseSources.layers,
+	...baseSources.mosaic,
+]);
+export const signalSources = unique([
+	file("RetinaSignals.tsx", signals),
+	...baseSources.sampling,
+	...baseSources.receptive,
+]);
+
+export const retinaSources = {
+	...baseSources,
+	tissue: tissueSources,
+	signals: signalSources,
 };
