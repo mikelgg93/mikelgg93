@@ -5,3 +5,6 @@
 .motility-demo .lens-controls { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .motility-demo .lens-note { grid-column: 1 / -1; }
 @media (max-width:500px) { .motility-demo .lens-scene { height: 430px; } .motility-demo .lens-controls { grid-template-columns:1fr; } }
+.motility-measurements {padding: 12px 16px;display:grid;gap:8px;font-size:12px;color:var(--muted-foreground)}
+.motility-measurements output {font-variant-numeric:tabular-nums;color:var(--foreground)}
+.motility-forces {display:flex;flex-wrap:wrap;gap:6px 16px;font-variant-numeric:tabular-nums}

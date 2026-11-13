@@ -9,6 +9,7 @@ import { createCiliaryApparatus } from "../lens/ciliaryApparatus";
 import { createPosteriorEye } from "../retina/posteriorEye";
 import { CUP_CENTRE_Z } from "../retina/retinaModel";
 import { type MuscleId, muscles } from "./motilityModel";
+import { anatomy, musclePath } from "./orbitalMechanics";
 
 const centre = new THREE.Vector3(0, 0, CUP_CENTRE_Z);
 export function createMotilityEye() {
@@ -60,14 +61,8 @@ export const MUSCLE_SECTORS = 32;
 const rows = MUSCLE_SEGMENTS + 1,
 	columns = MUSCLE_SECTORS + 1;
 const capStart = rows * columns;
-export const TROCHLEA = new THREE.Vector3(10.8, 10.2, 3.8);
-const inferiorOrigin = new THREE.Vector3(10.5, -10.5, 3.6);
-const recti: Partial<Record<MuscleId, { x: number; y: number; z: number }>> = {
-	MR: { x: 1, y: 0, z: -0.8 },
-	LR: { x: -1, y: 0, z: -2.2 },
-	SR: { x: 0, y: 1, z: -2.8 },
-	IR: { x: 0, y: -1, z: -1.8 },
-};
+export const TROCHLEA = anatomy.SO.guide.clone().add(centre);
+const inferiorOrigin = anatomy.IO.origin.clone().add(centre);
 // Appearance dimensions in mm. These distinct profiles are not patient measurements.
 const profiles: Record<
 	MuscleId,
@@ -84,8 +79,8 @@ const smooth = (x: number) => {
 	const t = THREE.MathUtils.clamp(x, 0, 1);
 	return t * t * (3 - 2 * t);
 };
-export function muscleProfile(id: MuscleId, t: number) {
-	const p = profiles[id],
+function muscleProfile(id: MuscleId, t: number, length: number) {
+	const p = { ...profiles[id], tendon: 1 - anatomy[id].tendonLength / length },
 		f = smooth((t - p.tendon) / Math.max(0.01, 1 - p.tendon));
 	const belly =
 		Math.sin(Math.PI * THREE.MathUtils.clamp(t / (p.tendon + 0.12), 0, 1)) **
@@ -96,7 +91,9 @@ export function muscleProfile(id: MuscleId, t: number) {
 		const taper = smooth((t - p.tendon + 0.1) / 0.1);
 		width = THREE.MathUtils.lerp(width, 0.7, taper);
 		thickness = THREE.MathUtils.lerp(thickness, 0.11, taper);
-		if (t >= 0.5) width = 0.7 + (p.fan - 0.7) * smooth((t - 0.5) / 0.5);
+		const reflection = anatomy.SO.origin.distanceTo(anatomy.SO.guide) / length;
+		if (t >= reflection)
+			width = 0.7 + (p.fan - 0.7) * smooth((t - reflection) / (1 - reflection));
 	} else if (t >= p.tendon) {
 		const startBelly =
 			Math.sin((Math.PI * p.tendon) / (p.tendon + 0.12)) ** 0.7;
@@ -114,14 +111,7 @@ export function muscleProfile(id: MuscleId, t: number) {
 	return { width, thickness, tendon: smooth((t - p.tendon + 0.025) / 0.075) };
 }
 export function insertion(id: MuscleId) {
-	const s = recti[id];
-	if (s) {
-		const r = scleralWallRadius(s.z, true);
-		return new THREE.Vector3(s.x * r, s.y * r, s.z);
-	}
-	const z = -11.2,
-		r = Math.sqrt(12.2 ** 2 - (z - CUP_CENTRE_Z) ** 2) / Math.sqrt(2);
-	return new THREE.Vector3(-r, id === "SO" ? r : -r, z);
+	return anatomy[id].insertion.clone().add(centre);
 }
 function geometry() {
 	const g = new THREE.BufferGeometry();
@@ -187,10 +177,14 @@ function tissueMaterial() {
 export function createExtraocularMuscles() {
 	const group = new THREE.Group();
 	const originRing = new THREE.Mesh(
-		new THREE.TorusGeometry(1.8, 0.25, 10, 36),
+		new THREE.TorusGeometry(2.5, 0.25, 10, 36),
 		new THREE.MeshStandardMaterial({ color: 0xc9bea9, roughness: 0.95 }),
 	);
-	originRing.position.set(0, 0, -36);
+	originRing.position.set(15.5, 0.6, -31.7).add(centre);
+	originRing.quaternion.setFromUnitVectors(
+		new THREE.Vector3(0, 0, 1),
+		new THREE.Vector3(-15.5, -0.6, 31.7).normalize(),
+	);
 	group.add(originRing);
 	const floor = new THREE.Mesh(
 		new THREE.CircleGeometry(1.5, 24),
@@ -250,56 +244,28 @@ export function createExtraocularMuscles() {
 		inverse.copy(q).invert();
 		for (const part of parts) {
 			const id = part.id,
-				s = recti[id],
 				end = insertion(id).sub(centre).applyQuaternion(q).add(centre);
-			const controls = s
-				? [
-						new THREE.Vector3(s.x * 1.5, s.y * 1.5, -36),
-						new THREE.Vector3(s.x * 8.2, s.y * 8.2, -25),
-						new THREE.Vector3(s.x * 14, s.y * 14, CUP_CENTRE_Z),
-						end,
-					]
-				: [
-						inferiorOrigin.clone(),
-						new THREE.Vector3(2, -14, -3.5),
-						new THREE.Vector3(-7.8, -11.5, -9),
-						end,
-					];
-			const route = new THREE.CatmullRomCurve3(controls);
-			const before =
-				id === "SO"
-					? new THREE.CatmullRomCurve3([
-							new THREE.Vector3(2.2, 3.2, -36),
-							new THREE.Vector3(4, 8, -15),
-							new THREE.Vector3(8.5, 11, -3),
-							TROCHLEA.clone(),
-						])
-					: null;
-			const after =
-				id === "SO"
-					? new THREE.CatmullRomCurve3([
-							TROCHLEA.clone(),
-							new THREE.Vector3(3.5, 12.9, -3.5),
-							new THREE.Vector3(-3.5, 12.5, -8),
-							end,
-						])
-					: null;
+			const mechanical = musclePath(id, q);
+			const path = mechanical.points.map((p) => p.clone().add(centre));
+			const route = new THREE.CurvePath<THREE.Vector3>();
+			for (let k = 1; k < path.length; k++)
+				if (path[k]!.distanceToSquared(path[k - 1]!) > 1e-12)
+					route.add(new THREE.LineCurve3(path[k - 1]!, path[k]!));
 			for (let i = 0; i < rows; i++) {
 				const t = i / MUSCLE_SEGMENTS;
-				if (before && after) {
-					(t <= 0.5 ? before : after).getPoint(
-						t <= 0.5 ? t * 2 : (t - 0.5) * 2,
-						points[i]!,
-					);
-				} else route.getPoint(t, points[i]!);
+				points[i]!.copy(route.getPoint(t));
 				if (i > 0 && i < MUSCLE_SEGMENTS)
-					clear(points[i]!, q, muscleProfile(id, t).thickness + 0.08);
+					clear(
+						points[i]!,
+						q,
+						muscleProfile(id, t, mechanical.length).thickness + 0.08,
+					);
 			}
 			const p = part.mesh.geometry.getAttribute("position"),
 				c = part.mesh.geometry.getAttribute("color");
 			for (let i = 0; i < rows; i++) {
 				const t = i / MUSCLE_SEGMENTS,
-					shape = muscleProfile(id, t),
+					shape = muscleProfile(id, t, mechanical.length),
 					point = points[i]!;
 				tangent
 					.copy(points[Math.min(i + 1, MUSCLE_SEGMENTS)]!)
@@ -307,9 +273,7 @@ export function createExtraocularMuscles() {
 					.normalize();
 				out.copy(point).sub(centre).addScaledVector(tangent, -out.dot(tangent));
 				if (out.lengthSq() < 1e-8) {
-					out
-						.set(s?.x ?? 1, s?.y ?? 0, 0)
-						.addScaledVector(tangent, -out.dot(tangent));
+					out.set(1, 0, 0).addScaledVector(tangent, -out.dot(tangent));
 				}
 				out.normalize();
 				widthAxis.crossVectors(out, tangent).normalize();

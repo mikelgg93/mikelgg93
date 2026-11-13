@@ -78,12 +78,3 @@ export function gazePose(horizontal: number, vertical: number) {
 	);
 	return new THREE.Quaternion().setFromUnitVectors(forward, direction);
 }
-export function animatedGaze(seconds: number) {
-	const t = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
-	const index = Math.floor(t / 3) % gazeTargets.length;
-	const a = gazeTargets[index]!,
-		b = gazeTargets[(index + 1) % gazeTargets.length]!;
-	const f = THREE.MathUtils.clamp(((t % 3) - 1.6) / 1.4, 0, 1),
-		s = f * f * (3 - 2 * f);
-	return { h: a.h + (b.h - a.h) * s, v: a.v + (b.v - a.v) * s, index };
-}

@@ -9,13 +9,34 @@ import {
 	createExtraocularMuscles,
 	createMotilityEye,
 } from "./motilityGeometry";
+import { gazePose, gazeTargets, type MuscleId, muscles } from "./motilityModel";
 import {
-	animatedGaze,
-	gazePose,
-	gazeTargets,
-	type MuscleId,
-	muscles,
-} from "./motilityModel";
+	advance,
+	type Condition,
+	equilibrium,
+	mechanicalState,
+	orientation,
+	recruitment,
+} from "./orbitalMechanics";
+
+const conditions = [
+	["baseline", "Baseline", "Referencia"],
+	[
+		"lr-weakness",
+		"Right lateral rectus weakness",
+		"Debilidad del recto lateral derecho",
+	],
+	[
+		"so-weakness",
+		"Right superior oblique weakness",
+		"Debilidad del oblicuo superior derecho",
+	],
+	[
+		"ir-restriction",
+		"Right inferior rectus restriction",
+		"Restricción del recto inferior derecho",
+	],
+] as const;
 export default function ExtraocularDemo({
 	lang = "en",
 	motion = false,
@@ -24,98 +45,179 @@ export default function ExtraocularDemo({
 	motion?: boolean;
 }) {
 	const es = lang === "es",
-		mount = useRef<HTMLDivElement>(null),
-		cue = useRef<HTMLDivElement>(null);
+		mount = useRef<HTMLDivElement>(null);
+	const [measurements, setMeasurements] = useState<{
+		summary: string;
+		forces: Record<MuscleId, number>;
+	} | null>(null);
 	const viewRef = useRef<ReturnType<typeof createLensScene> | null>(null);
 	const [selected, setSelected] = useState<MuscleId | "all">("all"),
-		[pose, setPose] = useState("auto"),
-		[paused, setPaused] = useState(false),
+		[target, setTarget] = useState("0"),
+		[condition, setCondition] = useState<Condition>("baseline"),
 		[error, setError] = useState(false);
-	const params = useRef({ selected, pose, paused });
+	const params = useRef({ selected, target, condition });
 	useEffect(() => {
-		params.current = { selected, pose, paused };
+		params.current = { selected, target, condition };
 		viewRef.current?.invalidate();
-	}, [selected, pose, paused]);
+	}, [selected, target, condition]);
 	useEffect(() => {
 		if (!mount.current) return;
 		let view: ReturnType<typeof createLensScene>;
 		try {
-			view = createLensScene(mount.current, 76, lang);
+			view = createLensScene(mount.current, motion ? 115 : 88, lang);
 		} catch {
 			setError(true);
 			return;
 		}
 		viewRef.current = view;
+		view.camera.far = 400;
+		view.camera.updateProjectionMatrix();
+		view.camera.position.set(
+			motion ? 0 : 54,
+			motion ? 8 : 28,
+			motion ? 112 : -8,
+		);
+		view.controls.target.set(0, 0, -14);
 		view.scene.traverse((o) => {
 			if (o instanceof THREE.Light) o.intensity *= 0.65;
 		});
-		view.camera.position.set(
-			motion ? 20 : 42,
-			motion ? 15 : 26,
-			motion ? 65 : -18,
-		);
-		view.controls.target.set(0, 0, -12);
-		const pivot = new THREE.Group();
-		pivot.position.z = CUP_CENTRE_Z;
-		pivot.add(createMotilityEye());
-		view.scene.add(pivot);
-		const apparatus = createExtraocularMuscles();
-		view.scene.add(apparatus.group);
-		let elapsed = 0,
+		const eyes = Array.from({ length: motion ? 2 : 1 }, (_, i) => {
+			const orbit = new THREE.Group();
+			orbit.position.x = motion ? (i === 0 ? -32 : 32) : 0;
+			if (i === 1) orbit.scale.x = -1;
+			const pivot = new THREE.Group();
+			pivot.position.z = CUP_CENTRE_Z;
+			pivot.add(createMotilityEye());
+			orbit.add(pivot);
+			const apparatus = createExtraocularMuscles();
+			orbit.add(apparatus.group);
+			view.scene.add(orbit);
+			return {
+				pivot,
+				apparatus,
+				goal: new THREE.Quaternion(),
+				dynamics: mechanicalState(
+					new THREE.Quaternion(),
+					recruitment(new THREE.Quaternion()).activation,
+				),
+				command: recruitment(new THREE.Quaternion()).activation,
+				previous: new THREE.Quaternion(0, 0, 0, 0),
+			};
+		});
+		let key = "",
+			report: object = {},
 			lastMuscle: MuscleId | "all" | null = null;
-		const previous = new THREE.Quaternion(0, 0, 0, 0);
 		view.onReset(() => {
-			elapsed = 0;
-			params.current = { selected: "all", pose: "auto", paused: false };
 			setSelected("all");
-			setPose("auto");
-			setPaused(false);
+			setTarget("0");
+			setCondition("baseline");
+			params.current = { selected: "all", target: "0", condition: "baseline" };
+			key = "";
 		});
 		view.start((dt, reduced) => {
-			const p = params.current;
-			const fov = view.camera.aspect < 1.2 ? 48 : 35;
-			if (fov !== view.camera.fov) {
+			const p = params.current,
+				newKey = `${p.target}/${p.condition}`;
+			const fov = view.camera.aspect < 1.2 ? 52 : 35;
+			if (view.camera.fov !== fov) {
 				view.camera.fov = fov;
 				view.camera.updateProjectionMatrix();
 			}
-			const animated = motion && p.pose === "auto" && !reduced;
-			if (animated && !p.paused) elapsed += dt;
-			const staticIndex = Number.isFinite(Number(p.pose))
-				? Math.max(
-						0,
-						Math.min(gazeTargets.length - 1, Math.round(Number(p.pose))),
-					)
-				: 0;
-			const gaze = animated
-				? animatedGaze(elapsed)
-				: { ...gazeTargets[staticIndex]!, index: staticIndex };
-			const q = gazePose(motion ? gaze.h : 0, motion ? gaze.v : 0);
-			pivot.quaternion.copy(q);
-			if (Math.abs(previous.dot(q)) < 1 - 1e-10 || lastMuscle !== p.selected) {
-				apparatus.update(q, p.selected);
-				previous.copy(q);
-				lastMuscle = p.selected;
-			}
-			if (cue.current) {
-				const dot = cue.current.querySelector("circle");
-				dot?.setAttribute("cx", String(30 + gaze.h));
-				dot?.setAttribute("cy", String(30 - gaze.v));
-				const text = cue.current.querySelector("output");
-				if (text)
-					text.textContent = `H ${gaze.h.toFixed(1)}° · V ${gaze.v.toFixed(1)}°`;
-			}
-			return {
-				animating: animated && !p.paused,
-				state: {
+			if (newKey !== key) {
+				key = newKey;
+				const gaze = gazeTargets[Number(p.target)] ?? gazeTargets[0];
+				const targetQ = gazePose(motion ? gaze.h : 0, motion ? gaze.v : 0),
+					rightCommand = recruitment(targetQ);
+				const right = equilibrium(
+					rightCommand.activation,
+					motion ? p.condition : "baseline",
+					targetQ,
+				);
+				const leftTarget = gazePose(-gaze.h, gaze.v),
+					leftCommand = recruitment(leftTarget),
+					left = equilibrium(leftCommand.activation, "baseline", leftTarget);
+				const valid =
+					right.converged &&
+					left.converged &&
+					rightCommand.residual < 1e-7 &&
+					leftCommand.residual < 1e-7;
+				if (valid) {
+					eyes[0]!.goal.copy(right.q);
+					eyes[0]!.command = rightCommand.activation;
+					if (eyes[1]) eyes[1].command = leftCommand.activation;
+					eyes[1]?.goal.copy(left.q);
+				}
+				const angles = orientation(right.q),
+					desired = orientation(targetQ);
+				report = {
 					model:
-						"Head-fixed kinematic eye; orbital anchors and muscle dimensions schematic; no force solver",
-					horizontalDeg: motion ? gaze.h : 0,
-					verticalDeg: motion ? gaze.v : 0,
-					quaternion: q.toArray(),
+						"Binocular muscle-force equilibrium and dynamics; fixed pulleys; unvalidated saccade timing",
+					condition: p.condition,
+					targetDeg: { h: gaze.h, v: gaze.v },
+					right: {
+						...angles,
+						activation: rightCommand.activation,
+						forces: right.forces,
+						residualNm: right.torque.length(),
+						converged: right.converged,
+					},
+					left: {
+						...orientation(left.q),
+						residualNm: left.torque.length(),
+						converged: left.converged,
+					},
+					controllerResidualNm: rightCommand.residual,
+					interocularDistanceMm: 64,
+				};
+				if (motion)
+					setMeasurements({
+						summary: valid
+							? `H ${(angles.horizontal - desired.horizontal).toFixed(1)}° · V ${(angles.vertical - desired.vertical).toFixed(1)}° · ${es ? "Torsión" : "Torsion"} ${(angles.torsion - desired.torsion).toFixed(1)}°`
+							: es
+								? "No se encontró un equilibrio fiable."
+								: "No reliable equilibrium found.",
+						forces: Object.fromEntries(
+							muscles.map((m) => [m.id, right.forces[m.id].total]),
+						) as Record<MuscleId, number>,
+					});
+			}
+			let animating = false;
+			for (const [index, eye] of eyes.entries()) {
+				if (reduced || !motion) {
+					eye.dynamics = mechanicalState(eye.goal, eye.command);
+				} else
+					advance(
+						eye.dynamics,
+						eye.command,
+						index === 0 ? p.condition : "baseline",
+						dt,
+					);
+				eye.pivot.quaternion.copy(eye.dynamics.q);
+				if (
+					eye.pivot.quaternion.angleTo(eye.goal) > 1e-4 ||
+					eye.dynamics.omega.length() > 1e-4
+				)
+					animating = true;
+				if (
+					Math.abs(eye.previous.dot(eye.pivot.quaternion)) < 1 - 1e-10 ||
+					p.selected !== lastMuscle
+				) {
+					eye.apparatus.update(eye.pivot.quaternion, p.selected);
+					eye.previous.copy(eye.pivot.quaternion);
+				}
+			}
+			lastMuscle = p.selected;
+			return {
+				animating,
+				state: {
+					...report,
+					currentEyes: eyes.map((e) => ({
+						...orientation(e.dynamics.q),
+						angularVelocityRadS: e.dynamics.omega.toArray(),
+					})),
 					selectedMuscle: p.selected,
-					mode: p.pose,
-					orbitAnchors: "fixed",
-					relaxedAnteriorSegment: true,
+					displayTransition: animating
+						? "Integrating muscle torque, inertia and damping"
+						: "Settled",
 				},
 			};
 		});
@@ -131,14 +233,20 @@ export default function ExtraocularDemo({
 				<strong>
 					{motion
 						? es
-							? "Orientar el ojo"
-							: "Orient the eye"
+							? "Equilibrio entre los músculos"
+							: "Balance between muscles"
 						: es
 							? "Seis músculos alrededor del globo"
 							: "Six muscles around the globe"}
 				</strong>
 				<span className="lens-muted">
-					{es ? "Ojo derecho esquemático" : "Schematic right eye"}
+					{motion
+						? es
+							? "Dos ojos · fijación lejana"
+							: "Two eyes · distance fixation"
+						: es
+							? "Ojo derecho"
+							: "Right eye"}
 				</span>
 			</div>
 			<div
@@ -147,8 +255,8 @@ export default function ExtraocularDemo({
 				role="img"
 				aria-label={
 					es
-						? "Globo ocular con cuatro rectos, dos oblicuos y tróclea"
-						: "Eyeball with four recti, two obliques and a trochlea"
+						? "Músculos extraoculares e inserciones"
+						: "Extraocular muscles and attachments"
 				}
 			>
 				{error && (
@@ -156,68 +264,94 @@ export default function ExtraocularDemo({
 						{es ? "WebGL no está disponible." : "WebGL is unavailable."}
 					</p>
 				)}
-				{motion && (
-					<div ref={cue} className="motility-target">
-						<svg viewBox="0 0 60 60" aria-hidden="true">
-							<path d="M5 30H55M30 5V55" stroke="currentColor" opacity="0.4" />
-							<circle cx="30" cy="30" r="3" fill="currentColor" />
-						</svg>
-						<output>H 0° · V 0°</output>
-						<span>{es ? "Objetivo prescrito" : "Prescribed target"}</span>
-					</div>
-				)}
 			</div>
-			<p className="retina-reading">
-				{muscle
-					? `${es ? muscle.es : muscle.en} · ${es ? muscle.actionEs : muscle.action} · ${es ? "Nervio" : "CN"} ${muscle.nerve}`
-					: es
-						? "Gira la vista para seguir los rectos hacia atrás. El oblicuo superior cambia de dirección en la tróclea; el inferior nace delante, en el suelo orbitario."
-						: "Orbit the view to follow the recti backwards. The superior oblique turns at the trochlea; the inferior oblique starts anteriorly on the orbital floor."}
-			</p>
-			<div className="lens-controls">
-				<label>
-					{es ? "Músculo" : "Muscle"}
-					<select
-						value={selected}
-						onChange={(e) => setSelected(e.target.value as MuscleId | "all")}
-					>
-						<option value="all">{es ? "Todos" : "All"}</option>
+			{motion ? (
+				<div className="motility-measurements">
+					<span>
+						{es
+							? "Desviación de equilibrio del ojo derecho respecto a la fijación"
+							: "Right-eye equilibrium deviation from fixation"}
+					</span>
+					<output aria-live="polite">{measurements?.summary}</output>
+					<div className="motility-forces">
 						{muscles.map((m) => (
-							<option key={m.id} value={m.id}>
-								{es ? m.es : m.en}
-							</option>
+							<span key={m.id} data-force={m.id}>
+								{measurements
+									? `${m.id} ${measurements.forces[m.id].toFixed(3)} N`
+									: ""}
+							</span>
 						))}
-					</select>
-				</label>
-				{motion && (
+					</div>
+				</div>
+			) : (
+				<p className="retina-reading">
+					{muscle
+						? `${es ? muscle.es : muscle.en} · ${es ? muscle.actionEs : muscle.action} · CN ${muscle.nerve}`
+						: es
+							? "Gira la vista: el vértice orbitario queda hacia el lado nasal; la tróclea y el origen del oblicuo inferior están delante."
+							: "Orbit the view: the orbital apex lies nasally; the trochlea and inferior-oblique origin lie anteriorly."}
+				</p>
+			)}
+			<div className="lens-controls">
+				{motion ? (
+					<>
+						<label>
+							{es ? "Mirada" : "Gaze"}
+							<select
+								value={target}
+								onChange={(e) => setTarget(e.target.value)}
+							>
+								{gazeTargets.map((g, i) => (
+									<option key={g.en} value={i}>
+										{i === 0
+											? es
+												? "Posición primaria"
+												: "Primary position"
+											: es
+												? g.es
+												: g.en}
+									</option>
+								))}
+							</select>
+						</label>
+						<label>
+							{es ? "Condición del modelo" : "Model condition"}
+							<select
+								value={condition}
+								onChange={(e) => setCondition(e.target.value as Condition)}
+							>
+								{conditions.map((c) => (
+									<option key={c[0]} value={c[0]}>
+										{es ? c[2] : c[1]}
+									</option>
+								))}
+							</select>
+						</label>
+					</>
+				) : (
 					<label>
-						{es ? "Mirada" : "Gaze"}
-						<select value={pose} onChange={(e) => setPose(e.target.value)}>
-							<option value="auto">
-								{es ? "Secuencia automática" : "Automatic sequence"}
-							</option>
-							{gazeTargets.map((g, i) => (
-								<option key={g.en} value={i}>
-									{es ? g.es : g.en}
+						{es ? "Músculo" : "Muscle"}
+						<select
+							value={selected}
+							onChange={(e) => setSelected(e.target.value as MuscleId | "all")}
+						>
+							<option value="all">{es ? "Todos" : "All"}</option>
+							{muscles.map((m) => (
+								<option key={m.id} value={m.id}>
+									{es ? m.es : m.en}
 								</option>
 							))}
 						</select>
 					</label>
 				)}
-				{motion && pose === "auto" && (
-					<button
-						type="button"
-						className="lens-motion-pause"
-						aria-pressed={paused}
-						onClick={() => setPaused(!paused)}
-					>
-						{paused ? (es ? "Continuar" : "Resume") : es ? "Pausar" : "Pause"}
-					</button>
-				)}
 				<p className="lens-note">
-					{es
-						? "Inserciones y guías orbitales elegidas para el dibujo. Las rutas se adaptan a una rotación prescrita; no calculan activación, fuerza ni resultados quirúrgicos."
-						: "Insertion and orbital-guide positions are drawing choices. Paths follow a prescribed rotation; they do not calculate activation, force or surgical outcomes."}
+					{motion
+						? es
+							? "Movimiento entre equilibrios impulsado por fuerzas. Debilidad: 25 % de fuerza activa. Restricción: resistencia pasiva ×4. Valores elegidos para explorar el modelo, no predicciones clínicas."
+							: "Force-driven motion between equilibria. Weakness: 25% active force. Restriction: passive resistance ×4. Chosen model perturbations, not clinical predictions."
+						: es
+							? "Coordenadas de referencia UPAT adaptadas a nuestro globo; poleas fijas y contornos musculares ilustrativos."
+							: "UPAT reference coordinates adapted to our globe; fixed pulleys and illustrative muscle contours."}
 				</p>
 			</div>
 		</div>

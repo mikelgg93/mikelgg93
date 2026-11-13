@@ -5,12 +5,8 @@ import {
 	createExtraocularMuscles,
 	createMotilityEye,
 	insertion,
-	MUSCLE_SECTORS,
-	MUSCLE_SEGMENTS,
-	TROCHLEA,
 } from "../src/components/eye/motility/motilityGeometry";
 import {
-	animatedGaze,
 	gazePose,
 	muscles,
 } from "../src/components/eye/motility/motilityModel";
@@ -40,18 +36,9 @@ test("gaze poses align the forward axis and use unit rotations in the primary pl
 	for (const value of [NaN, Infinity, -999, 999])
 		expect(gazePose(value, value).toArray().every(Number.isFinite)).toBe(true);
 });
-test("the prescribed sequence remains continuous around cycle boundaries", () => {
-	for (let i = 1; i <= 18; i++) {
-		const a = animatedGaze(i * 3 - 1e-6),
-			b = animatedGaze(i * 3 + 1e-6);
-		expect(Math.hypot(a.h - b.h, a.v - b.v)).toBeLessThan(1e-4);
-	}
-	expect(animatedGaze(NaN).h).toBe(0);
-});
 test("six distinct muscles retain finite buffers and their insertions follow the globe", () => {
 	expect(insertion("MR").z).toBeGreaterThan(insertion("IR").z);
 	expect(insertion("IR").z).toBeGreaterThan(insertion("LR").z);
-	expect(insertion("LR").z).toBeGreaterThan(insertion("SR").z);
 	const apparatus = createExtraocularMuscles(),
 		geometries = new Set<THREE.BufferGeometry>();
 	let disposals = 0;
@@ -64,19 +51,12 @@ test("six distinct muscles retain finite buffers and their insertions follow the
 	const bodies = apparatus.group.children.filter(
 		(o) => o instanceof THREE.Mesh && o.geometry.getAttribute("color"),
 	) as THREE.Mesh[];
-	const ringCentre = (mesh: THREE.Mesh, ring: number) => {
-		const positions = mesh.geometry.getAttribute("position"),
-			result = new THREE.Vector3();
-		for (let j = 0; j < MUSCLE_SECTORS; j++)
-			result.add(
-				new THREE.Vector3().fromBufferAttribute(
-					positions,
-					ring * (MUSCLE_SECTORS + 1) + j,
-				),
-			);
-		return result.divideScalar(MUSCLE_SECTORS);
-	};
-	const origins = bodies.map((mesh) => ringCentre(mesh, 0));
+	const origins = bodies.map((mesh) =>
+		new THREE.Vector3().fromBufferAttribute(
+			mesh.geometry.getAttribute("position"),
+			mesh.geometry.getAttribute("position").count - 2,
+		),
+	);
 	expect(bodies.length).toBe(6);
 	expect(new Set(muscles.map((m) => m.id)).size).toBe(6);
 	const centre = new THREE.Vector3(0, 0, CUP_CENTRE_Z);
@@ -91,13 +71,14 @@ test("six distinct muscles retain finite buffers and their insertions follow the
 		apparatus.update(q, "SO");
 		bodies.forEach((mesh, index) => {
 			expect(geometries.has(mesh.geometry)).toBe(true);
-			expect(ringCentre(mesh, 0).distanceTo(origins[index]!)).toBeLessThan(
-				2e-6,
-			);
-			if (muscles[index]!.id === "SO")
-				expect(
-					ringCentre(mesh, MUSCLE_SEGMENTS / 2).distanceTo(TROCHLEA),
-				).toBeLessThan(2e-6);
+			expect(
+				new THREE.Vector3()
+					.fromBufferAttribute(
+						mesh.geometry.getAttribute("position"),
+						mesh.geometry.getAttribute("position").count - 2,
+					)
+					.distanceTo(origins[index]!),
+			).toBeLessThan(2e-6);
 			const p = mesh.geometry.getAttribute("position"),
 				average = new THREE.Vector3();
 			for (const number of p.array) expect(Number.isFinite(number)).toBe(true);

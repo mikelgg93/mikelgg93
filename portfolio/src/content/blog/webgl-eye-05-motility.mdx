@@ -37,7 +37,7 @@ For this schematic **right eye**, positive x points nasally, towards the nose, p
 
 Six muscles rotate the globe: **medial, lateral, superior and inferior rectus**, plus **superior and inferior oblique**. The levator palpebrae superioris is another extraocular muscle, but it raises the eyelid, so it is outside this globe-rotation model (StatPearls, *Eye Extraocular Muscles*).
 
-The recti run forwards from the posterior orbit and attach to the anterior sclera, before the equator. We sketch their posterior origins around a common tendinous ring. Their insertions are staggered around the limbus, with the medial rectus closest and the superior rectus furthest away, rather than forming one level ring. The drawing approximates this arrangement; its coordinates are not measured surgical distances. Their names identify which side of the globe they approach, not six independent rotation axes.
+The recti run forwards from the orbital apex to the anterior sclera. That apex lies nasally relative to the gaze axis: centring it behind the pupil would give the muscles the wrong pulling directions. We use coordinates from Filip et al.'s **UPAT v4** model, transformed into our axes. Insertion directions are preserved and projected onto the globe built in the earlier chapters. These are equivalent points of force application from a reference model; the visible tendon fans are not measured surgical footprints.
 
 The obliques need different paths. The superior oblique travels towards a superomedial **trochlea**, where its tendon changes direction before reaching the superior globe behind the equator. The inferior oblique starts anteriorly on the medial orbital floor and passes beneath the globe towards its posterolateral attachment. Giving all six muscles the same posterior origin would miss this distinction.
 
@@ -50,15 +50,11 @@ Choose a muscle to highlight its route, then orbit the view to follow it backwar
 
 ## Give each route a belly and an insertion
 
-A straight cylinder is convenient, but it would pass through the globe and give every muscle an identical shape. We instead sample a curve through an origin, intermediate guides and an insertion on the sclera:
+A straight cylinder would pass through the globe. The mechanical path joins origin to pulley, then follows a tangent and an arc over a frictionless spherical envelope wherever it needs to wrap around the eye. Length and pulling direction come from that same path:
 
 ```ts
-const route = new THREE.CatmullRomCurve3([
-  orbitalOrigin,
-  posteriorGuide,
-  orbitalGuide,
-  insertionOnGlobe,
-]);
+const path = musclePath(id, eyeRotation);
+const torque = path.moment.clone().multiplyScalar(tensionN);
 ```
 
 Around the curve, we draw elliptical sections with a different profile for each muscle. The recti have fuller, flattened bellies that continue into broad scleral tendons. The superior oblique narrows before the trochlea and spreads into a thin tendon after reflection; the inferior oblique retains a shorter fleshy arc beneath the globe. Subtle longitudinal striation suggests fibre direction without adding an external texture. The dimensions and striations are appearance parameters, not reconstructed muscle fascicles. In this exterior view, the relaxed lens and ciliary apparatus remain in the construction but are omitted from the draw pass; Part III provides their interior views.
@@ -74,41 +70,33 @@ const worldInsertion = localInsertion.clone()
 
 We update vertex positions in the same buffers as the eye turns. A geometric clearance step moves curve samples out of the scleral shell if needed; this keeps the drawing legible without solving contact pressure or tissue deformation. At the insertion, the tendon fan follows scleral curvature rather than hovering above it as a flat strap.
 
-## The orbit also guides the muscles
+## From paths to forces
 
-The recti do not simply take the shortest line from the orbital apex to their moving insertions. Imaging and histology show connective-tissue **pulleys** that guide their paths and affect pulling direction (Demer et al., 1995).
+Pulleys change the effective pulling direction; their role is supported by imaging and histology (Demer et al., 1995). Here we use UPAT's fixed-pulley approximation. A moving, compliant pulley, such as those studied by Wei et al. (2022), would require solving its forces and displacement too.
 
-That is why the model includes intermediate orbital guides. They stand in for this routing constraint, but their locations are chosen for the drawing and remain fixed. Real pulleys have structure, compliance and position-dependent behaviour. Our guides neither reproduce that anatomy in detail nor demonstrate the mechanics of a particular pulley hypothesis.
-
-This difference matters when interpreting the moving muscle bellies: a changing route is a geometrical consequence of our prescribed pose, not a prediction of muscle force or activation. Mechanical simulations need additional constitutive properties, active and passive forces, and tissue interactions; Wei et al. (2022) show the much larger modelling problem involved.
-
-## A direction needs an orientation
-
-A target tells the eye where to point, but it does not by itself specify rotation about that direction. That third component is **torsion**. Intorsion turns the upper pole nasally; extorsion turns it temporally.
-
-For our head-fixed illustration, we use the shortest rotation taking the primary z-axis towards the target direction:
+Each muscle's total tension combines an **active** contribution, dependent on activation and fibre length, with a **passive** contribution that increases with stretch. Maximum isometric force, optimal fibre length and tendon length come from UPAT. The force–length curves were evaluated with OpenSim and are interpolated in the browser. Tendons are treated as inextensible. We first solve static fixation, where shortening velocity is zero; during movement we also use the same model’s force–velocity curve.
 
 ```ts
-const direction = new THREE.Vector3(
-  Math.sin(h) * Math.cos(v),
-  Math.sin(v),
-  Math.cos(h) * Math.cos(v),
-);
-const rotation = new THREE.Quaternion().setFromUnitVectors(
-  new THREE.Vector3(0, 0, 1), direction,
-);
+const tension = activeForce + passiveForce;
+const muscleTorque = momentArm.clone().multiplyScalar(tension);
 ```
 
-Here `h` and `v` are in radians. These poses have rotation vectors in the primary x–y plane, giving a **Listing-compatible orientation rule** for this chosen primary position. This concerns the eye's orientation from primary position, not a rule that every instantaneous movement axis stays in that plane. Three-dimensional rotations require that distinction; their order matters (Tweed & Vilis, 1987).
+The moment arm is the cross product of insertion position and pulling direction, expressed in metres. We sum all six muscle torques and the elastic resistance of the orbital tissues. The eye is in equilibrium when that sum approaches zero. For those tissues we use an isotropic rotation-vector adaptation of Filip et al.'s linear and cubic coefficients; this is not an identical reproduction of their model.
 
-The sequence below uses targets at 15° horizontally and vertically, chosen for visibility. It moves slowly so we can inspect the construction; its timing is not a saccade model. With reduced motion enabled, select a discrete gaze position instead.
+## Looking together, deviating differently
+
+First, we calculate activations bounded between 0 and 1 that hold each eye at a distant fixation target. Recruitment starts from a chosen 8% coactivation level: a controller assumption. The reference orientation is compatible with Listing's law for our chosen primary position (Tweed & Vilis, 1987).
+
+We then keep those commands and change one property of the right eye. Reducing lateral-rectus active force to 25% shifts the equilibrium inward. Superior-oblique weakness can produce elevation and excyclotorsion. Multiplying inferior-rectus passive resistance by four explores mechanical restriction. These factors are teaching perturbations, not clinical grades of paralysis or fibrosis.
+
+The altered orientation is solved in **three dimensions**, including torsion; the affected eye is free to depart from the target orientation. The other eye maintains reference fixation. Choose a gaze direction to see how the imbalance changes.
 
 <InteractiveViewer>
   <div slot="preview"><ExtraocularDemo motion client:visible /></div>
   <div slot="code"><SourceFiles files={motilitySources} /></div>
 </InteractiveViewer>
 
-The target indicator describes the prescribed direction. The eye follows it rigidly, while the muscles update their routes to the moving attachments. Neither the pupil nor accommodation changes in this chapter: the anterior segment stays relaxed so we can concentrate on globe orientation.
+H and V report right-eye equilibrium deviation from reference fixation, positive nasally and superiorly. Positive torsion is excyclotorsion, measured relative to the shortest-rotation orientation towards that gaze. The force readouts include active and passive tension; **Debug** exposes the components and residual torque. To move between fixations, we integrate muscle torque, globe inertia and orbital damping. Activation changes with a model time constant, and active tension also depends on shortening velocity. We use a homogeneous globe and UPAT coefficients, with internal steps of at most 2 ms and an implicit velocity solve to keep the integration stable. Reduced-motion mode shows the equilibrium directly.
 
 ## Muscle actions depend on eye position
 
@@ -127,11 +115,11 @@ These are anatomical actions, not commands calculated by the demo. For the verti
 
 The motor pathways here also differ from the ciliary-ganglion route to the pupil discussed in [Part II](/blog/webgl-eye-02-pupil/). Cranial nerve III serves several targets, but they do not all share the same downstream pathway.
 
-## From one eye to coordinated gaze
+## What we can check
 
-A single-eye construction lets us inspect attachments and rotations without adding another set of assumptions. Coordinating both eyes would require binocular target geometry and vergence; moving the head would introduce vestibular responses and changes in torsion. Those behaviours are beyond this head-fixed scene.
+Tests check torque directions, agreement with muscle-length changes, local equilibrium stability and convergence in all nine gaze directions. The perturbations produce qualitatively expected signs. That validates parts of the calculation, but does not establish that the predicted angles agree with patients.
 
-What we have added is a reusable separation: the globe has an orientation, its insertions travel with it, and the surrounding orbit constrains the muscle paths. To make forces determine that orientation, we would need a different layer of modelling and experimental validation.
+This model lets us separate active weakness from passive restriction. It does not yet include binocular fusion, neural adaptation, near convergence or vestibular responses. Studying a particular strabismus would require fitting anatomy and muscle properties, then comparing deviations with independent data. The dynamics converge to the same equilibria and have been checked at different rendering rates, but still need comparison with eye-movement recordings before their timing can be interpreted as physiological saccades.
 
 <PublishedPost id="webgl-eye-06-models">
 Continue with [Part VI: Models and populations](/blog/webgl-eye-06-models/), where we ask which eye our chosen dimensions describe and compare them with Navarro and Atchison.
@@ -143,3 +131,5 @@ Continue with [Part VI: Models and populations](/blog/webgl-eye-06-models/), whe
 2. **Demer, J. L., et al. (1995).** [*Evidence for fibromuscular pulleys of the recti extraocular muscles*](https://pubmed.ncbi.nlm.nih.gov/7730022/). Investigative Ophthalmology & Visual Science, 36, 1125–1136.
 3. **Tweed, D., & Vilis, T. (1987).** [*Implications of rotational kinematics for the oculomotor system in three dimensions*](https://doi.org/10.1152/jn.1987.58.4.832). Journal of Neurophysiology, 58, 832–849.
 4. **Wei, Q., et al. (2022).** [*Biomechanical modeling of actively controlled rectus extraocular muscle pulleys*](https://pmc.ncbi.nlm.nih.gov/articles/PMC8987043/). Scientific Reports, 12, 5806.
+
+5. **Filip, K., Stanev, D., & Moustakas, K. (2018).** [*An Open-Source OpenSim Oculomotor Model for Kinematics and Dynamics Simulation*](https://arxiv.org/abs/1807.07332). [UPAT v4 reference coordinates and parameters](https://github.com/mitkof6/upat_eye_model/blob/master/model/UPAT_Eye_Model_Passive_Pulleys_v4.osim).
