@@ -325,25 +325,38 @@ export default function PupilHardwareSync({
 			if (disposed) return;
 
 			// Keep the Monitor mount point scoped to its hidden document
+			// (v1 uses #root in React, v2 uses #app in Svelte)
 			scriptText = scriptText.replace(
-				/getElementById\(['"]root['"]\)/g,
+				/getElementById\(['"](?:root|app)['"]\)/g,
 				"getElementById('neon-dummy-root')",
 			);
 
 			// Force the app to always subscribe to the gaze stream regardless of UI toggles/tabs
+			// (Supports v1 forceGazeSize and v2 plConstMonitor_gazeRadiusPercent)
 			const previousGazeSize = localStorage.getItem("forceGazeSize");
+			const previousPlGaze = localStorage.getItem(
+				"plConstMonitor_gazeRadiusPercent",
+			);
 			restoreStorage = () => {
 				if (previousGazeSize === null) localStorage.removeItem("forceGazeSize");
 				else localStorage.setItem("forceGazeSize", previousGazeSize);
+				if (previousPlGaze === null)
+					localStorage.removeItem("plConstMonitor_gazeRadiusPercent");
+				else
+					localStorage.setItem(
+						"plConstMonitor_gazeRadiusPercent",
+						previousPlGaze,
+					);
 			};
 			localStorage.setItem("forceGazeSize", "10");
+			localStorage.setItem("plConstMonitor_gazeRadiusPercent", "10");
 			scriptText = scriptText.replace(/gazeRadiusPercent/g, "forceGazeSize");
 			scriptText = scriptText.replace(/!document\.hidden/g, "true");
 
 			// Completely disable the heavy 1080p world video stream from rendering or wasting bandwidth
 			scriptText = scriptText.replace(/WORLD="world"/g, 'WORLD="DISABLED"');
 
-			// Force it to connect to the device IP instead of the blog's localhost
+			// Force it to connect to the device IP instead of the blog's localhost or hardcoded neon.local
 			scriptText = scriptText.replace(
 				/window\.location\.href/g,
 				`("http://${safeIp}:8080/")`,
@@ -360,6 +373,17 @@ export default function PupilHardwareSync({
 				/window\.location\.protocol/g,
 				`("http:")`,
 			);
+
+			// Support Companion App v2 (Svelte) which hardcodes neon.local into API client & status endpoints
+			scriptText = scriptText.replace(
+				/http:\/\/neon\.local:8080\/api/g,
+				`http://${safeIp}:8080/api`,
+			);
+			scriptText = scriptText.replace(
+				/\bneon\.local:8080\b/g,
+				`${safeIp}:8080`,
+			);
+			scriptText = scriptText.replace(/(['"])neon\.local\1/g, `$1${safeIp}$1`);
 
 			// 5. Scope the interceptor to sockets constructed by the Monitor bundle.
 			// URLs derived from bare `location` resolve against about:blank inside
